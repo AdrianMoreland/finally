@@ -1,0 +1,17 @@
+node_modules
+dist
+.turbo
+.expo
+.env
+.env.*
+!.env.example
+*.log
+coverage
+.DS_Store
+*.tsbuildinfo
+apps/mobile/ios
+apps/mobile/android
+apps/web/dev-dist
+packages/db/src/generated
+supabase/.temp
+supabase/.branches
