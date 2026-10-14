@@ -8,3 +8,7 @@ onlyBuiltDependencies:
   - prisma
   - sharp
   - unrs-resolver
+overrides:
+  # One React for the whole repo: React Native pins its renderer to this exact version.
+  react: 19.2.3
+  react-dom: 19.2.3

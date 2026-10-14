@@ -80,6 +80,11 @@ export const useTransactions = (q: Omit<Partial<ListTransactionsQuery>, 'cursor'
   });
 };
 
+export const useTransaction = (id: string | undefined) => {
+  const api = useApi();
+  return useQuery({ queryKey: ['transaction', id], queryFn: () => api.transaction(id!), enabled: Boolean(id) });
+};
+
 export const useRecategorise = () => {
   const api = useApi();
   const qc = useQueryClient();
