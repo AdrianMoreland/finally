@@ -55,3 +55,6 @@ export const ASK_GROUP_BUTTONS: Record<AskGroup, readonly string[]> = {
 
 /** iOS notification category identifier for an askGroup, e.g. `ask_food`. */
 export const askCategoryId = (group: AskGroup): string => `ask_${group.toLowerCase()}`;
+
+/** Slugs treated as fixed bills (paid on a schedule) for safe-to-spend and budget pacing. */
+export const FIXED_CATEGORY_SLUGS: readonly string[] = ['rent', 'bills', 'subscriptions'];
