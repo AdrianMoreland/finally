@@ -105,7 +105,7 @@ export const createRuleBody = z.object({
   matchType: ruleMatchType,
   pattern: z.string().min(1).max(200),
   categoryId: id,
-  priority: z.number().int().min(0).max(1000).default(50),
+  priority: z.number().int().min(0).max(1000).default(100),
 });
 export type CreateRuleBody = z.infer<typeof createRuleBody>;
 

@@ -1,0 +1,5 @@
+{
+  "extends": "@finally/config/tsconfig.node.json",
+  "compilerOptions": { "allowImportingTsExtensions": true, "rewriteRelativeImportExtensions": false },
+  "include": ["src", "seed", "tsup.config.ts", "prisma.config.ts"]
+}
