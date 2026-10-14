@@ -6,6 +6,7 @@ import {
   DEMO_TARGET_ALLOCATION,
   SEED_CATEGORIES,
   SEED_MERCHANTS,
+  SEED_PATTERN_RULES,
   SEED_TAX_RULES,
 } from './seed-data.ts';
 
@@ -13,6 +14,20 @@ export interface ProvisionResult {
   categories: number;
   rules: number;
   taxRules: number;
+}
+
+const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Whole-word descriptor pattern for a merchant ("boots-pharmacy" → \bboots[\s*.-]+pharmacy\b), so a rule
+ * still matches when the bank adds a store name or suburb. Skipped for very short or punctuated names where it
+ * would over-match; those rely on the exact merchant key.
+ */
+export function wordPattern(merchantKey: string, name: string): string | null {
+  if (/[^A-Za-z0-9 ]/.test(name)) return null;
+  const tokens = merchantKey.split('-').filter(Boolean);
+  if (tokens.length === 0 || (tokens.length === 1 && merchantKey.length < 5)) return null;
+  return `\\b${tokens.map(escapeRe).join('[\\s*.-]+')}\\b`;
 }
 
 /** Idempotently create a user's categories, SEED merchant rules and tax rules. Safe to run on every login. */
@@ -42,7 +57,7 @@ export async function provisionDefaults(db: PrismaClient, userId: string): Promi
 
   const rules: Array<{
     userId: string;
-    matchType: 'EXACT';
+    matchType: 'EXACT' | 'REGEX' | 'CONTAINS';
     pattern: string;
     categoryId: string;
     priority: number;
@@ -58,7 +73,16 @@ export async function provisionDefaults(db: PrismaClient, userId: string): Promi
       if (seen.has(merchantKey)) continue;
       seen.add(merchantKey);
       rules.push({ userId, matchType: 'EXACT', pattern: merchantKey, categoryId, priority: 100, source: 'SEED', active: true });
+      const rx = wordPattern(merchantKey, name);
+      if (rx && !seen.has(`rx:${rx}`)) {
+        seen.add(`rx:${rx}`);
+        rules.push({ userId, matchType: 'REGEX', pattern: rx, categoryId, priority: 100, source: 'SEED', active: true });
+      }
     }
+  }
+  for (const r of SEED_PATTERN_RULES) {
+    const categoryId = bySlug.get(r.slug);
+    if (categoryId) rules.push({ userId, matchType: r.matchType, pattern: r.pattern, categoryId, priority: 90, source: 'SEED', active: true });
   }
   const created = await db.merchantRule.createMany({ data: rules, skipDuplicates: true });
 

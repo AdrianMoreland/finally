@@ -45,7 +45,7 @@ export const SEED_MERCHANTS: Record<string, string[]> = {
     'Donnybrook Fair', 'Marks and Spencer Food', 'Supervalu Express',
   ],
   coffee: [
-    'Starbucks', 'Costa Coffee', 'Insomnia', 'Butlers Chocolate Cafe', 'Two Boys Brew', '3FE', 'Tim Hortons',
+    '3FE Grand Canal', 'Starbucks', 'Costa Coffee', 'Insomnia', 'Butlers Chocolate Cafe', 'Two Boys Brew', '3FE', 'Tim Hortons',
     'Caffe Nero', 'Coffeeangel', 'Java Republic', 'Cafe Nero',
   ],
   'eating-out': [
@@ -62,19 +62,19 @@ export const SEED_MERCHANTS: Record<string, string[]> = {
   fuel: ['Circle K', 'Applegreen', 'Maxol', 'Texaco', 'Topaz', 'Esso', 'Emo Oil', 'Amber Oil', 'Gulf'],
   transport: ['Q Park', 'eFlow', 'Parkmobile', 'Ringgo', 'M50 Toll'],
   bills: [
-    'Electric Ireland', 'Bord Gais Energy', 'SSE Airtricity', 'Flogas', 'Pinergy', 'Energia', 'Eir', 'Vodafone',
+    'VHI Healthcare', 'Aviva Insurance', 'Electric Ireland', 'Bord Gais Energy', 'SSE Airtricity', 'Flogas', 'Pinergy', 'Energia', 'Eir', 'Vodafone',
     'Three', 'Virgin Media', 'Sky', 'Pure Telecom', 'Uisce Eireann', 'Irish Water', 'Aviva', 'Allianz', 'FBD Insurance',
     'AXA Insurance', 'Zurich Insurance', 'Irish Life', 'An Post', 'Dublin City Council', 'NCT', 'TV Licence',
     'Revenue', 'Yuno Energy', 'Prepay Power', 'Tesco Mobile',
   ],
   subscriptions: [
-    'Netflix', 'Spotify', 'Disney Plus', 'Amazon Prime', 'Apple', 'iCloud', 'Google One', 'YouTube Premium',
+    'Netflix', 'Spotify', 'Disney Plus', 'Disneyplus', 'Amazon Prime', 'Apple', 'iCloud', 'Google One', 'YouTube Premium',
     'HBO Max', 'Paramount Plus', 'Audible', 'OpenAI', 'ChatGPT', 'Microsoft 365', 'Adobe', 'Dropbox', 'Notion',
     'Canva', 'Patreon', 'Strava', 'Xbox Game Pass', 'Playstation Plus', 'Nintendo Online', 'Duolingo', 'Headspace',
     'Tidal', 'Deezer', 'Github', 'Substack', 'Medium',
   ],
   shopping: [
-    'Penneys', 'Primark', 'Arnotts', 'Brown Thomas', 'Zara', 'H&M', 'Marks and Spencer', 'Next', 'River Island',
+    'Zara Grafton St', 'Penneys', 'Primark', 'Arnotts', 'Brown Thomas', 'Zara', 'H&M', 'Marks and Spencer', 'Next', 'River Island',
     'JD Sports', 'Sports Direct', 'Argos', 'Harvey Norman', 'DID Electrical', 'Currys', 'Amazon', 'eBay', 'Etsy',
     'ASOS', 'Shein', 'Decathlon', 'Smyths Toys', 'TK Maxx', 'Easons', 'Hodges Figgis', 'Dealz', 'Tiger',
   ],
@@ -136,3 +136,17 @@ export const DEMO_LOTS = [
 
 export const DEMO_TARGET_ALLOCATION = { VWCE: 65, EIMI: 20, GOLD: 15 };
 
+
+/**
+ * Descriptor patterns that are not tied to one merchant name. Matched case-insensitively against the raw
+ * bank descriptor with the lowest specificity, so any user rule or exact merchant rule wins first.
+ */
+export const SEED_PATTERN_RULES: Array<{ matchType: 'REGEX' | 'CONTAINS'; pattern: string; slug: string }> = [
+  { matchType: 'REGEX', pattern: '\\b(landlord|rent)\\b', slug: 'rent' },
+  { matchType: 'REGEX', pattern: '\\b(pharmacy|chemist)\\b', slug: 'health' },
+  { matchType: 'REGEX', pattern: '\\b(insurance|assurance)\\b', slug: 'bills' },
+  { matchType: 'REGEX', pattern: '\\b(cinema|cineworld|odeon)\\b', slug: 'fun' },
+  { matchType: 'REGEX', pattern: '\\b(taxi|cab office)\\b', slug: 'taxi' },
+  { matchType: 'REGEX', pattern: '\\b(petrol|diesel|fuel)\\b', slug: 'fuel' },
+  { matchType: 'REGEX', pattern: '\\b(airlines?|airways|ryanair)\\b', slug: 'travel' },
+];

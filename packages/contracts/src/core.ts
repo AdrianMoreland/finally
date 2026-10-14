@@ -144,7 +144,7 @@ export const connectionSchema = z.object({
 });
 export type ConnectionDto = z.infer<typeof connectionSchema>;
 
-export const startConnectionBody = z.object({ institution });
+export const startConnectionBody = z.object({ institution, returnTo: z.enum(['web', 'mobile']).default('web') });
 export const startConnectionResponse = z.object({
   connectionId: id,
   /** Where to send the user to authorise. Mock mode returns a URL that completes immediately. */
@@ -286,3 +286,4 @@ export const pushPayload = z.object({
 });
 export type PushPayload = z.infer<typeof pushPayload>;
 
+export type RecategoriseTransactionBody = z.infer<typeof recategoriseTransactionBody>;

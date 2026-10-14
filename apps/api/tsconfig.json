@@ -1,0 +1,23 @@
+{
+  "extends": "@finally/config/tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node10",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "types": ["node", "jest"],
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "verbatimModuleSyntax": false,
+    "isolatedModules": false,
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "strictPropertyInitialization": false
+  },
+  "include": ["src", "test"],
+  "exclude": ["node_modules", "dist"]
+}

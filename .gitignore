@@ -15,3 +15,5 @@ apps/web/dev-dist
 packages/db/src/generated
 supabase/.temp
 supabase/.branches
+.idea
+*.iml
