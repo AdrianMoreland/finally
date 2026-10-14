@@ -31,7 +31,7 @@ const LOCATIONS = new Set(
 /** Generic trailing words with no identifying value. */
 const GENERIC_TAIL = new Set([
   'STORES', 'STORE', 'LTD', 'LIMITED', 'PLC', 'DAC', 'CO', 'INC', 'LLC', 'WEB', 'ONLINE', 'PAYMENT',
-  'PMT', 'REF', 'SAL', 'SALARY', 'COM', 'WWW',
+  'PMT', 'REF', 'REFUND', 'SAL', 'SALARY', 'COM', 'WWW',
 ]);
 
 /** Display names that title-casing gets wrong. Keyed by merchantKey. */
