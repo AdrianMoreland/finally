@@ -1,4 +1,4 @@
-import { D, Decimal, m2, ZERO } from './decimal';
+import { D, Decimal, m2, ZERO, type Num } from './decimal';
 import { addYears, diffDays } from './dates';
 
 /**
@@ -115,6 +115,10 @@ export function deemedDisposals(
 
 /* ------------------------------------------------------ where should €X go */
 
+const euros = (v: Num): string => `€${Math.round(D(v).toNumber()).toLocaleString('en-IE')}`;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const longDate = (d: string): string => `${Number(d.slice(8))} ${MONTHS[Number(d.slice(5, 7)) - 1]} ${d.slice(0, 4)}`;
+
 export type WhereKey = 'BROKER_ETF' | 'INVESTMENT_ACCOUNT' | 'SHARES';
 
 export interface WhereInput {
@@ -186,10 +190,10 @@ export function whereShouldItGo(i: WhereInput): { options: WhereOption[]; best: 
   const iaNotes = [
     'No CGT, exit tax or deemed disposal inside the account.',
     iaRule
-      ? `${D(iaRule.rate).times(100).toFixed(0)}% a year on the average daily value above ${m2(iaRule.threshold ?? 0)}, from ${iaRule.effectiveFrom}.`
+      ? `${D(iaRule.rate).times(100).toFixed(0)}% a year on the average daily value above ${euros(iaRule.threshold ?? 0)}, from ${longDate(iaRule.effectiveFrom)}.`
       : 'No Investment Account rule is loaded.',
   ];
-  if (outside.gt(0)) iaNotes.push(`Contribution cap is ${m2(cap ?? 0)} a year: the other ${m2(outside)} is modelled in a broker ETF.`);
+  if (outside.gt(0)) iaNotes.push(`Contribution cap is ${euros(cap ?? 0)} a year: the other ${euros(outside)} is modelled in a broker ETF.`);
 
   // Individual shares: CGT on the final sale, one annual exemption
   const sharesValue = amount.times(growth.pow(i.years));

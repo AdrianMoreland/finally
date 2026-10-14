@@ -69,16 +69,17 @@ export class MarketDataService implements OnModuleInit {
     const inst = await this.db.instrument.findFirst({ where: { id: instrumentId, userId } });
     if (!inst) return 0;
     const bars = await this.history(inst, days);
-    let n = 0;
-    for (const b of bars) {
-      await this.db.priceBar.upsert({
-        where: { instrumentId_date: { instrumentId, date: new Date(`${b.date}T00:00:00Z`) } },
-        update: { close: b.close },
-        create: { userId, instrumentId, date: new Date(`${b.date}T00:00:00Z`), close: b.close },
-      });
-      n++;
+    if (bars.length === 0) return 0;
+    // One batched insert for the history; the newest few closes are refreshed individually (they can be revised).
+    await this.db.priceBar.createMany({
+      data: bars.map((b) => ({ userId, instrumentId, date: new Date(`${b.date}T00:00:00Z`), close: b.close })),
+      skipDuplicates: true,
+    });
+    for (const b of bars.slice(-3)) {
+      const date = new Date(`${b.date}T00:00:00Z`);
+      await this.db.priceBar.update({ where: { instrumentId_date: { instrumentId, date } }, data: { close: b.close } });
     }
-    return n;
+    return bars.length;
   }
 
   /**

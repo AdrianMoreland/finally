@@ -1,0 +1,29 @@
+{
+  "extends": "@finally/config/tsconfig.react.json",
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "outDir": "./node_modules/.tmp/app",
+    "types": [
+      "vite/client",
+      "vite-plugin-pwa/client"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "src/*"
+      ]
+    },
+    "allowImportingTsExtensions": false,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/sw"
+  ]
+}

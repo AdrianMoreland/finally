@@ -150,7 +150,7 @@ export class IngestService {
   /** Pair equal-and-opposite payments across the user's own accounts as transfers (excluded from spending). */
   async linkTransfers(userId: string, today: string): Promise<number> {
     const accounts = await this.db.account.findMany({ where: { userId }, select: { id: true } });
-    const from = addDays(today, -90);
+    const from = addDays(today, -420);
     const rows = await this.db.transaction.findMany({
       where: {
         userId,
@@ -165,8 +165,15 @@ export class IngestService {
       rows.map((r) => ({ id: r.id, accountId: r.accountId, date: dublinDate(r.bookingDate), amountEur: r.amountEur.toString() })),
       accounts.map((a) => a.id),
     );
-    if (pairs.length === 0) return 0;
     const transfers = await this.db.category.findFirst({ where: { userId, slug: 'transfers' }, select: { id: true } });
+    // Transfers always carry the Transfers category, whichever step touched them last.
+    if (transfers) {
+      await this.db.transaction.updateMany({
+        where: { userId, kind: 'TRANSFER', OR: [{ categoryId: null }, { categoryId: { not: transfers.id } }] },
+        data: { categoryId: transfers.id, categorisedBy: 'SEED', needsReview: false },
+      });
+    }
+    if (pairs.length === 0) return 0;
     for (const p of pairs) {
       await this.db.transaction.updateMany({
         where: { id: { in: [p.outId, p.inId] } },
