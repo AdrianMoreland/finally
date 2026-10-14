@@ -131,6 +131,7 @@ export class FinallyApi {
   /* transactions */
   transactions = (q: Partial<ListTransactionsQuery>) =>
     this.call(transactionPage, 'GET', '/transactions', { query: q as Query });
+  transaction = (id: string) => this.call(transactionSchema, 'GET', `/transactions/${id}`);
   setNote = (id: string, note: string | null) => this.call(transactionSchema, 'PATCH', `/transactions/${id}`, { body: { note } });
   recategorise = (id: string, body: RecategoriseTransactionBody) =>
     this.call(updatedCountResponse, 'POST', `/transactions/${id}/category`, { body });

@@ -5,6 +5,7 @@ import { BankingController } from './banking.controller';
 import { BankingService } from './banking.service';
 import { IngestService } from './ingest.service';
 import { BANK_PROVIDER, type BankDataProvider } from './providers/bank-provider';
+import { EnableBankingProvider } from './providers/enable-banking.provider';
 import { MockBankProvider } from './providers/mock-bank.provider';
 
 @Module({
@@ -18,10 +19,7 @@ import { MockBankProvider } from './providers/mock-bank.provider';
       provide: BANK_PROVIDER,
       inject: [ENV, MockBankProvider],
       useFactory: (env: Env, mock: MockBankProvider): BankDataProvider => {
-        if (env.BANK_PROVIDER === 'enable_banking') {
-          throw new Error('BANK_PROVIDER=enable_banking is not wired yet');
-        }
-        return mock;
+        return env.BANK_PROVIDER === 'enable_banking' ? new EnableBankingProvider(env) : mock;
       },
     },
   ],

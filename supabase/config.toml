@@ -1,0 +1,19 @@
+# Supabase CLI config for the optional local stack (`supabase start`, needs Docker).
+# The app is developed against a hosted project; see README "Supabase".
+project_id = "finally"
+
+[api]
+enabled = false # clients never talk to the Data API; the Finally API owns all data access
+
+[db]
+port = 54322
+major_version = 17
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/**", "finally://**", "exp://**"]
+enable_signup = true # switch off after the first sign-in (the API also enforces ALLOWED_EMAILS)
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false

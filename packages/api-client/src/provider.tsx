@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
-import { FinallyApi } from './client';
+import type { FinallyApi } from './client';
 
 const ApiContext = createContext<FinallyApi | null>(null);
 

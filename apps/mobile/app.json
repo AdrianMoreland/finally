@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Finally",
+    "slug": "finally",
+    "scheme": "finally",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F1F4F2"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "ie.finally.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Unlock Finally with Face ID."
+      }
+    },
+    "android": {
+      "package": "ie.finally.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#13654F",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "color": "#13654F"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Unlock Finally with Face ID."
+        }
+      ],
+      "expo-status-bar"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
