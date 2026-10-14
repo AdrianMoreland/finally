@@ -124,12 +124,15 @@ export class CategorisationService implements OnModuleInit {
 
     let categorised = 0;
     for (const g of groups.values()) {
+      // categoryId: null guards against a concurrent run (or a transfer link) that already decided these.
       const res = await this.db.transaction.updateMany({
-        where: { id: { in: g.ids } },
+        where: { id: { in: g.ids }, categoryId: null, kind: { in: ['SPEND', 'REFUND', 'INCOME'] } },
         data: { categoryId: g.categoryId, categorisedBy: g.by, needsReview: false },
       });
       categorised += res.count;
     }
+
+    await this.closeResolvedRequests(userId);
 
     let flagged = 0;
     let requests = 0;
@@ -138,7 +141,7 @@ export class CategorisationService implements OnModuleInit {
       const allSlugs = categories.filter((c) => !c.archived).map((c) => c.slug);
       for (const [merchantKey, txs] of unmatched) {
         await this.db.transaction.updateMany({
-          where: { id: { in: txs.map((t) => t.id) } },
+          where: { id: { in: txs.map((t) => t.id) }, categoryId: null, kind: { in: ['SPEND', 'REFUND'] } },
           data: { needsReview: true, categorisedBy: 'NONE' },
         });
         flagged += txs.length;
@@ -170,6 +173,17 @@ export class CategorisationService implements OnModuleInit {
     if (requests) await this.notifyOpenRequests(userId);
     this.log.log(`categorised ${categorised}, flagged ${flagged}, new requests ${requests}`);
     return { categorised, flagged, requests };
+  }
+
+  /** A new or edited rule can sort a merchant that was waiting for an answer; close those requests. */
+  private async closeResolvedRequests(userId: string): Promise<void> {
+    const open = await this.db.categorisationRequest.findMany({ where: { userId, status: 'OPEN' } });
+    for (const r of open) {
+      const merchant = await this.db.merchant.findUnique({ where: { userId_merchantKey: { userId, merchantKey: r.merchantKey } } });
+      if (!merchant) continue;
+      const waiting = await this.db.transaction.count({ where: { userId, merchantId: merchant.id, categoryId: null, needsReview: true } });
+      if (waiting === 0) await this.closeRequestsFor(userId, r.merchantKey);
+    }
   }
 
   private async knownMerchants(userId: string): Promise<KnownMerchant[]> {

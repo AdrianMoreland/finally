@@ -16,6 +16,8 @@ export interface ProvisionResult {
   taxRules: number;
 }
 
+const AMBIGUOUS = new Set(['three', 'next', 'sky', 'gulf', 'tiger', 'mace', 'gala', 'emo', 'eir', 'dart', 'fresh', 'apple', 'chopped']);
+
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
@@ -26,7 +28,9 @@ const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 export function wordPattern(merchantKey: string, name: string): string | null {
   if (/[^A-Za-z0-9 ]/.test(name)) return null;
   const tokens = merchantKey.split('-').filter(Boolean);
-  if (tokens.length === 0 || (tokens.length === 1 && merchantKey.length < 5)) return null;
+  if (tokens.length === 0) return null;
+  // Short single-word names are only safe as whole words when they are distinctive; these are not.
+  if (tokens.length === 1 && (merchantKey.length < 3 || AMBIGUOUS.has(merchantKey))) return null;
   return `\\b${tokens.map(escapeRe).join('[\\s*.-]+')}\\b`;
 }
 

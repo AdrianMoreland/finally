@@ -50,20 +50,21 @@ export class OnboardingService {
 
   private async run(userId: string): Promise<void> {
     if (this.env.BANK_PROVIDER !== 'mock') return;
-    if ((await this.db.bankConnection.count({ where: { userId, sessionIdEnc: { not: null } } })) > 0) return;
-    this.log.log('Onboarding with mock banks');
-
-    await this.banking.connectAndSync(userId, 'AIB');
-    await this.banking.connectAndSync(userId, 'REVOLUT');
+    // Every step checks its own state, so a restart half way through simply carries on.
+    if ((await this.db.bankConnection.count({ where: { userId, sessionIdEnc: { not: null } } })) === 0) {
+      this.log.log('Onboarding with mock banks');
+      await this.banking.connectAndSync(userId, 'AIB');
+      await this.banking.connectAndSync(userId, 'REVOLUT');
+    }
     await this.categorisation.categoriseUser(userId);
-
     await this.seedBudgets(userId);
     await this.seedGoals(userId);
     await provisionDemoPortfolio(this.db, userId);
     await this.db.user.updateMany({ where: { id: userId, monthlySavingsTarget: 0 }, data: { monthlySavingsTarget: m2(630) } });
-    const instruments = await this.db.instrument.findMany({ where: { userId } });
-    for (const i of instruments) await this.market.backfill(userId, i.id);
-    await this.insights.runForUser(userId);
+    for (const i of await this.db.instrument.findMany({ where: { userId } })) {
+      if ((await this.db.priceBar.count({ where: { instrumentId: i.id } })) === 0) await this.market.backfill(userId, i.id);
+    }
+    if ((await this.db.insight.count({ where: { userId } })) === 0) await this.insights.runForUser(userId);
   }
 
   private async seedBudgets(userId: string): Promise<void> {

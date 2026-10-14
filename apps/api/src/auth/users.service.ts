@@ -12,6 +12,7 @@ interface Claims {
 export class UsersService {
   private readonly log = new Logger(UsersService.name);
   private readonly cache = new Map<string, { user: AuthUser; at: number }>();
+  private readonly inflight = new Map<string, Promise<AuthUser>>();
 
   constructor(
     @InjectDb() private readonly db: Db,
@@ -29,7 +30,16 @@ export class UsersService {
   async resolve(claims: Claims): Promise<AuthUser> {
     const hit = this.cache.get(claims.sub);
     if (hit && Date.now() - hit.at < 60_000) return hit.user;
+    // The browser fires several requests at once on load; resolve the user only once for all of them.
+    let pending = this.inflight.get(claims.sub);
+    if (!pending) {
+      pending = this.load(claims).finally(() => this.inflight.delete(claims.sub));
+      this.inflight.set(claims.sub, pending);
+    }
+    return pending;
+  }
 
+  private async load(claims: Claims): Promise<AuthUser> {
     const email = claims.email.toLowerCase();
     let user = await this.db.user.findUnique({ where: { authId: claims.sub } });
     if (!user) {
