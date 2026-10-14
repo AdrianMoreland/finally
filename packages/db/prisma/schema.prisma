@@ -1,0 +1,532 @@
+// Finally data model. Money columns are Decimal(14,2); quantities/unit prices carry more precision.
+// Clients never talk to Postgres directly: every table has RLS enabled with no policies (see migrations).
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum BankProviderKind {
+  ENABLE_BANKING
+  MOCK
+}
+
+enum Institution {
+  AIB
+  REVOLUT
+}
+
+enum ConnectionStatus {
+  ACTIVE
+  EXPIRING
+  EXPIRED
+  ERROR
+}
+
+enum AccountType {
+  CURRENT
+  SAVINGS
+  VAULT
+  CARD
+}
+
+enum TxStatus {
+  PENDING
+  BOOKED
+}
+
+enum TxKind {
+  SPEND
+  INCOME
+  TRANSFER
+  REFUND
+}
+
+enum CategorisedBy {
+  RULE
+  USER
+  SEED
+  AI
+  NONE
+}
+
+enum CategoryGroup {
+  ESSENTIALS
+  LIFESTYLE
+  SAVINGS
+  INCOME
+  TRANSFER
+}
+
+enum AskGroup {
+  FOOD
+  TRANSPORT
+  SHOPPING
+  BILLS
+  FUN
+  OTHER
+}
+
+enum RuleMatchType {
+  EXACT
+  CONTAINS
+  REGEX
+}
+
+enum RuleSource {
+  USER
+  SEED
+}
+
+enum RequestStatus {
+  OPEN
+  ANSWERED
+  DISMISSED
+}
+
+enum Cadence {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum Severity {
+  INFO
+  WATCH
+  ACT
+}
+
+enum AssetClass {
+  ETF
+  SHARE
+  CRYPTO
+  METAL
+  CASH
+  PENSION
+}
+
+enum TaxRegime {
+  EXIT_TAX
+  CGT
+  NONE
+}
+
+enum TaxRuleRegime {
+  EXIT_TAX
+  CGT
+  INVESTMENT_ACCOUNT
+}
+
+enum Wrapper {
+  BROKER
+  INVESTMENT_ACCOUNT
+  PENSION
+}
+
+enum Platform {
+  IOS
+  ANDROID
+  WEB
+}
+
+model User {
+  id                   String   @id @default(cuid())
+  authId               String   @unique // Supabase auth user id (JWT sub)
+  email                String   @unique
+  displayName          String
+  currency             String   @default("EUR")
+  timezone             String   @default("Europe/Dublin")
+  paydayDayOfMonth     Int      @default(28)
+  monthlySavingsTarget Decimal  @default(0) @db.Decimal(14, 2)
+  quietHoursStart      String   @default("22:00")
+  quietHoursEnd        String   @default("08:00")
+  targetAllocation     Json     @default("{}")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  connections BankConnection[]
+  accounts    Account[]
+  transactions Transaction[]
+  merchants   Merchant[]
+  categories  Category[]
+  rules       MerchantRule[]
+  requests    CategorisationRequest[]
+  budgets     Budget[]
+  goals       Goal[]
+  recurring   RecurringSeries[]
+  insights    Insight[]
+  instruments Instrument[]
+  lots        Lot[]
+  priceBars   PriceBar[]
+  signals     Signal[]
+  taxRules    TaxRule[]
+  devices     PushDevice[]
+  syncRuns    SyncRun[]
+}
+
+model BankConnection {
+  id           String           @id @default(cuid())
+  userId       String
+  provider     BankProviderKind
+  institution  Institution
+  sessionIdEnc String? // AES-256-GCM, base64(iv|tag|ciphertext)
+  authState    String? // pending OAuth-style state
+  status       ConnectionStatus @default(ACTIVE)
+  validUntil   DateTime?
+  lastSyncAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accounts Account[]
+  syncRuns SyncRun[]
+
+  @@index([userId])
+  @@unique([userId, provider, institution])
+}
+
+model Account {
+  id                String      @id @default(cuid())
+  userId            String
+  connectionId      String
+  providerAccountId String
+  name              String
+  ibanMasked        String?
+  currency          String      @default("EUR")
+  type              AccountType
+  balance           Decimal     @default(0) @db.Decimal(14, 2)
+  balanceAt         DateTime?
+  includeInNetWorth Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connection   BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  goals        Goal[]
+
+  @@unique([userId, providerAccountId])
+  @@index([connectionId])
+}
+
+model Category {
+  id          String        @id @default(cuid())
+  userId      String
+  name        String
+  slug        String
+  group       CategoryGroup
+  askGroup    AskGroup      @default(OTHER)
+  icon        String
+  colour      String
+  parentId    String?
+  archived    Boolean       @default(false)
+  sortOrder   Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+
+  transactions Transaction[]
+  merchants    Merchant[]
+  rules        MerchantRule[]
+  budgets      Budget[]
+
+  @@unique([userId, slug])
+  @@index([parentId])
+}
+
+model Merchant {
+  id                String   @id @default(cuid())
+  userId            String
+  merchantKey       String
+  displayName       String
+  logoUrl           String?
+  defaultCategoryId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultCategory Category? @relation(fields: [defaultCategoryId], references: [id], onDelete: SetNull)
+  transactions    Transaction[]
+  recurring       RecurringSeries[]
+
+  @@unique([userId, merchantKey])
+}
+
+model Transaction {
+  id             String        @id @default(cuid())
+  userId         String
+  accountId      String
+  providerTxId   String?
+  dedupeHash     String
+  bookingDate    DateTime
+  valueDate      DateTime?
+  amount         Decimal       @db.Decimal(14, 2) // signed, account currency
+  currency       String        @default("EUR")
+  amountEur      Decimal       @db.Decimal(14, 2)
+  rawDescriptor  String
+  merchantId     String?
+  categoryId     String?
+  status         TxStatus      @default(BOOKED)
+  kind           TxKind        @default(SPEND)
+  transferPairId String?
+  categorisedBy  CategorisedBy @default(NONE)
+  needsReview    Boolean       @default(false)
+  note           String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account  Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, dedupeHash])
+  @@index([userId, bookingDate])
+  @@index([userId, merchantId])
+  @@index([userId, needsReview])
+  @@index([accountId, bookingDate])
+}
+
+model MerchantRule {
+  id         String        @id @default(cuid())
+  userId     String
+  matchType  RuleMatchType
+  pattern    String
+  categoryId String
+  priority   Int           @default(100)
+  source     RuleSource
+  active     Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, source, matchType, pattern])
+  @@index([userId, active])
+}
+
+model CategorisationRequest {
+  id                   String        @id @default(cuid())
+  userId               String
+  transactionId        String // first transaction that triggered the request
+  merchantKey          String
+  askGroup             AskGroup      @default(OTHER)
+  suggestedCategoryIds String[]
+  status               RequestStatus @default(OPEN)
+  notifiedAt           DateTime?
+  answeredAt           DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, merchantKey])
+}
+
+model Budget {
+  id         String   @id @default(cuid())
+  userId     String
+  categoryId String
+  month      String // YYYY-MM
+  amount     Decimal  @db.Decimal(14, 2)
+  rollover   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId, month])
+}
+
+model Goal {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  target     Decimal  @db.Decimal(14, 2)
+  targetDate DateTime
+  accountId  String?
+  saved      Decimal  @default(0) @db.Decimal(14, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
+
+model RecurringSeries {
+  id             String   @id @default(cuid())
+  userId         String
+  merchantId     String
+  cadence        Cadence
+  expectedAmount Decimal  @db.Decimal(14, 2)
+  lastAmount     Decimal  @db.Decimal(14, 2)
+  nextDate       DateTime
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  merchant Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, merchantId])
+}
+
+model Insight {
+  id          String    @id @default(cuid())
+  userId      String
+  type        String
+  severity    Severity
+  periodStart DateTime
+  title       String
+  body        String
+  payload     Json      @default("{}")
+  fingerprint String // type + period + subject; keeps nightly runs idempotent
+  pushedAt    DateTime?
+  seenAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([userId, severity])
+}
+
+model Instrument {
+  id         String     @id @default(cuid())
+  userId     String
+  symbol     String
+  isin       String?
+  exchange   String?
+  name       String
+  assetClass AssetClass
+  currency   String     @default("EUR")
+  taxRegime  TaxRegime
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lots      Lot[]
+  priceBars PriceBar[]
+  signals   Signal[]
+
+  @@unique([userId, symbol])
+}
+
+model Lot {
+  id           String   @id @default(cuid())
+  userId       String
+  instrumentId String
+  acquiredAt   DateTime
+  quantity     Decimal  @db.Decimal(18, 8)
+  unitCost     Decimal  @db.Decimal(18, 8)
+  fees         Decimal  @default(0) @db.Decimal(14, 2)
+  wrapper      Wrapper  @default(BROKER)
+  soldAt       DateTime?
+  soldPrice    Decimal? @db.Decimal(18, 8)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instrument Instrument @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, instrumentId])
+}
+
+model PriceBar {
+  id           String   @id @default(cuid())
+  userId       String
+  instrumentId String
+  date         DateTime @db.Date
+  close        Decimal  @db.Decimal(18, 8)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instrument Instrument @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+
+  @@unique([instrumentId, date])
+  @@index([userId])
+}
+
+model Signal {
+  id           String    @id @default(cuid())
+  userId       String
+  instrumentId String?
+  rule         String
+  firedAt      DateTime
+  payload      Json      @default("{}")
+  fingerprint  String
+  seenAt       DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instrument Instrument? @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fingerprint])
+  @@index([userId, firedAt])
+}
+
+model TaxRule {
+  id               String        @id @default(cuid())
+  userId           String
+  regime           TaxRuleRegime
+  rate             Decimal       @db.Decimal(6, 4) // 0.4100 = 41%
+  annualExemption  Decimal?      @db.Decimal(14, 2)
+  threshold        Decimal?      @db.Decimal(14, 2)
+  contributionCap  Decimal?      @db.Decimal(14, 2)
+  effectiveFrom    DateTime      @db.Date
+  effectiveTo      DateTime?     @db.Date
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, regime])
+}
+
+model PushDevice {
+  id         String   @id @default(cuid())
+  userId     String
+  platform   Platform
+  token      String // Expo push token, or Web Push subscription JSON
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token])
+}
+
+model SyncRun {
+  id           String    @id @default(cuid())
+  userId       String
+  connectionId String
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+  status       String // RUNNING | OK | ERROR
+  newTxCount   Int       @default(0)
+  error        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  connection BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([connectionId, startedAt])
+}

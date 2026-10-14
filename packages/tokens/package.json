@@ -1,0 +1,39 @@
+{
+  "name": "@finally/tokens",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./theme.css": "./css/theme.css",
+    "./tailwind-preset": "./preset/nativewind-preset.cjs"
+  },
+  "files": [
+    "dist",
+    "css",
+    "preset"
+  ],
+  "scripts": {
+    "generate": "tsx scripts/generate.ts",
+    "build": "pnpm generate && tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src scripts",
+    "test": "echo \"no tests\""
+  },
+  "devDependencies": {
+    "@finally/config": "workspace:*",
+    "eslint": "^9.39.0",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.0",
+    "typescript": "~5.9.3",
+    "@types/node": "^22.18.0"
+  }
+}
