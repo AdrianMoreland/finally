@@ -73,6 +73,12 @@ const DISPLAY_OVERRIDES: Record<string, string> = {
   'amznprime': 'Amazon Prime',
 };
 
+/** Month names that follow a payee on recurring payments ("RENT SEPT", "ACCOUNT FEE JUL"); dropped so each month is one merchant. */
+const MONTH_TOKENS = new Set([
+  'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'SEPT', 'OCT', 'NOV', 'DEC', 'JANUARY', 'FEBRUARY', 'MARCH',
+  'APRIL', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER',
+]);
+
 const SMALL_WORDS = new Set(['the', 'of', 'and', 'at', 'on', 'in', 'a', 'an', 'to', 'for']);
 
 const isNoiseToken = (t: string): boolean => {
@@ -136,6 +142,9 @@ export function normaliseMerchant(raw: string): NormalisedMerchant {
     const lastTwo = tokens.length >= 3 ? `${tokens[tokens.length - 2]} ${last}` : '';
     if (lastTwo && LOCATIONS.has(lastTwo)) {
       tokens = tokens.slice(0, -2);
+      changed = true;
+    } else if (tokens.length > 1 && MONTH_TOKENS.has(last)) {
+      tokens = tokens.slice(0, -1);
       changed = true;
     } else if (LOCATIONS.has(last) || GENERIC_TAIL.has(last)) {
       // Keep IRELAND when it is part of the name (Electric Ireland, Bank of Ireland).

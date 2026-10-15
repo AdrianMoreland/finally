@@ -1,6 +1,7 @@
 import { addDays, addMonths, daysInMonth, dublinDate, monthOf } from '@finally/finance-core';
 import type { Institution } from '@finally/contracts';
 import type { BankAccountInfo, RawBankTx } from './bank-provider';
+import { aibBalance, aibHistory } from './aib-statement';
 
 /** Deterministic PRNG so the same day always yields the same history. */
 function mulberry32(seed: number): () => number {
@@ -26,7 +27,7 @@ export interface MockAccount extends BankAccountInfo {
 
 export const MOCK_ACCOUNTS: Record<Institution, MockAccount[]> = {
   AIB: [
-    { providerAccountId: 'aib-current', name: 'AIB Current', ibanMasked: 'IE•• AIBK •••• 5678', currency: 'EUR', type: 'CURRENT', balance: '2184.36' },
+    { providerAccountId: 'aib-current', name: 'AIB Current', ibanMasked: 'IE•• AIBK •••• 5678', currency: 'EUR', type: 'CURRENT', balance: '0.00' },
   ],
   REVOLUT: [
     { providerAccountId: 'rev-eur', name: 'Revolut EUR', ibanMasked: 'IE•• REVO •••• 2410', currency: 'EUR', type: 'CURRENT', balance: '412.80' },
@@ -35,7 +36,6 @@ export const MOCK_ACCOUNTS: Record<Institution, MockAccount[]> = {
   ],
 };
 
-const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const pad = (n: number): string => String(n).padStart(2, '0');
 const fix = (n: number): string => n.toFixed(2);
 
@@ -52,29 +52,12 @@ function monthDrafts(institution: Institution, month: string, isCurrent: boolean
   const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(rng() * xs.length)]!;
   const between = (lo: number, hi: number): number => Math.round((lo + rng() * (hi - lo)) * 100) / 100;
   const dayIn = (lo: number, hi: number): number => Math.floor(lo + rng() * (hi - lo + 1));
-  const mon = MON[Number(month.slice(5)) - 1]!;
   const out: Draft[] = [];
   const add = (account: string, day: number, amount: number, desc: string): void => {
     out.push({ account, day: Math.min(day, daysInMonth(month)), amount, desc });
   };
 
-  if (institution === 'AIB') {
-    const a = 'aib-current';
-    add(a, 1, -1100, `SO LANDLORD ${mon} RENT`);
-    add(a, 28, 3150, 'ACME TECHNOLOGIES LTD SAL');
-    add(a, 4, -18, 'D/D THREE IRELAND');
-    add(a, 8, isCurrent ? -78 : -between(34, 42), 'D/D ELECTRIC IRELAND');
-    add(a, 15, -62.1, 'D/D AVIVA INSURANCE');
-    add(a, 20, -74.5, 'D/D VHI HEALTHCARE');
-    add(a, 7, -300, 'TO REVOLUT 2410');
-    const shops = ['VDP-TESCO STORES 3245 DUBLIN', 'VDP-LIDL RATHMINES', 'VDP-SUPERVALU RANELAGH', 'VDP-DUNNES STORES GRAFTON ST', 'VDP-ALDI 0231 DUBLIN', 'VDP-TESCO STORES 3112'];
-    for (let i = 0; i < 7; i++) add(a, dayIn(1, 28), -between(12, 68), pick(shops));
-    for (let i = 0; i < 3; i++) add(a, dayIn(2, 27), -23.9, `IRISH RAIL WEB ${dayIn(1000, 9999)}`);
-    add(a, dayIn(3, 25), -between(8, 26), 'VDC-BOOTS PHARMACY 4452 DUBLIN');
-    if (isCurrent) add(a, 10, -61.99, 'VDP-ARNOTTS LTD');
-    else if (rng() < 0.7) add(a, dayIn(5, 24), -between(25, 90), pick(['VDP-ARNOTTS LTD', 'VDP-PENNEYS DUBLIN 1', 'VDP-ZARA GRAFTON ST']));
-    if (monthsAgo === 2) add(a, 19, 24.99, 'VDP-ARNOTTS LTD REFUND');
-  } else {
+  if (institution === 'REVOLUT') {
     const r = 'rev-eur';
     add(r, 7, 300, 'INCOMING SEPA AIB');
     add('rev-rainy', 9, 100, 'FROM REVOLUT EUR');
@@ -114,8 +97,9 @@ function monthDrafts(institution: Institution, month: string, isCurrent: boolean
   return out;
 }
 
-/** Six months of history for an institution, grouped by provider account id. Newest last. */
+/** History for an institution (AIB: the real statement plus generated payments to today; Revolut: six generated months), grouped by provider account id. Newest last. */
 export function generateHistory(institution: Institution, today: string): Record<string, RawBankTx[]> {
+  if (institution === 'AIB') return { 'aib-current': aibHistory(today) };
   const result: Record<string, RawBankTx[]> = {};
   for (const acc of MOCK_ACCOUNTS[institution]) result[acc.providerAccountId] = [];
   const thisMonth = monthOf(today);
@@ -152,12 +136,12 @@ interface LiveSeed {
 /** Payments that "arrive" while the app is running; a mix of known and brand-new merchants. */
 const LIVE_POOL: Record<Institution, LiveSeed[]> = {
   AIB: [
-    { account: 'aib-current', amount: -23.4, desc: 'VDP-TESCO STORES 3245 DUBLIN' },
-    { account: 'aib-current', amount: -9.6, desc: 'VDP-SPAR CAMDEN ST' },
+    { account: 'aib-current', amount: -23.4, desc: 'VDC-TESCO STORES 4' },
     { account: 'aib-current', amount: -37.2, desc: 'VDP-HODGES FIGGIS DUBLIN' },
+    { account: 'aib-current', amount: -9.6, desc: 'VDC-SPAR PATRICK S' },
     { account: 'aib-current', amount: -15.8, desc: 'VDC-LA CAVE WINE SHOP' },
     { account: 'aib-current', amount: -52, desc: 'VDP-AVOCA RATHCOOLE' },
-    { account: 'aib-current', amount: -11.25, desc: 'VDP-CENTRA TERENURE' },
+    { account: 'aib-current', amount: -11.25, desc: 'VDC-CENTRA' },
     { account: 'aib-current', amount: -28.9, desc: 'VDC-DUBLIN BUS 0442' },
     { account: 'aib-current', amount: -6.4, desc: 'VDP-O BRIENS SANDWICH BAR' },
   ],
@@ -197,4 +181,5 @@ export function generateLive(institution: Institution, today: string, count: num
 export const liveArrivals = (syncNumber: number): number => hash(`arrivals:${syncNumber}`) % 4;
 
 export const todayDublin = (): string => dublinDate(new Date());
+export { aibBalance };
 export { addDays };

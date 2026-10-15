@@ -33,6 +33,10 @@ export const meSchema = z.object({
   quietHoursStart: timeOfDay,
   quietHoursEnd: timeOfDay,
   targetAllocation,
+  bufferAmount: money,
+  salaryOnly: z.boolean(),
+  lifestyleGuard: z.boolean(),
+  setupDone: z.boolean(),
 });
 export type Me = z.infer<typeof meSchema>;
 
@@ -44,6 +48,9 @@ export const updateMeBody = z
     quietHoursStart: timeOfDay,
     quietHoursEnd: timeOfDay,
     targetAllocation,
+    bufferAmount: moneyInput,
+    salaryOnly: z.boolean(),
+    lifestyleGuard: z.boolean(),
   })
   .partial();
 export type UpdateMeBody = z.infer<typeof updateMeBody>;
@@ -197,6 +204,10 @@ export const transactionSchema = z.object({
   categorisedBy,
   needsReview: z.boolean(),
   note: z.string().nullable(),
+  /** Left out of budgets and safe to spend. */
+  excluded: z.boolean(),
+  tags: z.array(z.string()),
+  flag: z.string().nullable(),
 });
 export type TransactionDto = z.infer<typeof transactionSchema>;
 
@@ -210,17 +221,58 @@ export const listTransactionsQuery = pageQuery.extend({
   from: dateOnly.optional(),
   to: dateOnly.optional(),
   q: z.string().max(100).optional(),
+  status: txStatus.optional(),
+  excluded: z.enum(['true', 'false']).optional(),
 });
 export type ListTransactionsQuery = z.infer<typeof listTransactionsQuery>;
+
+/* ---------- ask: how a typed question is read ---------- */
+
+export const periodSchema = z.object({ from: dateOnly, to: dateOnly, label: z.string(), key: z.string() });
+export const intentSchema = z.enum([
+  'sum', 'count', 'average', 'list', 'top', 'compare', 'biggest', 'gloss', 'price', 'news', 'vault', 'owed', 'debt', 'afford',
+  'safe', 'networth', 'runway', 'upcoming', 'subs', 'income', 'budget', 'balance',
+]);
+
+export const parsedQuerySchema = z.object({
+  text: z.string(),
+  via: z.enum(['rules', 'follow-up', 'learned']),
+  intent: intentSchema,
+  slug: z.string().nullable().optional(),
+  merchantKey: z.string().nullable().optional(),
+  institution: z.enum(['AIB', 'REVOLUT']).nullable().optional(),
+  min: z.number().nullable().optional(),
+  max: z.number().nullable().optional(),
+  period: periodSchema.optional(),
+  period2: periodSchema.optional(),
+  periodExplicit: z.boolean().optional(),
+  by: z.enum(['cat', 'mer']).optional(),
+  personId: z.string().nullable().optional(),
+  term: z.string().optional(),
+  sym: z.string().optional(),
+  topic: z.string().optional(),
+  amount: z.number().nullable().optional(),
+  item: z.string().optional(),
+});
+export type ParsedQueryDto = z.infer<typeof parsedQuerySchema>;
+
 
 export const transactionPage = z.object({
   items: z.array(transactionSchema),
   nextCursor: z.string().nullable(),
   total: z.number().int(),
+  /** When the search box held a question such as "coffee over 4 last month", how it was read. */
+  readAs: parsedQuerySchema.nullable().optional(),
 });
 export type TransactionPage = z.infer<typeof transactionPage>;
 
-export const updateTransactionBody = z.object({ note: z.string().max(500).nullable() });
+export const updateTransactionBody = z.object({
+  note: z.string().max(500).nullable().optional(),
+  /** Leave the payment out of budgets and safe to spend. */
+  excluded: z.boolean().optional(),
+  tags: z.array(z.string().min(1).max(30)).max(10).optional(),
+});
+export type UpdateTransactionBody = z.infer<typeof updateTransactionBody>;
 
 export const setScope = z.enum(['merchant', 'once']);
 export type SetScope = z.infer<typeof setScope>;

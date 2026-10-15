@@ -29,6 +29,10 @@ export class MeService {
       quietHoursStart: u.quietHoursStart,
       quietHoursEnd: u.quietHoursEnd,
       targetAllocation: (u.targetAllocation ?? {}) as Record<string, number>,
+      bufferAmount: money(u.bufferAmount),
+      salaryOnly: u.salaryOnly,
+      lifestyleGuard: u.lifestyleGuard,
+      setupDone: Boolean(u.setupDoneAt),
     };
   }
 
@@ -42,6 +46,9 @@ export class MeService {
         ...(body.quietHoursStart !== undefined ? { quietHoursStart: body.quietHoursStart } : {}),
         ...(body.quietHoursEnd !== undefined ? { quietHoursEnd: body.quietHoursEnd } : {}),
         ...(body.targetAllocation !== undefined ? { targetAllocation: body.targetAllocation } : {}),
+        ...(body.bufferAmount !== undefined ? { bufferAmount: m2(body.bufferAmount) } : {}),
+        ...(body.salaryOnly !== undefined ? { salaryOnly: body.salaryOnly } : {}),
+        ...(body.lifestyleGuard !== undefined ? { lifestyleGuard: body.lifestyleGuard } : {}),
       },
     });
     return this.get(userId);
@@ -50,7 +57,7 @@ export class MeService {
   /** Everything the app holds about the user, as plain JSON (no bank session secrets). */
   async exportJson(userId: string) {
     const where = { userId };
-    const [user, accounts, transactions, merchants, categories, rules, budgets, goals, instruments, lots, insights, taxRules] =
+    const [user, accounts, transactions, merchants, categories, rules, budgets, pots, people, instruments, lots, insights, taxRules] =
       await Promise.all([
         this.db.user.findUnique({ where: { id: userId } }),
         this.db.account.findMany({ where }),
@@ -59,13 +66,14 @@ export class MeService {
         this.db.category.findMany({ where }),
         this.db.merchantRule.findMany({ where }),
         this.db.budget.findMany({ where }),
-        this.db.goal.findMany({ where }),
+        this.db.pot.findMany({ where }),
+        this.db.person.findMany({ where, include: { payments: true } }),
         this.db.instrument.findMany({ where }),
         this.db.lot.findMany({ where }),
         this.db.insight.findMany({ where }),
         this.db.taxRule.findMany({ where }),
       ]);
-    return { exportedAt: new Date().toISOString(), user, accounts, transactions, merchants, categories, rules, budgets, goals, instruments, lots, insights, taxRules };
+    return { exportedAt: new Date().toISOString(), user, accounts, transactions, merchants, categories, rules, budgets, pots, people, instruments, lots, insights, taxRules };
   }
 
   async exportCsv(userId: string): Promise<string> {
@@ -95,7 +103,15 @@ export class MeService {
       this.db.lot.deleteMany({ where }),
       this.db.instrument.deleteMany({ where }),
       this.db.budget.deleteMany({ where }),
-      this.db.goal.deleteMany({ where }),
+      this.db.wishlistItem.deleteMany({ where }),
+      this.db.pot.deleteMany({ where }),
+      this.db.personPayment.deleteMany({ where }),
+      this.db.person.deleteMany({ where }),
+      this.db.pinnedQuestion.deleteMany({ where }),
+      this.db.reviewLog.deleteMany({ where }),
+      this.db.actionSnooze.deleteMany({ where }),
+      this.db.standingOrder.deleteMany({ where }),
+      this.db.taxCheck.deleteMany({ where }),
       this.db.recurringSeries.deleteMany({ where }),
       this.db.transaction.deleteMany({ where }),
       this.db.merchantRule.deleteMany({ where }),
@@ -106,7 +122,7 @@ export class MeService {
       this.db.pushDevice.deleteMany({ where }),
       this.db.taxRule.deleteMany({ where }),
       this.db.category.deleteMany({ where }),
-      this.db.user.update({ where: { id: userId }, data: { targetAllocation: {} } }),
+      this.db.user.update({ where: { id: userId }, data: { targetAllocation: {}, prefs: {}, setupDoneAt: null, bufferAmount: '150.00', salaryOnly: true, lifestyleGuard: false } }),
     ]);
     await provisionDefaults(this.db, userId);
   }

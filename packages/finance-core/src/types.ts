@@ -12,6 +12,8 @@ export interface CoreTx {
   categoryId: string | null;
   merchantKey: string | null;
   merchantName: string | null;
+  /** Left out of budgets and safe to spend. */
+  excluded?: boolean;
 }
 
 export interface CoreCategory {

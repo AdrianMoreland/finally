@@ -8,6 +8,7 @@ export interface CategoryInfo extends CoreCategory {
   colour: string;
   icon: string;
   archived: boolean;
+  askGroup: string;
 }
 
 /** Shared read helpers that turn database rows into the plain shapes finance-core works on. */
@@ -27,6 +28,7 @@ export class FinanceDataService {
       colour: c.colour,
       icon: c.icon,
       archived: c.archived,
+      askGroup: c.askGroup,
     }));
   }
 
@@ -51,12 +53,13 @@ export class FinanceDataService {
         categoryId: t.categoryId,
         merchantKey: t.merchant?.merchantKey ?? null,
         merchantName: t.merchant?.displayName ?? null,
+        excluded: t.excluded,
       }))
       .filter((t) => t.date >= from && t.date <= to);
   }
 
   /**
-   * Net spend per category for transactions in `[from, to]`: SPEND minus REFUND. Children roll up into their
+   * Net spend per category for transactions in `[from, to]`: SPEND minus REFUND and housemates' SHAREs; payments marked excluded are left out. Children roll up into their
    * parent when `rollUp` is set. Transfers and income are excluded.
    */
   spendByCategory(txs: readonly CoreTx[], categories: readonly CoreCategory[], rollUp: boolean): Map<string, Decimal> {
@@ -64,7 +67,8 @@ export class FinanceDataService {
     const out = new Map<string, Decimal>();
     for (const t of txs) {
       if (!t.categoryId) continue;
-      if (t.kind !== 'SPEND' && t.kind !== 'REFUND') continue;
+      if (t.kind !== 'SPEND' && t.kind !== 'REFUND' && t.kind !== 'SHARE') continue;
+      if (t.excluded) continue;
       const spend = D(t.amountEur).neg(); // negative amount = money out = positive spend; refunds net down
       const keys = [t.categoryId];
       if (rollUp) {

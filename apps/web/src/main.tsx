@@ -6,7 +6,9 @@ import { createRoot } from 'react-dom/client';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { api } from '@/lib/api';
+import { AskProvider } from '@/lib/ask';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { PrivacyProvider } from '@/lib/privacy';
 import { ThemeProvider } from '@/lib/theme';
 import { routeTree } from './routeTree.gen';
 import './index.css';
@@ -59,10 +61,14 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <ApiProvider api={api}>
           <AuthProvider>
-            <TooltipProvider delayDuration={200}>
-              <InnerApp />
-              <Toaster position="bottom-center" />
-            </TooltipProvider>
+            <PrivacyProvider>
+              <AskProvider>
+                <TooltipProvider delayDuration={200}>
+                  <InnerApp />
+                  <Toaster position="bottom-center" />
+                </TooltipProvider>
+              </AskProvider>
+            </PrivacyProvider>
           </AuthProvider>
         </ApiProvider>
       </QueryClientProvider>

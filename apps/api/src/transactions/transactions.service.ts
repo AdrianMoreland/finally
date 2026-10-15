@@ -2,11 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Db, Prisma } from '@finally/db';
 import type {
   ListTransactionsQuery,
+  ParsedQueryDto,
   RecategoriseTransactionBody,
   TransactionDto,
   TransactionPage,
   UpdatedCountResponse,
+  UpdateTransactionBody,
 } from '@finally/contracts';
+import { AskService } from '../ask/ask.service';
 import { CategorisationService } from '../categorisation/categorisation.service';
 import { iso, money } from '../common/mappers';
 import { InjectDb } from '../common/tokens';
@@ -30,6 +33,7 @@ export class TransactionsService {
   constructor(
     @InjectDb() private readonly db: Db,
     private readonly categorisation: CategorisationService,
+    private readonly ask: AskService,
   ) {}
 
   toDto(t: TxRow): TransactionDto {
@@ -52,6 +56,9 @@ export class TransactionsService {
       categorisedBy: t.categorisedBy,
       needsReview: t.needsReview,
       note: t.note,
+      excluded: t.excluded,
+      tags: t.tags,
+      flag: t.flag,
     };
   }
 
@@ -69,7 +76,25 @@ export class TransactionsService {
     if (q.maxAmount !== undefined) and.push({ amountEur: { lte: q.maxAmount } });
     if (q.from) and.push({ bookingDate: { gte: new Date(`${q.from}T00:00:00Z`) } });
     if (q.to) and.push({ bookingDate: { lt: new Date(new Date(`${q.to}T00:00:00Z`).getTime() + 86_400_000) } });
-    if (q.q) {
+    if (q.status) and.push({ status: q.status });
+    if (q.excluded) and.push({ excluded: q.excluded === 'true' });
+    // The search box understands questions such as "coffee over 4 last month"; anything else is a plain text search.
+    const readAs: ParsedQueryDto | null = q.q ? await this.ask.parseForSearch(userId, q.q) : null;
+    if (readAs) {
+      if (readAs.slug) {
+        const cat = await this.db.category.findFirst({ where: { userId, slug: readAs.slug }, select: { id: true } });
+        const kids = cat ? await this.db.category.findMany({ where: { userId, parentId: cat.id }, select: { id: true } }) : [];
+        and.push({ categoryId: { in: cat ? [cat.id, ...kids.map((k) => k.id)] : [] } });
+      }
+      if (readAs.merchantKey) and.push({ merchant: { merchantKey: readAs.merchantKey } });
+      if (readAs.institution) and.push({ account: { connection: { institution: readAs.institution } } });
+      if (readAs.min != null) and.push({ amountEur: { lt: -readAs.min } });
+      if (readAs.max != null) and.push({ amountEur: { gt: -readAs.max, lt: 0 } });
+      if (readAs.period && readAs.periodExplicit) {
+        and.push({ bookingDate: { gte: new Date(`${readAs.period.from}T00:00:00Z`) } });
+        and.push({ bookingDate: { lt: new Date(new Date(`${readAs.period.to}T00:00:00Z`).getTime() + 86_400_000) } });
+      }
+    } else if (q.q) {
       and.push({
         OR: [
           { rawDescriptor: { contains: q.q, mode: 'insensitive' } },
@@ -101,6 +126,7 @@ export class TransactionsService {
     const last = page.at(-1);
     return {
       items: page.map((r) => this.toDto(r)),
+      readAs,
       nextCursor: rows.length > q.limit && last ? Buffer.from(`${last.bookingDate.toISOString()}|${last.id}`).toString('base64url') : null,
       total,
     };
@@ -112,8 +138,15 @@ export class TransactionsService {
     return this.toDto(t);
   }
 
-  async setNote(userId: string, id: string, note: string | null): Promise<TransactionDto> {
-    const res = await this.db.transaction.updateMany({ where: { id, userId }, data: { note } });
+  async patch(userId: string, id: string, body: UpdateTransactionBody): Promise<TransactionDto> {
+    const res = await this.db.transaction.updateMany({
+      where: { id, userId },
+      data: {
+        ...(body.note !== undefined ? { note: body.note } : {}),
+        ...(body.excluded !== undefined ? { excluded: body.excluded } : {}),
+        ...(body.tags !== undefined ? { tags: [...new Set(body.tags.map((t) => t.replace(/^#/, '').trim()).filter(Boolean))] } : {}),
+      },
+    });
     if (res.count === 0) throw new NotFoundException('Transaction not found');
     return this.get(userId, id);
   }

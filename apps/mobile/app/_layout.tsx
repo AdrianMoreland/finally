@@ -23,6 +23,7 @@ import { BiometricGate } from '@/components/biometric-gate';
 import { api } from '@/lib/api';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { ensurePermission, handleNotificationResponse, registerAskCategories } from '@/lib/notifications';
+import { PrivacyProvider, usePrivacy } from '@/lib/privacy';
 import { ThemeProvider, useTheme } from '@/lib/theme';
 
 void SplashScreen.preventAutoHideAsync();
@@ -51,6 +52,7 @@ function NotificationCategories(): null {
 function Routes(): ReactNode {
   const { session, ready } = useAuth();
   const { scheme } = useTheme();
+  const { on: privacy } = usePrivacy();
   useEffect(() => {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
@@ -63,11 +65,13 @@ function Routes(): ReactNode {
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       {session ? <NotificationCategories /> : null}
       <BiometricGate enabled={Boolean(session)}>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+        <Stack key={privacy ? 'private' : 'open'} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
           <Stack.Protected guard={Boolean(session)}>
             <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="insights" />
-            <Stack.Screen name="goals" />
+            {['bills', 'month', 'review', 'payday', 'pots', 'people', 'tax', 'bonus', 'investing', 'freedom'].map((n) => (
+              <Stack.Screen key={n} name={n} />
+            ))}
+            <Stack.Screen name="ask" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.7, 0.95], sheetGrabberVisible: true, sheetCornerRadius: 22 }} />
             <Stack.Screen name="tools" />
             <Stack.Screen name="settings" />
             <Stack.Screen
@@ -103,7 +107,9 @@ export default function RootLayout(): ReactNode {
           <QueryClientProvider client={queryClient}>
             <ApiProvider api={api}>
               <AuthProvider>
-                <Routes />
+                <PrivacyProvider>
+                  <Routes />
+                </PrivacyProvider>
               </AuthProvider>
             </ApiProvider>
           </QueryClientProvider>

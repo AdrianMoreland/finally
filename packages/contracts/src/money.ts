@@ -78,31 +78,6 @@ export const upsertBudgetBody = z.object({
 });
 export type UpsertBudgetBody = z.infer<typeof upsertBudgetBody>;
 
-/* ---------- goals ---------- */
-
-export const goalSchema = z.object({
-  id,
-  name: z.string(),
-  target: money,
-  targetDate: dateOnly,
-  accountId: id.nullable(),
-  saved: money,
-  monthlyNeeded: money,
-  monthsLeft: z.number().int(),
-  progress: z.number(),
-});
-export type GoalDto = z.infer<typeof goalSchema>;
-
-export const createGoalBody = z.object({
-  name: z.string().min(1).max(60),
-  target: moneyInput,
-  targetDate: dateOnly,
-  accountId: id.nullable().default(null),
-  saved: moneyInput.default('0.00'),
-});
-export type CreateGoalBody = z.infer<typeof createGoalBody>;
-export const updateGoalBody = createGoalBody.partial();
-
 /* ---------- overview ---------- */
 
 export const categorySpend = z.object({ category: categoryRef, spent: money });

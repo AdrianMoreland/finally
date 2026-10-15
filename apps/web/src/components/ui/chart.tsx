@@ -418,7 +418,7 @@ function ChartTooltipContent({
   )
 }*/
 
-const ChartLegend = RechartsPrimitive.Legend
+// const ChartLegend = RechartsPrimitive.Legend
 
 interface ChartLegendContentProps extends React.ComponentProps<'div'> {
   payload?: TooltipEntry[]; // Recharts provides this at runtime
@@ -574,7 +574,7 @@ export {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
+//  ChartLegend,
   ChartLegendContent,
   ChartStyle,
 }

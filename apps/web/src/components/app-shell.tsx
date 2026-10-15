@@ -1,23 +1,12 @@
-import { useAccounts, useQueue, useSyncAll, eur } from '@finally/api-client';
-import { Link } from '@tanstack/react-router';
-import {
-  Calculator,
-  ChartColumn,
-  House,
-  Inbox,
-  Lightbulb,
-  ListOrdered,
-  Moon,
-  RefreshCw,
-  Settings as SettingsIcon,
-  Sun,
-  SunMoon,
-  Target,
-  TrendingUp,
-  type LucideIcon,
-} from 'lucide-react';
-import type { ReactNode } from 'react';
+import { eur, useAccounts, useMe, useQueue, useSyncAll } from '@finally/api-client';
+import { Link, useRouterState } from '@tanstack/react-router';
+import { Eye, EyeOff, Moon, RefreshCw, Search, Settings as SettingsIcon, Sparkles, Sun, SunMoon } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
+import { AskDialog } from '@/components/ask-dialog';
+import { useAskPanel } from '@/lib/ask';
+import { SECTIONS, sectionOf } from '@/lib/nav';
+import { usePrivacy } from '@/lib/privacy';
 import { useTheme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 
@@ -32,28 +21,14 @@ function Logo({ size = 26 }: { size?: number }): ReactNode {
   );
 }
 
-const NAV: Array<{ to: string; label: string; icon: LucideIcon; badge?: boolean }> = [
-  { to: '/', label: 'Overview', icon: House },
-  { to: '/transactions', label: 'Transactions', icon: ListOrdered },
-  { to: '/sort', label: 'To sort', icon: Inbox, badge: true },
-  { to: '/budgets', label: 'Budgets', icon: ChartColumn },
-  { to: '/insights', label: 'Insights', icon: Lightbulb },
-  { to: '/investments', label: 'Investments', icon: TrendingUp },
-  { to: '/goals', label: 'Goals', icon: Target },
-  { to: '/tools', label: 'Tools', icon: Calculator },
-  { to: '/settings', label: 'Settings', icon: SettingsIcon },
-];
+const PILL =
+  'inline-flex items-center gap-1.5 rounded-full border border-rule bg-surface px-3 py-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink disabled:opacity-60';
 
 export function ThemeButton({ className }: { className?: string }): ReactNode {
   const { mode, cycle } = useTheme();
   const Icon = mode === 'auto' ? SunMoon : mode === 'light' ? Sun : Moon;
   return (
-    <button
-      type="button"
-      onClick={cycle}
-      className={cn('inline-flex items-center gap-1.5 rounded-full border border-rule bg-surface px-3 py-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink', className)}
-      aria-label="Switch colour theme"
-    >
+    <button type="button" onClick={cycle} className={cn(PILL, className)} aria-label="Switch colour theme">
       <Icon className="size-4" aria-hidden="true" />
       {mode === 'auto' ? 'Auto' : mode === 'light' ? 'Light' : 'Dark'}
     </button>
@@ -75,7 +50,7 @@ export function SyncButton(): ReactNode {
           onError: (e) => toast.error(e instanceof Error ? e.message : 'Sync failed'),
         })
       }
-      className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-surface px-3 py-1.5 text-[13px] font-semibold text-ink-2 hover:text-ink disabled:opacity-60"
+      className={PILL}
     >
       <RefreshCw className={cn('size-4', sync.isPending && 'animate-spin')} aria-hidden="true" />
       {sync.isPending ? 'Syncing' : 'Sync'}
@@ -83,58 +58,191 @@ export function SyncButton(): ReactNode {
   );
 }
 
+function PrivacyButton({ className }: { className?: string }): ReactNode {
+  const { on, toggle } = usePrivacy();
+  const Icon = on ? EyeOff : Eye;
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-pressed={on}
+      aria-label={on ? 'Show amounts' : 'Hide amounts'}
+      title={on ? 'Privacy mode is on: amounts are hidden' : 'Hide amounts'}
+      className={cn('grid size-9 place-items-center rounded-full border border-rule bg-surface text-ink-2 hover:text-ink', on && 'border-ink text-ink', className)}
+    >
+      <Icon className="size-4" aria-hidden="true" />
+    </button>
+  );
+}
+
+/** Ask is a search bar at the top of every page, not a page. ⌘K / Ctrl+K from anywhere. */
+function AskBar(): ReactNode {
+  const { submit, setOpen } = useAskPanel();
+  const [text, setText] = useState('');
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        ref.current?.focus();
+        ref.current?.select();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  return (
+    <form
+      role="search"
+      className="relative min-w-0 flex-1"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (text.trim()) submit(text);
+        else setOpen(true);
+        setText('');
+        ref.current?.blur();
+      }}
+    >
+      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" aria-hidden="true" />
+      <input
+        ref={ref}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Ask Finally: how much on coffee last month?"
+        aria-label="Ask Finally"
+        className="h-10 w-full rounded-full border border-rule bg-surface pl-9 pr-14 text-[14px] outline-none placeholder:text-ink-3 focus:border-brand"
+      />
+      <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded border border-rule bg-raised px-1.5 py-px text-[11px] font-semibold text-ink-3 sm:block">⌘K</kbd>
+    </form>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }): ReactNode {
   const queue = useQueue();
   const accounts = useAccounts();
-  const count = queue.data?.count ?? 0;
+  const me = useMe();
+  const { on: privacy } = usePrivacy();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const active = sectionOf(pathname);
+  const toSort = queue.data?.count ?? 0;
+  const setupNeeded = me.data ? !me.data.setupDone : false;
 
   return (
     <div className="mx-auto min-h-svh max-w-[1400px] md:p-4">
-      <div className="grid min-h-[calc(100svh-2rem)] grid-cols-1 overflow-hidden border-rule bg-paper md:grid-cols-[228px_minmax(0,1fr)] md:rounded-[14px] md:border md:shadow-[var(--shadow)]">
-        <aside className="flex min-w-0 flex-col gap-2.5 border-b border-rule bg-surface p-3 md:gap-4 md:border-b-0 md:border-r md:px-3 md:py-[18px]">
-          <div className="flex items-center gap-2.5 px-1.5">
+      <div className="grid min-h-[calc(100svh-2rem)] grid-cols-1 overflow-hidden border-rule bg-paper md:grid-cols-[236px_minmax(0,1fr)] md:rounded-[14px] md:border md:shadow-[var(--shadow)]">
+        <aside className="hidden min-w-0 flex-col gap-4 border-r border-rule bg-surface px-3 py-[18px] md:flex">
+          <Link to="/" className="flex items-center gap-2.5 px-1.5">
             <Logo />
             <b className="font-display text-[18px] font-bold tracking-[-0.01em]">Finally</b>
-            <span className="ml-auto flex gap-1.5 md:hidden">
-              <ThemeButton />
-            </span>
-          </div>
-          <nav aria-label="Sections" className="flex gap-1 overflow-x-auto pb-0.5 md:flex-col md:gap-0.5 md:overflow-visible">
-            {NAV.map(({ to, label, icon: Icon, badge }) => (
-              <Link
-                key={to}
-                to={to}
-                activeOptions={{ exact: to === '/' }}
-                className="flex w-auto items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 py-[9px] text-[14px] font-medium text-ink-2 hover:bg-raised hover:text-ink md:w-full [&.active]:bg-brand-soft [&.active]:font-semibold [&.active]:text-brand"
-              >
-                <Icon className="size-[18px] flex-none" aria-hidden="true" />
-                <span>{label}</span>
-                {badge && count > 0 ? (
-                  <span className="ml-auto rounded-full bg-marker px-[7px] py-0.5 text-[11px] font-bold text-marker-ink" aria-label={`${count} waiting`}>
-                    {count}
-                  </span>
-                ) : null}
-              </Link>
-            ))}
+          </Link>
+          <nav aria-label="Sections" className="flex flex-col gap-0.5">
+            {SECTIONS.map(({ key, label, to, icon: Icon, pages }) => {
+              const open = active.key === key;
+              return (
+                <div key={key}>
+                  <Link
+                    to={to}
+                    className={cn(
+                      'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] text-[14px] font-medium text-ink-2 hover:bg-raised hover:text-ink',
+                      open && 'bg-brand-soft font-semibold text-brand',
+                    )}
+                    aria-current={open ? 'page' : undefined}
+                  >
+                    <Icon className="size-[18px] flex-none" aria-hidden="true" />
+                    <span>{label}</span>
+                    {key === 'money' && toSort > 0 ? (
+                      <span className="ml-auto rounded-full bg-marker px-[7px] py-0.5 text-[11px] font-bold text-marker-ink" aria-label={`${toSort} to sort`}>
+                        {toSort}
+                      </span>
+                    ) : null}
+                  </Link>
+                  {open && pages.length ? (
+                    <div className="ml-[18px] mt-0.5 grid gap-px border-l border-rule pl-2.5">
+                      {pages.map((p) => (
+                        <Link
+                          key={p.to}
+                          to={p.to}
+                          className="flex items-center rounded-md px-2 py-1 text-[13px] text-ink-2 hover:text-ink [&.active]:font-semibold [&.active]:text-brand"
+                        >
+                          {p.label}
+                          {p.to === '/money/sort' && toSort > 0 ? <span className="ml-auto text-[11px] font-bold text-marker-ink"><i className="inline-block size-2 rounded-full bg-marker" /></span> : null}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
           </nav>
-          <div className="mt-auto hidden gap-2 border-t border-rule px-1.5 pt-3.5 text-[12.5px] md:grid">
+          <div className="mt-auto grid gap-2 border-t border-rule px-1.5 pt-3.5 text-[12.5px]">
             <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-3">Accounts</div>
             {accounts.data?.map((a) => (
               <div key={a.id} className="flex justify-between gap-2 text-ink-2">
                 <span className="truncate">{a.name}</span>
-                <b className="num font-semibold text-ink">{eur(a.balance)}</b>
+                <b className={cn('num font-semibold text-ink', Number(a.balance) < 0 && 'text-warn')}>{eur(a.balance)}</b>
               </div>
             ))}
-            <div className="mt-2 flex gap-1.5">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               <SyncButton />
               <ThemeButton />
             </div>
+            <Link to="/settings" className="mt-1 inline-flex items-center gap-2 rounded-lg px-1.5 py-1.5 text-[13px] font-medium text-ink-2 hover:text-ink">
+              <SettingsIcon className="size-4" aria-hidden="true" /> Settings
+            </Link>
           </div>
         </aside>
-        <main id="main" tabIndex={-1} className="min-w-0 px-4 pb-7 pt-[18px] md:px-7 md:pb-10 md:pt-6">
-          {children}
-        </main>
+
+        <div className="flex min-w-0 flex-col">
+          <header className="sticky top-0 z-20 flex items-center gap-2.5 border-b border-rule bg-paper/95 px-4 py-2.5 backdrop-blur md:px-7">
+            <Link to="/" className="flex items-center gap-2 md:hidden" aria-label="Finally home">
+              <Logo size={28} />
+            </Link>
+            <AskBar />
+            {setupNeeded ? (
+              <Link to="/setup" className="hidden items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-[13px] font-semibold text-paper sm:inline-flex">
+                <Sparkles className="size-3.5" aria-hidden="true" /> Set up
+              </Link>
+            ) : null}
+            <PrivacyButton />
+            <Link to="/settings" aria-label="Settings" className="grid size-9 place-items-center rounded-full border border-rule bg-surface text-ink-2 hover:text-ink md:hidden">
+              <SettingsIcon className="size-4" aria-hidden="true" />
+            </Link>
+          </header>
+
+          {active.pages.length ? (
+            <nav aria-label={`${active.label} pages`} className="flex gap-1.5 overflow-x-auto border-b border-rule px-4 py-2 md:hidden">
+              {active.pages.map((p) => (
+                <Link
+                  key={p.to}
+                  to={p.to}
+                  className="whitespace-nowrap rounded-full border border-rule bg-surface px-3 py-1 text-[13px] font-medium text-ink-2 [&.active]:border-transparent [&.active]:bg-ink [&.active]:text-paper"
+                >
+                  {p.label}
+                  {p.to === '/money/sort' && toSort > 0 ? <span className="ml-1.5 rounded-full bg-marker px-1.5 text-[11px] font-bold text-marker-ink">{toSort}</span> : null}
+                </Link>
+              ))}
+            </nav>
+          ) : null}
+
+          {/* Remount on privacy toggle so every amount is re-formatted. */}
+          <main id="main" key={privacy ? 'private' : 'open'} tabIndex={-1} className="min-w-0 flex-1 px-4 pb-24 pt-[18px] md:px-7 md:pb-10 md:pt-6">
+            {children}
+          </main>
+        </div>
       </div>
+
+      <nav aria-label="Sections" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-rule bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+        {SECTIONS.map(({ key, label, to, icon: Icon }) => (
+          <Link key={key} to={to} className={cn('relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-semibold text-ink-3', active.key === key && 'text-brand')} aria-current={active.key === key ? 'page' : undefined}>
+            <Icon className="size-5" aria-hidden="true" />
+            {label}
+            {key === 'money' && toSort > 0 ? <span className="absolute right-[26%] top-1 size-2 rounded-full bg-marker" aria-label={`${toSort} to sort`} /> : null}
+          </Link>
+        ))}
+      </nav>
+      <AskDialog />
     </div>
   );
 }

@@ -2,6 +2,24 @@ import { z } from 'zod';
 import {
   accountSchema,
   answerCategoriseBody,
+  askResponse,
+  billsSchema,
+  bonusSchema,
+  foundSchema,
+  freedomSchema,
+  investingPlanSchema,
+  monthCloseSchema,
+  monthSchema,
+  paperSchema,
+  paydayPlanSchema,
+  peopleSchema,
+  pinSchema,
+  potsSchema,
+  taxSchema,
+  todaySchema,
+  userPrefs,
+  vaultSchema,
+  weeklyReviewSchema,
   budgetsResponse,
   categoriseQueueResponse,
   categorySchema,
@@ -10,7 +28,6 @@ import {
   convertResponse,
   emergencyFundResponse,
   fireResponse,
-  goalSchema,
   importCsvResponse,
   insightsResponse,
   instrumentSchema,
@@ -34,8 +51,13 @@ import {
   updatedCountResponse,
   whereShouldItGoResponse,
   type AnswerCategoriseBody,
+  type CheckState,
+  type CompleteSetupBody,
+  type CreatePersonBody,
+  type CreatePotBody,
+  type ParsedQueryDto,
+  type UpdateTransactionBody,
   type CreateCategoryBody,
-  type CreateGoalBody,
   type CreateInstrumentBody,
   type CreateLotBody,
   type CreateRuleBody,
@@ -133,6 +155,7 @@ export class FinallyApi {
     this.call(transactionPage, 'GET', '/transactions', { query: q as Query });
   transaction = (id: string) => this.call(transactionSchema, 'GET', `/transactions/${id}`);
   setNote = (id: string, note: string | null) => this.call(transactionSchema, 'PATCH', `/transactions/${id}`, { body: { note } });
+  patchTransaction = (id: string, body: UpdateTransactionBody) => this.call(transactionSchema, 'PATCH', `/transactions/${id}`, { body });
   recategorise = (id: string, body: RecategoriseTransactionBody) =>
     this.call(updatedCountResponse, 'POST', `/transactions/${id}/category`, { body });
 
@@ -171,12 +194,73 @@ export class FinallyApi {
   removeBudget = (categoryId: string, month: string) =>
     this.call(budgetsResponse, 'DELETE', `/budgets/${categoryId}`, { query: { month } });
 
-  /* goals */
-  goals = () => this.call(z.array(goalSchema), 'GET', '/goals');
-  createGoal = (body: Omit<CreateGoalBody, 'accountId' | 'saved'> & Partial<Pick<CreateGoalBody, 'accountId' | 'saved'>>) =>
-    this.call(goalSchema, 'POST', '/goals', { body });
-  updateGoal = (id: string, body: Partial<CreateGoalBody>) => this.call(goalSchema, 'PATCH', `/goals/${id}`, { body });
-  deleteGoal = (id: string) => this.call(okResponse, 'DELETE', `/goals/${id}`);
+  /* today, ask, month */
+  today = () => this.call(todaySchema, 'GET', '/today');
+  snooze = (actionId: string) => this.call(okResponse, 'POST', '/today/snooze', { body: { actionId } });
+  unsnoozeAll = () => this.call(okResponse, 'DELETE', '/today/snooze');
+  ask = (text: string, previous?: ParsedQueryDto | null) => this.call(askResponse, 'POST', '/ask', { body: { text, previous: previous ?? null } });
+  askEvaluate = (query: ParsedQueryDto) => this.call(askResponse, 'POST', '/ask/evaluate', { body: { query } });
+  askSuggestions = () => this.call(z.object({ items: z.array(z.string()) }), 'GET', '/ask/suggestions');
+  pins = () => this.call(z.array(pinSchema), 'GET', '/ask/pins');
+  pin = (text: string) => this.call(z.array(pinSchema), 'POST', '/ask/pins', { body: { text } });
+  unpin = (id: string) => this.call(z.array(pinSchema), 'DELETE', `/ask/pins/${id}`);
+  month = () => this.call(monthSchema, 'GET', '/month');
+
+  /* money: bills, review */
+  bills = () => this.call(billsSchema, 'GET', '/bills');
+  cancelRepeating = (id: string, cancelled: boolean) => this.call(billsSchema, 'POST', '/bills/cancel', { body: { id, cancelled } });
+  dismissWarning = (id: string) => this.call(billsSchema, 'POST', '/bills/dismiss', { body: { id } });
+  weekReview = () => this.call(weeklyReviewSchema, 'GET', '/review/week');
+  completeWeek = (decision: string | null) => this.call(weeklyReviewSchema, 'POST', '/review/week', { body: { decision } });
+  reopenWeek = () => this.call(weeklyReviewSchema, 'DELETE', '/review/week');
+  monthClose = () => this.call(monthCloseSchema, 'GET', '/review/month');
+  chooseMonth = (value: string, label: string) => this.call(monthCloseSchema, 'POST', '/review/month', { body: { value, label } });
+  reopenMonth = () => this.call(monthCloseSchema, 'DELETE', '/review/month');
+  budgetSuggestions = () => this.call(foundSchema.shape.suggestedBudgets, 'GET', '/budgets/suggestions');
+
+  /* plan: payday, pots, people, tax, bonus */
+  payday = () => this.call(paydayPlanSchema, 'GET', '/plan/payday');
+  setOrder = (key: string, amount: string | null) => this.call(paydayPlanSchema, 'PUT', `/plan/orders/${key}`, { body: { amount } });
+  updatePlanSettings = (body: { salaryOnly?: boolean; lifestyleGuard?: boolean; buffer?: string; paydayDayOfMonth?: number }) =>
+    this.call(paydayPlanSchema, 'PUT', '/plan/settings', { body });
+  pots = () => this.call(potsSchema, 'GET', '/pots');
+  createPot = (body: Partial<CreatePotBody> & Pick<CreatePotBody, 'name' | 'type'>) => this.call(potsSchema, 'POST', '/pots', { body });
+  updatePot = (id: string, body: Partial<CreatePotBody>) => this.call(potsSchema, 'PATCH', `/pots/${id}`, { body });
+  removePot = (id: string) => this.call(potsSchema, 'DELETE', `/pots/${id}`);
+  addWish = (potId: string, body: { name: string; price: string }) => this.call(potsSchema, 'POST', `/pots/${potId}/wishlist`, { body });
+  setWishBought = (id: string, bought: boolean) => this.call(potsSchema, 'PATCH', `/pots/wishlist/${id}`, { body: { bought } });
+  removeWish = (id: string) => this.call(potsSchema, 'DELETE', `/pots/wishlist/${id}`);
+  people = () => this.call(peopleSchema, 'GET', '/people');
+  createPerson = (body: Partial<CreatePersonBody> & Pick<CreatePersonBody, 'name' | 'direction' | 'amount'>) => this.call(peopleSchema, 'POST', '/people', { body });
+  updatePerson = (id: string, body: Partial<CreatePersonBody>) => this.call(peopleSchema, 'PATCH', `/people/${id}`, { body });
+  removePerson = (id: string) => this.call(peopleSchema, 'DELETE', `/people/${id}`);
+  addPersonPayment = (id: string, body: { amount: string; paidOn?: string; note?: string | null }) => this.call(peopleSchema, 'POST', `/people/${id}/payments`, { body });
+  removePersonPayment = (id: string, paymentId: string) => this.call(peopleSchema, 'DELETE', `/people/${id}/payments/${paymentId}`);
+  updatePaybackPlan = (body: { monthly?: string; order?: 'smallest' | 'largest' | 'custom'; custom?: string[]; bonusToDebt?: string }) =>
+    this.call(peopleSchema, 'PUT', '/people/plan', { body });
+  tax = (slip?: string) => this.call(taxSchema, 'GET', '/tax', { query: { slip } });
+  updateTax = (body: Record<string, unknown>) => this.call(taxSchema, 'PUT', '/tax', { body });
+  setTaxCheck = (itemId: string, state: CheckState) => this.call(taxSchema, 'PUT', `/tax/checks/${itemId}`, { body: { state } });
+  bonus = () => this.call(bonusSchema, 'GET', '/bonus');
+  updateBonus = (body: Record<string, unknown>) => this.call(bonusSchema, 'PUT', '/bonus', { body });
+
+  /* grow */
+  investingPlan = () => this.call(investingPlanSchema, 'GET', '/grow/investing');
+  updateInvesting = (body: Record<string, unknown>) => this.call(investingPlanSchema, 'PUT', '/grow/investing', { body });
+  freedom = () => this.call(freedomSchema, 'GET', '/grow/freedom');
+  updateFreedom = (body: Record<string, unknown>) => this.call(freedomSchema, 'PUT', '/grow/freedom', { body });
+  paper = () => this.call(paperSchema, 'GET', '/grow/paper');
+  paperTrade = (body: { action: 'buy' | 'sell' | 'advance' | 'guard-keep' | 'guard-sell'; symbol?: string; amount?: string }) =>
+    this.call(paperSchema, 'POST', '/grow/paper', { body });
+  vault = () => this.call(vaultSchema, 'GET', '/grow/vault');
+  addVault = (product: string, qty: number) => this.call(vaultSchema, 'POST', '/grow/vault', { body: { product, qty } });
+  removeVault = (index: number) => this.call(vaultSchema, 'DELETE', `/grow/vault/${index}`);
+
+  /* setup, prefs */
+  found = () => this.call(foundSchema, 'GET', '/setup/found');
+  completeSetup = (body: CompleteSetupBody) => this.call(okResponse, 'POST', '/setup/complete', { body });
+  prefs = () => this.call(userPrefs, 'GET', '/me/prefs');
+  patchPrefs = (body: Record<string, unknown>) => this.call(userPrefs, 'PATCH', '/me/prefs', { body });
 
   /* insights */
   insights = () => this.call(insightsResponse, 'GET', '/insights');

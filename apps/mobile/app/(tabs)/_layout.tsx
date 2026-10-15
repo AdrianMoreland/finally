@@ -4,13 +4,14 @@ import type { ReactNode } from 'react';
 import { Icon, type IconName } from '@/components/icon';
 import { usePalette } from '@/lib/theme';
 
+/** One navigation for web and phone: Today, Money, Plan, Grow. The other files here are pages reached from them. */
 const TABS: Array<{ name: string; title: string; icon: IconName }> = [
-  { name: 'index', title: 'Home', icon: 'overview' },
-  { name: 'activity', title: 'Activity', icon: 'transactions' },
-  { name: 'budgets', title: 'Budgets', icon: 'budgets' },
-  { name: 'invest', title: 'Invest', icon: 'investments' },
-  { name: 'more', title: 'More', icon: 'more' },
+  { name: 'index', title: 'Today', icon: 'overview' },
+  { name: 'money', title: 'Money', icon: 'transactions' },
+  { name: 'plan', title: 'Plan', icon: 'goals' },
+  { name: 'grow', title: 'Grow', icon: 'investments' },
 ];
+const HIDDEN = ['activity', 'budgets', 'invest'];
 
 export default function TabsLayout(): ReactNode {
   const p = usePalette();
@@ -33,11 +34,14 @@ export default function TabsLayout(): ReactNode {
           options={{
             title: t.title,
             tabBarIcon: ({ color }) => <Icon name={t.icon} color={String(color)} />,
-            ...(t.name === 'activity' && waiting > 0
+            ...(t.name === 'money' && waiting > 0
               ? { tabBarBadge: waiting, tabBarBadgeStyle: { backgroundColor: '#F4E35E', color: '#3D3500', fontFamily: 'HankenGrotesk_600SemiBold', fontSize: 10 } }
               : {}),
           }}
         />
+      ))}
+      {HIDDEN.map((name) => (
+        <Tabs.Screen key={name} name={name} options={{ href: null }} />
       ))}
     </Tabs>
   );

@@ -39,6 +39,9 @@ const cases: Array<[string, string, string]> = [
   ['VDP-M&S GRAFTON ST', 'mands-grafton-st', 'M&S Grafton St'],
   ['GOOGLE *YOUTUBE PREMIUM', 'youtube-premium', 'YouTube Premium'],
   ['SO LANDLORD OCT RENT', 'so-landlord-oct-rent', 'So Landlord Oct Rent'],
+  ['*MOBI RENT SEPT', 'mobi-rent', 'Mobi Rent'],
+  ['ACCOUNT FEE JUL 26', 'account-fee', 'Account Fee'],
+  ['RENT', 'rent', 'Rent'],
   ['', 'unknown', 'Unknown'],
 ];
 

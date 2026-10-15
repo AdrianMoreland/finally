@@ -11,15 +11,27 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as AppBudgetsRouteImport } from './routes/_app/budgets'
-import { Route as AppGoalsRouteImport } from './routes/_app/goals'
-import { Route as AppInsightsRouteImport } from './routes/_app/insights'
-import { Route as AppInvestmentsRouteImport } from './routes/_app/investments'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
-import { Route as AppSortRouteImport } from './routes/_app/sort'
-import { Route as AppToolsRouteImport } from './routes/_app/tools'
-import { Route as AppTransactionsRouteImport } from './routes/_app/transactions'
+import { Route as AppGrowIndexRouteImport } from './routes/_app/grow/index'
+import { Route as AppGrowFreedomRouteImport } from './routes/_app/grow/freedom'
+import { Route as AppGrowHoldingsRouteImport } from './routes/_app/grow/holdings'
+import { Route as AppGrowInvestingRouteImport } from './routes/_app/grow/investing'
+import { Route as AppGrowToolsRouteImport } from './routes/_app/grow/tools'
+import { Route as AppMoneyIndexRouteImport } from './routes/_app/money/index'
+import { Route as AppMoneyBillsRouteImport } from './routes/_app/money/bills'
+import { Route as AppMoneyBudgetsRouteImport } from './routes/_app/money/budgets'
+import { Route as AppMoneyMonthRouteImport } from './routes/_app/money/month'
+import { Route as AppMoneyPaymentsRouteImport } from './routes/_app/money/payments'
+import { Route as AppMoneyReviewRouteImport } from './routes/_app/money/review'
+import { Route as AppMoneySortRouteImport } from './routes/_app/money/sort'
+import { Route as AppPlanIndexRouteImport } from './routes/_app/plan/index'
+import { Route as AppPlanBonusRouteImport } from './routes/_app/plan/bonus'
+import { Route as AppPlanPaydayRouteImport } from './routes/_app/plan/payday'
+import { Route as AppPlanPeopleRouteImport } from './routes/_app/plan/people'
+import { Route as AppPlanPotsRouteImport } from './routes/_app/plan/pots'
+import { Route as AppPlanTaxRouteImport } from './routes/_app/plan/tax'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -30,29 +42,14 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppBudgetsRoute = AppBudgetsRouteImport.update({
-  id: '/budgets',
-  path: '/budgets',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppGoalsRoute = AppGoalsRouteImport.update({
-  id: '/goals',
-  path: '/goals',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppInsightsRoute = AppInsightsRouteImport.update({
-  id: '/insights',
-  path: '/insights',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppInvestmentsRoute = AppInvestmentsRouteImport.update({
-  id: '/investments',
-  path: '/investments',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsRoute = AppSettingsRouteImport.update({
@@ -60,103 +57,251 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSortRoute = AppSortRouteImport.update({
-  id: '/sort',
-  path: '/sort',
+const AppGrowIndexRoute = AppGrowIndexRouteImport.update({
+  id: '/grow/',
+  path: '/grow/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppToolsRoute = AppToolsRouteImport.update({
-  id: '/tools',
-  path: '/tools',
+const AppGrowFreedomRoute = AppGrowFreedomRouteImport.update({
+  id: '/grow/freedom',
+  path: '/grow/freedom',
   getParentRoute: () => AppRoute,
 } as any)
-const AppTransactionsRoute = AppTransactionsRouteImport.update({
-  id: '/transactions',
-  path: '/transactions',
+const AppGrowHoldingsRoute = AppGrowHoldingsRouteImport.update({
+  id: '/grow/holdings',
+  path: '/grow/holdings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGrowInvestingRoute = AppGrowInvestingRouteImport.update({
+  id: '/grow/investing',
+  path: '/grow/investing',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppGrowToolsRoute = AppGrowToolsRouteImport.update({
+  id: '/grow/tools',
+  path: '/grow/tools',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMoneyIndexRoute = AppMoneyIndexRouteImport.update({
+  id: '/money/',
+  path: '/money/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMoneyBillsRoute = AppMoneyBillsRouteImport.update({
+  id: '/money/bills',
+  path: '/money/bills',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMoneyBudgetsRoute = AppMoneyBudgetsRouteImport.update({
+  id: '/money/budgets',
+  path: '/money/budgets',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMoneyMonthRoute = AppMoneyMonthRouteImport.update({
+  id: '/money/month',
+  path: '/money/month',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMoneyPaymentsRoute = AppMoneyPaymentsRouteImport.update({
+  id: '/money/payments',
+  path: '/money/payments',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMoneyReviewRoute = AppMoneyReviewRouteImport.update({
+  id: '/money/review',
+  path: '/money/review',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMoneySortRoute = AppMoneySortRouteImport.update({
+  id: '/money/sort',
+  path: '/money/sort',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlanIndexRoute = AppPlanIndexRouteImport.update({
+  id: '/plan/',
+  path: '/plan/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlanBonusRoute = AppPlanBonusRouteImport.update({
+  id: '/plan/bonus',
+  path: '/plan/bonus',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlanPaydayRoute = AppPlanPaydayRouteImport.update({
+  id: '/plan/payday',
+  path: '/plan/payday',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlanPeopleRoute = AppPlanPeopleRouteImport.update({
+  id: '/plan/people',
+  path: '/plan/people',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlanPotsRoute = AppPlanPotsRouteImport.update({
+  id: '/plan/pots',
+  path: '/plan/pots',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlanTaxRoute = AppPlanTaxRouteImport.update({
+  id: '/plan/tax',
+  path: '/plan/tax',
   getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
-  '/budgets': typeof AppBudgetsRoute
-  '/goals': typeof AppGoalsRoute
-  '/insights': typeof AppInsightsRoute
-  '/investments': typeof AppInvestmentsRoute
+  '/setup': typeof SetupRoute
   '/settings': typeof AppSettingsRoute
-  '/sort': typeof AppSortRoute
-  '/tools': typeof AppToolsRoute
-  '/transactions': typeof AppTransactionsRoute
+  '/grow/freedom': typeof AppGrowFreedomRoute
+  '/grow/holdings': typeof AppGrowHoldingsRoute
+  '/grow/investing': typeof AppGrowInvestingRoute
+  '/grow/tools': typeof AppGrowToolsRoute
+  '/money/bills': typeof AppMoneyBillsRoute
+  '/money/budgets': typeof AppMoneyBudgetsRoute
+  '/money/month': typeof AppMoneyMonthRoute
+  '/money/payments': typeof AppMoneyPaymentsRoute
+  '/money/review': typeof AppMoneyReviewRoute
+  '/money/sort': typeof AppMoneySortRoute
+  '/plan/bonus': typeof AppPlanBonusRoute
+  '/plan/payday': typeof AppPlanPaydayRoute
+  '/plan/people': typeof AppPlanPeopleRoute
+  '/plan/pots': typeof AppPlanPotsRoute
+  '/plan/tax': typeof AppPlanTaxRoute
+  '/grow/': typeof AppGrowIndexRoute
+  '/money/': typeof AppMoneyIndexRoute
+  '/plan/': typeof AppPlanIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/budgets': typeof AppBudgetsRoute
-  '/goals': typeof AppGoalsRoute
-  '/insights': typeof AppInsightsRoute
-  '/investments': typeof AppInvestmentsRoute
+  '/setup': typeof SetupRoute
   '/settings': typeof AppSettingsRoute
-  '/sort': typeof AppSortRoute
-  '/tools': typeof AppToolsRoute
-  '/transactions': typeof AppTransactionsRoute
   '/': typeof AppIndexRoute
+  '/grow/freedom': typeof AppGrowFreedomRoute
+  '/grow/holdings': typeof AppGrowHoldingsRoute
+  '/grow/investing': typeof AppGrowInvestingRoute
+  '/grow/tools': typeof AppGrowToolsRoute
+  '/money/bills': typeof AppMoneyBillsRoute
+  '/money/budgets': typeof AppMoneyBudgetsRoute
+  '/money/month': typeof AppMoneyMonthRoute
+  '/money/payments': typeof AppMoneyPaymentsRoute
+  '/money/review': typeof AppMoneyReviewRoute
+  '/money/sort': typeof AppMoneySortRoute
+  '/plan/bonus': typeof AppPlanBonusRoute
+  '/plan/payday': typeof AppPlanPaydayRoute
+  '/plan/people': typeof AppPlanPeopleRoute
+  '/plan/pots': typeof AppPlanPotsRoute
+  '/plan/tax': typeof AppPlanTaxRoute
+  '/grow': typeof AppGrowIndexRoute
+  '/money': typeof AppMoneyIndexRoute
+  '/plan': typeof AppPlanIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/_app/budgets': typeof AppBudgetsRoute
-  '/_app/goals': typeof AppGoalsRoute
-  '/_app/insights': typeof AppInsightsRoute
-  '/_app/investments': typeof AppInvestmentsRoute
+  '/setup': typeof SetupRoute
   '/_app/settings': typeof AppSettingsRoute
-  '/_app/sort': typeof AppSortRoute
-  '/_app/tools': typeof AppToolsRoute
-  '/_app/transactions': typeof AppTransactionsRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/grow/freedom': typeof AppGrowFreedomRoute
+  '/_app/grow/holdings': typeof AppGrowHoldingsRoute
+  '/_app/grow/investing': typeof AppGrowInvestingRoute
+  '/_app/grow/tools': typeof AppGrowToolsRoute
+  '/_app/money/bills': typeof AppMoneyBillsRoute
+  '/_app/money/budgets': typeof AppMoneyBudgetsRoute
+  '/_app/money/month': typeof AppMoneyMonthRoute
+  '/_app/money/payments': typeof AppMoneyPaymentsRoute
+  '/_app/money/review': typeof AppMoneyReviewRoute
+  '/_app/money/sort': typeof AppMoneySortRoute
+  '/_app/plan/bonus': typeof AppPlanBonusRoute
+  '/_app/plan/payday': typeof AppPlanPaydayRoute
+  '/_app/plan/people': typeof AppPlanPeopleRoute
+  '/_app/plan/pots': typeof AppPlanPotsRoute
+  '/_app/plan/tax': typeof AppPlanTaxRoute
+  '/_app/grow/': typeof AppGrowIndexRoute
+  '/_app/money/': typeof AppMoneyIndexRoute
+  '/_app/plan/': typeof AppPlanIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/login'
-    | '/budgets'
-    | '/goals'
-    | '/insights'
-    | '/investments'
+    | '/setup'
     | '/settings'
-    | '/sort'
-    | '/tools'
-    | '/transactions'
+    | '/grow/freedom'
+    | '/grow/holdings'
+    | '/grow/investing'
+    | '/grow/tools'
+    | '/money/bills'
+    | '/money/budgets'
+    | '/money/month'
+    | '/money/payments'
+    | '/money/review'
+    | '/money/sort'
+    | '/plan/bonus'
+    | '/plan/payday'
+    | '/plan/people'
+    | '/plan/pots'
+    | '/plan/tax'
+    | '/grow/'
+    | '/money/'
+    | '/plan/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
-    | '/budgets'
-    | '/goals'
-    | '/insights'
-    | '/investments'
+    | '/setup'
     | '/settings'
-    | '/sort'
-    | '/tools'
-    | '/transactions'
     | '/'
+    | '/grow/freedom'
+    | '/grow/holdings'
+    | '/grow/investing'
+    | '/grow/tools'
+    | '/money/bills'
+    | '/money/budgets'
+    | '/money/month'
+    | '/money/payments'
+    | '/money/review'
+    | '/money/sort'
+    | '/plan/bonus'
+    | '/plan/payday'
+    | '/plan/people'
+    | '/plan/pots'
+    | '/plan/tax'
+    | '/grow'
+    | '/money'
+    | '/plan'
   id:
     | '__root__'
     | '/_app'
     | '/login'
-    | '/_app/budgets'
-    | '/_app/goals'
-    | '/_app/insights'
-    | '/_app/investments'
+    | '/setup'
     | '/_app/settings'
-    | '/_app/sort'
-    | '/_app/tools'
-    | '/_app/transactions'
     | '/_app/'
+    | '/_app/grow/freedom'
+    | '/_app/grow/holdings'
+    | '/_app/grow/investing'
+    | '/_app/grow/tools'
+    | '/_app/money/bills'
+    | '/_app/money/budgets'
+    | '/_app/money/month'
+    | '/_app/money/payments'
+    | '/_app/money/review'
+    | '/_app/money/sort'
+    | '/_app/plan/bonus'
+    | '/_app/plan/payday'
+    | '/_app/plan/people'
+    | '/_app/plan/pots'
+    | '/_app/plan/tax'
+    | '/_app/grow/'
+    | '/_app/money/'
+    | '/_app/plan/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
+  SetupRoute: typeof SetupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -175,39 +320,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/': {
       id: '/_app/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/budgets': {
-      id: '/_app/budgets'
-      path: '/budgets'
-      fullPath: '/budgets'
-      preLoaderRoute: typeof AppBudgetsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/goals': {
-      id: '/_app/goals'
-      path: '/goals'
-      fullPath: '/goals'
-      preLoaderRoute: typeof AppGoalsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/insights': {
-      id: '/_app/insights'
-      path: '/insights'
-      fullPath: '/insights'
-      preLoaderRoute: typeof AppInsightsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/investments': {
-      id: '/_app/investments'
-      path: '/investments'
-      fullPath: '/investments'
-      preLoaderRoute: typeof AppInvestmentsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings': {
@@ -217,52 +341,179 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/sort': {
-      id: '/_app/sort'
-      path: '/sort'
-      fullPath: '/sort'
-      preLoaderRoute: typeof AppSortRouteImport
+    '/_app/grow/': {
+      id: '/_app/grow/'
+      path: '/grow'
+      fullPath: '/grow/'
+      preLoaderRoute: typeof AppGrowIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/tools': {
-      id: '/_app/tools'
-      path: '/tools'
-      fullPath: '/tools'
-      preLoaderRoute: typeof AppToolsRouteImport
+    '/_app/grow/freedom': {
+      id: '/_app/grow/freedom'
+      path: '/grow/freedom'
+      fullPath: '/grow/freedom'
+      preLoaderRoute: typeof AppGrowFreedomRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/transactions': {
-      id: '/_app/transactions'
-      path: '/transactions'
-      fullPath: '/transactions'
-      preLoaderRoute: typeof AppTransactionsRouteImport
+    '/_app/grow/holdings': {
+      id: '/_app/grow/holdings'
+      path: '/grow/holdings'
+      fullPath: '/grow/holdings'
+      preLoaderRoute: typeof AppGrowHoldingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/grow/investing': {
+      id: '/_app/grow/investing'
+      path: '/grow/investing'
+      fullPath: '/grow/investing'
+      preLoaderRoute: typeof AppGrowInvestingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/grow/tools': {
+      id: '/_app/grow/tools'
+      path: '/grow/tools'
+      fullPath: '/grow/tools'
+      preLoaderRoute: typeof AppGrowToolsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/money/': {
+      id: '/_app/money/'
+      path: '/money'
+      fullPath: '/money/'
+      preLoaderRoute: typeof AppMoneyIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/money/bills': {
+      id: '/_app/money/bills'
+      path: '/money/bills'
+      fullPath: '/money/bills'
+      preLoaderRoute: typeof AppMoneyBillsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/money/budgets': {
+      id: '/_app/money/budgets'
+      path: '/money/budgets'
+      fullPath: '/money/budgets'
+      preLoaderRoute: typeof AppMoneyBudgetsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/money/month': {
+      id: '/_app/money/month'
+      path: '/money/month'
+      fullPath: '/money/month'
+      preLoaderRoute: typeof AppMoneyMonthRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/money/payments': {
+      id: '/_app/money/payments'
+      path: '/money/payments'
+      fullPath: '/money/payments'
+      preLoaderRoute: typeof AppMoneyPaymentsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/money/review': {
+      id: '/_app/money/review'
+      path: '/money/review'
+      fullPath: '/money/review'
+      preLoaderRoute: typeof AppMoneyReviewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/money/sort': {
+      id: '/_app/money/sort'
+      path: '/money/sort'
+      fullPath: '/money/sort'
+      preLoaderRoute: typeof AppMoneySortRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/plan/': {
+      id: '/_app/plan/'
+      path: '/plan'
+      fullPath: '/plan/'
+      preLoaderRoute: typeof AppPlanIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/plan/bonus': {
+      id: '/_app/plan/bonus'
+      path: '/plan/bonus'
+      fullPath: '/plan/bonus'
+      preLoaderRoute: typeof AppPlanBonusRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/plan/payday': {
+      id: '/_app/plan/payday'
+      path: '/plan/payday'
+      fullPath: '/plan/payday'
+      preLoaderRoute: typeof AppPlanPaydayRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/plan/people': {
+      id: '/_app/plan/people'
+      path: '/plan/people'
+      fullPath: '/plan/people'
+      preLoaderRoute: typeof AppPlanPeopleRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/plan/pots': {
+      id: '/_app/plan/pots'
+      path: '/plan/pots'
+      fullPath: '/plan/pots'
+      preLoaderRoute: typeof AppPlanPotsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/plan/tax': {
+      id: '/_app/plan/tax'
+      path: '/plan/tax'
+      fullPath: '/plan/tax'
+      preLoaderRoute: typeof AppPlanTaxRouteImport
       parentRoute: typeof AppRoute
     }
   }
 }
 
 interface AppRouteChildren {
-  AppBudgetsRoute: typeof AppBudgetsRoute
-  AppGoalsRoute: typeof AppGoalsRoute
-  AppInsightsRoute: typeof AppInsightsRoute
-  AppInvestmentsRoute: typeof AppInvestmentsRoute
   AppSettingsRoute: typeof AppSettingsRoute
-  AppSortRoute: typeof AppSortRoute
-  AppToolsRoute: typeof AppToolsRoute
-  AppTransactionsRoute: typeof AppTransactionsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppGrowFreedomRoute: typeof AppGrowFreedomRoute
+  AppGrowHoldingsRoute: typeof AppGrowHoldingsRoute
+  AppGrowInvestingRoute: typeof AppGrowInvestingRoute
+  AppGrowToolsRoute: typeof AppGrowToolsRoute
+  AppMoneyBillsRoute: typeof AppMoneyBillsRoute
+  AppMoneyBudgetsRoute: typeof AppMoneyBudgetsRoute
+  AppMoneyMonthRoute: typeof AppMoneyMonthRoute
+  AppMoneyPaymentsRoute: typeof AppMoneyPaymentsRoute
+  AppMoneyReviewRoute: typeof AppMoneyReviewRoute
+  AppMoneySortRoute: typeof AppMoneySortRoute
+  AppPlanBonusRoute: typeof AppPlanBonusRoute
+  AppPlanPaydayRoute: typeof AppPlanPaydayRoute
+  AppPlanPeopleRoute: typeof AppPlanPeopleRoute
+  AppPlanPotsRoute: typeof AppPlanPotsRoute
+  AppPlanTaxRoute: typeof AppPlanTaxRoute
+  AppGrowIndexRoute: typeof AppGrowIndexRoute
+  AppMoneyIndexRoute: typeof AppMoneyIndexRoute
+  AppPlanIndexRoute: typeof AppPlanIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppBudgetsRoute: AppBudgetsRoute,
-  AppGoalsRoute: AppGoalsRoute,
-  AppInsightsRoute: AppInsightsRoute,
-  AppInvestmentsRoute: AppInvestmentsRoute,
   AppSettingsRoute: AppSettingsRoute,
-  AppSortRoute: AppSortRoute,
-  AppToolsRoute: AppToolsRoute,
-  AppTransactionsRoute: AppTransactionsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppGrowFreedomRoute: AppGrowFreedomRoute,
+  AppGrowHoldingsRoute: AppGrowHoldingsRoute,
+  AppGrowInvestingRoute: AppGrowInvestingRoute,
+  AppGrowToolsRoute: AppGrowToolsRoute,
+  AppMoneyBillsRoute: AppMoneyBillsRoute,
+  AppMoneyBudgetsRoute: AppMoneyBudgetsRoute,
+  AppMoneyMonthRoute: AppMoneyMonthRoute,
+  AppMoneyPaymentsRoute: AppMoneyPaymentsRoute,
+  AppMoneyReviewRoute: AppMoneyReviewRoute,
+  AppMoneySortRoute: AppMoneySortRoute,
+  AppPlanBonusRoute: AppPlanBonusRoute,
+  AppPlanPaydayRoute: AppPlanPaydayRoute,
+  AppPlanPeopleRoute: AppPlanPeopleRoute,
+  AppPlanPotsRoute: AppPlanPotsRoute,
+  AppPlanTaxRoute: AppPlanTaxRoute,
+  AppGrowIndexRoute: AppGrowIndexRoute,
+  AppMoneyIndexRoute: AppMoneyIndexRoute,
+  AppPlanIndexRoute: AppPlanIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -270,6 +521,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
+  SetupRoute: SetupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

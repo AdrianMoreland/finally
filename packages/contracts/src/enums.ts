@@ -5,7 +5,7 @@ export const institution = z.enum(['AIB', 'REVOLUT']);
 export const connectionStatus = z.enum(['ACTIVE', 'EXPIRING', 'EXPIRED', 'ERROR']);
 export const accountType = z.enum(['CURRENT', 'SAVINGS', 'VAULT', 'CARD']);
 export const txStatus = z.enum(['PENDING', 'BOOKED']);
-export const txKind = z.enum(['SPEND', 'INCOME', 'TRANSFER', 'REFUND']);
+export const txKind = z.enum(['SPEND', 'INCOME', 'TRANSFER', 'REFUND', 'SHARE']);
 export const categorisedBy = z.enum(['RULE', 'USER', 'SEED', 'AI', 'NONE']);
 export const categoryGroup = z.enum(['ESSENTIALS', 'LIFESTYLE', 'SAVINGS', 'INCOME', 'TRANSFER']);
 export const askGroup = z.enum(['FOOD', 'TRANSPORT', 'SHOPPING', 'BILLS', 'FUN', 'OTHER']);
@@ -19,6 +19,10 @@ export const taxRegime = z.enum(['EXIT_TAX', 'CGT', 'NONE']);
 export const taxRuleRegime = z.enum(['EXIT_TAX', 'CGT', 'INVESTMENT_ACCOUNT']);
 export const wrapper = z.enum(['BROKER', 'INVESTMENT_ACCOUNT', 'PENSION']);
 export const platform = z.enum(['IOS', 'ANDROID', 'WEB']);
+export const potType = z.enum(['SAFETY', 'PLANNED', 'TREAT', 'INVESTING']);
+export const personDirection = z.enum(['OWE', 'OWED']);
+export const reviewKind = z.enum(['WEEK', 'MONTH']);
+export const checkState = z.enum(['TODO', 'DONE', 'NA']);
 
 export type BankProviderKind = z.infer<typeof bankProviderKind>;
 export type Institution = z.infer<typeof institution>;
@@ -39,6 +43,10 @@ export type TaxRegime = z.infer<typeof taxRegime>;
 export type TaxRuleRegime = z.infer<typeof taxRuleRegime>;
 export type Wrapper = z.infer<typeof wrapper>;
 export type Platform = z.infer<typeof platform>;
+export type PotType = z.infer<typeof potType>;
+export type PersonDirection = z.infer<typeof personDirection>;
+export type ReviewKind = z.infer<typeof reviewKind>;
+export type CheckState = z.infer<typeof checkState>;
 
 /**
  * The three quick-answer categories offered per askGroup (category slugs). Used for push notification
@@ -49,7 +57,7 @@ export const ASK_GROUP_BUTTONS: Record<AskGroup, readonly string[]> = {
   TRANSPORT: ['taxi', 'public-transport', 'fuel'],
   SHOPPING: ['shopping', 'household', 'gifts'],
   BILLS: ['bills', 'subscriptions', 'health'],
-  FUN: ['fun', 'eating-out', 'travel'],
+  FUN: ['bars', 'fun', 'eating-out'],
   OTHER: [],
 };
 

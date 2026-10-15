@@ -19,6 +19,8 @@ export class UsersService {
     @Inject(ENV) private readonly env: Env,
   ) {}
 
+  private readonly provisioned = new Set<string>();
+
   isAllowed(email: string): boolean {
     return this.env.ALLOWED_EMAILS.includes(email.toLowerCase());
   }
@@ -54,6 +56,11 @@ export class UsersService {
         this.log.log(`Created profile ${user.id}`);
       }
       await provisionDefaults(this.db, user.id);
+      this.provisioned.add(user.id);
+    } else if (!this.provisioned.has(user.id)) {
+      // Existing profiles pick up categories and rules added by newer versions, once per server start.
+      await provisionDefaults(this.db, user.id);
+      this.provisioned.add(user.id);
     }
     const authUser: AuthUser = { id: user.id, authId: claims.sub, email };
     this.cache.set(claims.sub, { user: authUser, at: Date.now() });
