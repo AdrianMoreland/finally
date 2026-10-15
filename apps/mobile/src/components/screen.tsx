@@ -60,7 +60,7 @@ export function LoadingCard({ height = 120 }: { height?: number }): ReactNode {
 
 export function ErrorCard({ error, retry }: { error: unknown; retry?: () => void }): ReactNode {
   return (
-    <View className="rounded-card border border-rule bg-surface p-4">
+    <View className="rounded-card bg-surface p-4">
       <Text variant="semi" className="text-bad">
         Something went wrong
       </Text>

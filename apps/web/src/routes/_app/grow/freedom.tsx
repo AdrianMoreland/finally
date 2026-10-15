@@ -47,7 +47,7 @@ function FreedomPage(): ReactNode {
               <Sub>{f.hitAge != null ? `The middle path gets there around age ${f.hitAge}.` : 'The middle path does not get there by 66 at this monthly amount.'}</Sub>
             </div>
             <div>
-              <div className="num font-display text-[26px] font-bold">{Math.round(f.probBy55 * 100)}%</div>
+              <div className="num font-display text-[26px] font-medium">{Math.round(f.probBy55 * 100)}%</div>
               <div className="text-[12.5px] text-ink-3">of 300 simulated runs get there by 55</div>
             </div>
           </div>

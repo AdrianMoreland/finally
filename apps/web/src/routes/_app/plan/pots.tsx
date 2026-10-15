@@ -30,7 +30,7 @@ function Ladder({ ladder }: { ladder: PotsDto['ladder'] }): ReactNode {
       <ol className="grid gap-0">
         {ladder.rungs.map((r, i) => (
           <li key={r.key} className={cn('grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-3 border-t border-rule py-2.5 first:border-t-0', i === ladder.current && 'rounded-lg bg-brand-soft px-2')}>
-            <span className={cn('grid size-6 place-items-center rounded-full border text-[11px] font-bold', r.done ? 'border-brand bg-brand text-brand-ink' : i === ladder.current ? 'border-ink bg-ink text-paper' : 'border-ink-3 text-ink-3')}>
+            <span className={cn('grid size-6 place-items-center rounded-full border text-[11px] font-bold', r.done ? 'border-brand bg-fill text-on-fill' : i === ladder.current ? 'border-ink bg-ink text-paper' : 'border-ink-3 text-ink-3')}>
               {r.done ? '✓' : i + 1}
             </span>
             <div className="min-w-0">
@@ -59,7 +59,7 @@ function PotCard({ pot, onEdit, onMonthly }: { pot: PotDto; onEdit: () => void; 
         <Button variant="ghost" size="sm" onClick={onEdit}>Edit</Button>
       </div>
       <div className="mt-3 flex items-baseline gap-2">
-        <span className="num font-display text-[28px] font-bold leading-none">{eur(pot.balance)}</span>
+        <span className="num font-display text-[28px] font-medium leading-none">{eur(pot.balance)}</span>
         {target ? <span className="text-[13px] text-ink-3">of {eur0(target)}</span> : null}
       </div>
       {target ? <Track value={pot.progress} color={`var(${t.colour})`} height={10} className="my-3" /> : null}

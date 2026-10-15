@@ -67,6 +67,14 @@
   --color-bad: var(--bad);
   --color-warn-soft: var(--warn-soft);
   --color-bad-soft: var(--bad-soft);
+  --color-good-soft: var(--good-soft);
+  --color-well: var(--well);
+  --color-fill: var(--fill);
+  --color-on-fill: var(--on-fill);
+  --color-pink: var(--pink);
+  --color-pink-soft: var(--pink-soft);
+  --color-track: var(--track);
+  --color-needle: var(--needle);
 }
 
 @layer base {
@@ -77,7 +85,7 @@
     scroll-padding-top: env(safe-area-inset-top, 0px);
   }
   body {
-    @apply bg-paper text-ink;
+    @apply bg-well text-ink;
     font: 400 14px/1.45 var(--f-body);
     -webkit-font-smoothing: antialiased;
   }
@@ -87,7 +95,7 @@
   :focus-visible {
     outline: 2px solid var(--brand);
     outline-offset: 2px;
-    border-radius: 6px;
+    border-radius: 3px;
   }
   [hidden] {
     display: none !important;
@@ -154,7 +162,7 @@ svg text {
 }
 .area {
   fill: var(--brand);
-  opacity: 0.1;
+  opacity: 0.12;
 }
 .endpt {
   fill: var(--brand);
@@ -175,6 +183,56 @@ svg text {
 }
 .dia {
   fill: var(--brand);
+}
+
+/* Sliders: a thin filled track and a round thumb, as in the prototype. --p is the filled share, --tone the colour. */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--tone, var(--brand)) var(--p, 0%), var(--track) var(--p, 0%));
+}
+input[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--track);
+}
+input[type='range']::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--tone, var(--brand));
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--tone, var(--brand));
+  box-shadow: 0 0 0 3px var(--surface);
+}
+input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--tone, var(--brand));
+  box-shadow: 0 0 0 3px var(--surface);
+}
+input[type='range']:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+input[type='checkbox'] {
+  accent-color: var(--fill);
 }
 
 @media (prefers-reduced-motion: reduce) {

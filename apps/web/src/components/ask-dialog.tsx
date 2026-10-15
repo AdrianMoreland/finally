@@ -94,7 +94,7 @@ function ReadAs({ turn, response }: { turn: AskTurn; response: AskResponse }): R
 function ChipSelect({ label, value, options, onChange }: { label: string; value: string; options: Array<[string, string]>; onChange: (v: string) => void }): ReactNode {
   return (
     <Select value={value || '__none'} onValueChange={(v) => onChange(v === '__none' ? '' : v)}>
-      <SelectTrigger size="sm" aria-label={label} className="h-7 w-auto gap-1.5 rounded-full border-rule bg-raised px-2.5 text-[12.5px] font-semibold">
+      <SelectTrigger size="sm" aria-label={label} className="h-7 w-auto gap-1.5 rounded-[3px] border-rule bg-raised px-2.5 text-[12.5px] font-semibold">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -149,7 +149,7 @@ function Answer({ turn }: { turn: AskTurn }): ReactNode {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-[11.5px] font-semibold uppercase tracking-[0.07em] text-ink-3">{a.short}</div>
-          <div className="num font-display text-[28px] font-bold leading-tight tracking-[-0.02em]">{maskText(a.big)}</div>
+          <div className="num font-display text-[28px] font-medium leading-tight tracking-[-0.01em]">{maskText(a.big)}</div>
         </div>
         {a.tier !== 'rules' ? <Chip tone="ok">{a.tier === 'help' ? 'Help' : 'Public data'}</Chip> : null}
       </div>
@@ -207,7 +207,7 @@ function Answer({ turn }: { turn: AskTurn }): ReactNode {
 function SuggestionChip({ text }: { text: string }): ReactNode {
   const { submit } = useAskPanel();
   return (
-    <button type="button" onClick={() => submit(text)} className="rounded-full border border-rule bg-raised px-3 py-1 text-[12.5px] font-medium text-ink-2 hover:border-brand hover:text-brand">
+    <button type="button" onClick={() => submit(text)} className="rounded-[3px] border border-rule bg-raised px-3 py-1 text-[12.5px] font-medium text-ink-2 hover:border-brand hover:text-brand">
       {text}
     </button>
   );

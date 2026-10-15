@@ -37,13 +37,13 @@ function SortCard({ req, categories }: { req: CategoriseRequestDto; categories: 
   const [first, ...rest] = req.suggestedCategories;
   const pickable = categories.filter((c) => !c.archived && c.group !== 'TRANSFER' && c.group !== 'INCOME');
   return (
-    <article className="flex flex-col gap-3 rounded-[10px] border border-rule bg-surface p-4" aria-labelledby={`req-${req.id}`}>
+    <article className="flex flex-col gap-3 rounded-[6px] bg-surface p-4" aria-labelledby={`req-${req.id}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 id={`req-${req.id}`} className="text-[16px] font-semibold">{req.displayName}</h2>
           <span className="raw-marker mt-1.5 max-w-full truncate">{req.rawDescriptor}</span>
         </div>
-        <div className="num whitespace-nowrap font-display text-[20px] font-bold">{eur(req.amount)}</div>
+        <div className="num whitespace-nowrap font-display text-[20px] font-medium">{eur(req.amount)}</div>
       </div>
       <div className="text-[12.5px] text-ink-2">
         {shortDate(req.bookingDate)} · {req.accountName} · {req.paymentCount} payment{req.paymentCount === 1 ? '' : 's'} from this merchant
@@ -65,7 +65,7 @@ function SortCard({ req, categories }: { req: CategoriseRequestDto; categories: 
             type="button"
             disabled={answer.isPending}
             onClick={() => send(c, false)}
-            className="inline-flex items-center gap-[7px] rounded-full border border-rule bg-raised px-3 py-[6px] text-[13px] font-semibold hover:border-brand hover:text-brand disabled:opacity-60"
+            className="inline-flex items-center gap-[7px] rounded-[3px] border border-rule bg-raised px-3 py-[6px] text-[13px] font-semibold hover:border-brand hover:text-brand disabled:opacity-60"
           >
             <i className="size-2 rounded-full" style={{ background: categoryVar(c) }} />
             {c.name}

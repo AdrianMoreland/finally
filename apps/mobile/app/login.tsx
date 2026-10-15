@@ -52,7 +52,7 @@ export default function Login(): ReactNode {
             autoComplete="email"
             keyboardType="email-address"
             placeholder="you@example.com"
-            className="rounded-control border border-rule bg-surface px-3 py-3 font-body text-[15px] text-ink"
+            className="rounded-control border-[1.5px] border-rule bg-transparent px-3 py-3 font-body text-[15px] text-ink"
             placeholderTextColor="#8A9790"
             accessibilityLabel="Email"
             onSubmitEditing={() => void submit()}

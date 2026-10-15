@@ -45,7 +45,7 @@ export default function Activity(): ReactNode {
           onChangeText={setQ}
           placeholder="Search merchant or bank text"
           placeholderTextColor="#8A9790"
-          className="mb-3 rounded-control border border-rule bg-surface px-3 py-2.5 font-body text-[14px] text-ink"
+          className="mb-3 rounded-control border-[1.5px] border-rule bg-transparent px-3 py-2.5 font-body text-[14px] text-ink"
           accessibilityLabel="Search payments"
           returnKeyType="search"
         />

@@ -42,7 +42,7 @@ function BudgetRowView({ r, month, day, days, suggestion }: { r: BudgetRow; mont
           {r.carriedIn !== '0.00' ? <span className="text-[11px] font-medium text-ink-3">+{eur0(r.carriedIn)} carried</span> : null}
         </div>
         <div className="text-right">
-          <div className={cn('num font-display text-[20px] font-bold leading-none', left < 0 && 'text-warn')}>
+          <div className={cn('num font-display text-[20px] font-medium leading-none', left < 0 && 'text-warn')}>
             {left >= 0 ? `${eur0(left)} left` : `${eur0(-left)} over`}
           </div>
           {!r.fixed && !past && left > 0 ? <div className="mt-0.5 text-[12px] text-ink-3">{eur(left / daysLeft)} a day</div> : null}
@@ -114,7 +114,7 @@ function BudgetsPage() {
             <Button variant="outline" size="sm" onClick={applyAll} disabled={!suggestions.data || upsert.isPending}>
               <Sparkles /> Suggest from my last 3 months
             </Button>
-            <div className="inline-flex items-center gap-1 rounded-full border border-rule bg-surface p-[3px]">
+            <div className="inline-flex items-center gap-1 rounded-[3px] border border-rule bg-surface p-[3px]">
               <button type="button" onClick={() => go(-1)} aria-label="Previous month" className="grid size-8 place-items-center rounded-full hover:bg-raised">
                 <ChevronLeft className="size-4" aria-hidden="true" />
               </button>
@@ -133,13 +133,13 @@ function BudgetsPage() {
       ) : (
         <div className={cn('grid gap-4', isFetching && 'opacity-80 transition-opacity')}>
           <Panel>
-            <h3 className="mb-3 text-[11.5px] font-semibold uppercase tracking-[0.07em] text-ink-3">Flexible: what you choose to spend</h3>
+            <h3 className="mb-3 text-[16px] font-medium text-ink-2">Flexible: what you choose to spend</h3>
             {flex.map((r) => (
               <BudgetRowView key={r.categoryId} r={r} month={data.month} day={data.dayOfMonth} days={data.daysInMonth} suggestion={suggestions.data?.[slugOf(r.categoryId) ?? '']} />
             ))}
           </Panel>
           <Panel>
-            <h3 className="mb-3 text-[11.5px] font-semibold uppercase tracking-[0.07em] text-ink-3">Fixed: found from your repeating payments</h3>
+            <h3 className="mb-3 text-[16px] font-medium text-ink-2">Fixed: found from your repeating payments</h3>
             {fixed.map((r) => (
               <BudgetRowView key={r.categoryId} r={r} month={data.month} day={data.dayOfMonth} days={data.daysInMonth} suggestion={suggestions.data?.[slugOf(r.categoryId) ?? '']} />
             ))}

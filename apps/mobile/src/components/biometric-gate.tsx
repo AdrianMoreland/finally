@@ -61,11 +61,11 @@ export function BiometricGate({ enabled, children }: { enabled: boolean; childre
     <>
       {children}
       {locked ? (
-        <View className="absolute inset-0 items-center justify-center gap-4 bg-brand px-8" accessibilityViewIsModal>
-          <Text variant="title" className="text-brand-ink">
+        <View className="absolute inset-0 items-center justify-center gap-4 bg-fill px-8" accessibilityViewIsModal>
+          <Text variant="title" className="text-on-fill">
             Finally
           </Text>
-          <Text variant="muted" className="text-center text-brand-ink opacity-80">
+          <Text variant="muted" className="text-center text-on-fill opacity-80">
             Locked
           </Text>
           <Button variant="outline" loading={checking} onPress={() => void attempt()}>

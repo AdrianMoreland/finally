@@ -41,7 +41,7 @@ function Stepper({ step }: { step: number }): ReactNode {
   return (
     <div className="flex items-center gap-1.5" role="progressbar" aria-valuemin={1} aria-valuemax={TITLES.length} aria-valuenow={step + 1} aria-label={`Step ${step + 1} of ${TITLES.length}: ${TITLES[step]}`}>
       {TITLES.map((t, i) => (
-        <i key={t} className={cn('h-1.5 flex-1 rounded-full bg-rule', i <= step && 'bg-brand')} />
+        <i key={t} className={cn('h-1.5 flex-1 rounded-[3px] bg-rule', i <= step && 'bg-fill')} />
       ))}
     </div>
   );
@@ -134,7 +134,7 @@ function SetupPage() {
       case 2:
         return (
           <div className="grid gap-4">
-            <div className="h-2.5 overflow-hidden rounded-full bg-raised"><i className="block h-full rounded-full bg-brand transition-[width]" style={{ width: `${read}%` }} /></div>
+            <div className="h-2.5 overflow-hidden rounded-[3px] bg-raised"><i className="block h-full rounded-[3px] bg-fill transition-[width]" style={{ width: `${read}%` }} /></div>
             {read < 100 ? <p className="text-[14px] text-ink-2">Reading your payment history…</p> : (
               <p className="text-[15px]">Read <b className="num">{f?.payments.toLocaleString('en-IE')}</b> payments across <b>{f?.months}</b> months. Transfers between your own accounts are kept out of spending, and refunds are netted against what they came from.</p>
             )}
@@ -250,7 +250,7 @@ function SetupPage() {
       </header>
       <div>
         <div className="text-[11.5px] font-semibold uppercase tracking-[0.07em] text-ink-3">Step {step + 1} of {TITLES.length}</div>
-        <h1 className="font-display text-[30px] font-bold leading-tight tracking-[-0.02em]">{TITLES[step]}</h1>
+        <h1 className="font-display text-[30px] font-medium leading-tight tracking-[-0.01em]">{TITLES[step]}</h1>
       </div>
       <section>{body}</section>
       <footer className="flex justify-end gap-2 pb-6">
@@ -267,7 +267,7 @@ function SetupPage() {
 function FoundRow({ title, detail }: { title: string; detail: string }): ReactNode {
   return (
     <div className="flex items-start gap-3 rounded-lg border border-rule bg-surface p-3.5">
-      <span className="mt-0.5 grid size-5 flex-none place-items-center rounded-full bg-brand text-brand-ink"><Check className="size-3" aria-hidden="true" /></span>
+      <span className="mt-0.5 grid size-5 flex-none place-items-center rounded-full bg-fill text-on-fill"><Check className="size-3" aria-hidden="true" /></span>
       <div><b>{title}</b><p className="text-[13px] text-ink-2">{detail}</p></div>
     </div>
   );
