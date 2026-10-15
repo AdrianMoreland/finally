@@ -24,7 +24,7 @@ export default function TabsLayout(): ReactNode {
         tabBarActiveTintColor: p.brand,
         tabBarInactiveTintColor: p.ink3,
         tabBarStyle: { backgroundColor: p.surface, borderTopColor: p.rule },
-        tabBarLabelStyle: { fontFamily: 'HankenGrotesk_600SemiBold', fontSize: 10 },
+        tabBarLabelStyle: { fontFamily: 'Figtree_600SemiBold', fontSize: 10 },
       }}
     >
       {TABS.map((t) => (
@@ -35,7 +35,7 @@ export default function TabsLayout(): ReactNode {
             title: t.title,
             tabBarIcon: ({ color }) => <Icon name={t.icon} color={String(color)} />,
             ...(t.name === 'money' && waiting > 0
-              ? { tabBarBadge: waiting, tabBarBadgeStyle: { backgroundColor: '#F4E35E', color: '#3D3500', fontFamily: 'HankenGrotesk_600SemiBold', fontSize: 10 } }
+              ? { tabBarBadge: waiting, tabBarBadgeStyle: { backgroundColor: '#FF6EAA', color: '#240610', fontFamily: 'Figtree_600SemiBold', fontSize: 10 } }
               : {}),
           }}
         />

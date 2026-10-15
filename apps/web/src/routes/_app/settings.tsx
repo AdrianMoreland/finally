@@ -62,7 +62,7 @@ function ConnectionRow({ c }: { c: ConnectionDto }): ReactNode {
 
   return (
     <div className="grid grid-cols-[40px_1fr_auto] items-center gap-3 border-t border-rule py-3 first:border-t-0 first:pt-0">
-      <div className="grid size-10 place-items-center rounded-[10px] font-display text-[13px] font-bold text-white" style={{ background: BANK_COLOUR[c.institution] }}>
+      <div className="grid size-10 place-items-center rounded-[6px] font-display text-[13px] font-medium text-white" style={{ background: BANK_COLOUR[c.institution] }}>
         {c.institution === 'AIB' ? 'AIB' : 'R'}
       </div>
       <div className="min-w-0">
@@ -298,7 +298,7 @@ function CategoryDialog({ open, onOpenChange, categories }: { open: boolean; onO
   const api = useApi();
   const qc = useQueryClient();
   const [name, setName] = useState('');
-  const [colour, setColour] = useState('#13654F');
+  const [colour, setColour] = useState('#9CFCEF');
   const [group, setGroup] = useState<CategoryDto['group']>('LIFESTYLE');
   const [parentId, setParentId] = useState<string>('none');
   const create = useMutation({
@@ -379,9 +379,9 @@ function RulesCard(): ReactNode {
         <div>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-[11.5px] font-semibold uppercase tracking-[0.07em] text-ink-3">Rules</h3>
-            <div className="inline-flex rounded-full border border-rule p-0.5 text-[12px] font-semibold">
+            <div className="inline-flex rounded-[3px] border border-rule p-0.5 text-[12px] font-semibold">
               {(['USER', 'SEED'] as const).map((f) => (
-                <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)} className={cn('rounded-full px-2.5 py-0.5', filter === f ? 'bg-ink text-paper' : 'text-ink-2')}>
+                <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)} className={cn('rounded-[3px] px-2.5 py-0.5', filter === f ? 'bg-ink text-paper' : 'text-ink-2')}>
                   {f === 'USER' ? 'Yours' : 'Built in'}
                 </button>
               ))}

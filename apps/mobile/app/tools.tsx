@@ -6,7 +6,7 @@ import { TextInput, View } from 'react-native';
 import { StackScreen } from '@/components/stack-screen';
 import { Card, Text, Track } from '@/components/ui/primitives';
 
-const input = 'rounded-control border border-rule bg-surface px-3 py-2 font-body text-[14px] text-ink';
+const input = 'rounded-control border-[1.5px] border-rule bg-transparent px-3 py-2 font-body text-[14px] text-ink';
 
 function useDebounced<T>(value: T, ms = 350): T {
   const [v, setV] = useState(value);

@@ -74,7 +74,7 @@ export default function Ask(): ReactNode {
           placeholderTextColor={p.ink3}
           returnKeyType="send"
           accessibilityLabel="Your question"
-          className="h-11 flex-1 rounded-control border border-rule bg-raised px-3 font-body text-[14px] text-ink"
+          className="h-11 flex-1 rounded-control border-[1.5px] border-rule bg-transparent px-3 font-body text-[14px] text-ink"
         />
         <Button onPress={() => send(text)} loading={ask.isPending}>Ask</Button>
       </View>

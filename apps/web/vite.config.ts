@@ -22,8 +22,8 @@ export default defineConfig({
         name: 'Finally',
         short_name: 'Finally',
         description: 'Personal finance: payments, budgets, investments.',
-        theme_color: '#13654F',
-        background_color: '#F1F4F2',
+        theme_color: '#050505',
+        background_color: '#050505',
         display: 'standalone',
         start_url: '/',
         icons: [

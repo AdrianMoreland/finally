@@ -69,7 +69,7 @@ function TaxRates({ rules, today }: { rules: TaxRuleDto[]; today: string }): Rea
         <br />
         <span className="text-[12px] font-normal text-ink-3">{sub}</span>
       </td>
-      <td className="whitespace-nowrap py-[9px] pr-3 align-top font-display text-[18px] font-bold">{value}</td>
+      <td className="whitespace-nowrap py-[9px] pr-3 align-top font-display text-[18px] font-medium">{value}</td>
       <td className="py-[9px] align-top text-ink-2">{note}</td>
     </tr>
   );

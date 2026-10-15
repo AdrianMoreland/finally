@@ -48,9 +48,9 @@ function WeekReview({ r }: { r: WeeklyReviewDto }): ReactNode {
     return (
       <Panel className="max-w-[640px]">
         <div className="flex items-center gap-3">
-          <span className="grid size-12 place-items-center rounded-full bg-brand text-brand-ink"><Check className="size-6" aria-hidden="true" /></span>
+          <span className="grid size-12 place-items-center rounded-full bg-fill text-on-fill"><Check className="size-6" aria-hidden="true" /></span>
           <div>
-            <h3 className="font-display text-[20px] font-bold">Review done</h3>
+            <h3 className="font-display text-[20px] font-medium">Review done</h3>
             <p className="text-[13.5px] text-ink-2">
               {r.streak} week{r.streak === 1 ? '' : 's'} in a row.{r.decision ? ` You chose: ${r.decision}.` : ''}
             </p>
@@ -70,7 +70,7 @@ function WeekReview({ r }: { r: WeeklyReviewDto }): ReactNode {
       <ol className="mb-4 flex flex-wrap gap-x-4 gap-y-1.5">
         {STEPS.map((s, i) => (
           <li key={s} className={cn('flex items-center gap-1.5 text-[12.5px] text-ink-3', i === step && 'font-semibold text-ink')}>
-            <span className={cn('grid size-5 place-items-center rounded-full border border-ink-3 text-[11px]', i < step && 'border-brand bg-brand text-brand-ink', i === step && 'border-ink bg-ink text-paper')}>
+            <span className={cn('grid size-5 place-items-center rounded-full border border-ink-3 text-[11px]', i < step && 'border-brand bg-fill text-on-fill', i === step && 'border-ink bg-ink text-paper')}>
               {i < step ? '✓' : i + 1}
             </span>
             {s}

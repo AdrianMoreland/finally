@@ -54,8 +54,8 @@ function MonthPage() {
                   <i className="size-2.5 flex-none rounded-[3px]" style={{ background: categoryVar(r.category) }} />
                   <span className="truncate">{r.category.name}</span>
                 </span>
-                <span className="relative h-2.5 rounded-full bg-raised">
-                  <i className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${(Number(r.spent) / max) * 100}%`, background: categoryVar(r.category) }} />
+                <span className="relative h-2.5 rounded-[3px] bg-raised">
+                  <i className="absolute inset-y-0 left-0 rounded-[3px]" style={{ width: `${(Number(r.spent) / max) * 100}%`, background: categoryVar(r.category) }} />
                   <b className="absolute -bottom-[3px] -top-[3px] w-0.5 bg-ink opacity-70" style={{ left: `${(Number(r.budget) / max) * 100}%` }} />
                 </span>
                 <span className={cn('num text-right', Number(r.spent) > Number(r.budget) && 'font-semibold text-warn')}>

@@ -54,7 +54,7 @@ export function SpendDonut({
         </PieChart>
       </ChartContainer>
       <div className="pointer-events-none absolute inset-0 grid max-w-[150px] place-content-center text-center">
-        <div className="num font-display text-[15px] font-bold leading-tight">{eur0(total)}</div>
+        <div className="num font-display text-[15px] font-medium leading-tight">{eur0(total)}</div>
         <div className="text-[11px] text-ink-3">{centreLabel}</div>
       </div>
     </div>

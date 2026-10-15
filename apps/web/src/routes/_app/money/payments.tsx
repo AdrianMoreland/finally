@@ -145,7 +145,7 @@ function Detail({ tx, categories, onClose }: { tx: TransactionDto | null; catego
           </SheetDescription>
         </SheetHeader>
         <div className="grid gap-4 px-4 pb-6">
-          <div className={cn('num font-display text-[34px] font-bold', money && 'text-good')}>{eur(tx.amountEur, { signed: true })}</div>
+          <div className={cn('num font-display text-[34px] font-medium', money && 'text-good')}>{eur(tx.amountEur, { signed: true })}</div>
           <div className="flex flex-wrap items-center gap-1.5">
             <CategoryPicker tx={tx} categories={categories} />
             {tags(tx)}
@@ -169,7 +169,7 @@ function Detail({ tx, categories, onClose }: { tx: TransactionDto | null; catego
             <label htmlFor="tx-tag" className="mb-1 block text-[13px] font-medium">Tags</label>
             <div className="flex flex-wrap items-center gap-1.5">
               {tx.tags.map((x) => (
-                <button key={x} type="button" className="inline-flex items-center gap-1 rounded-full border border-rule bg-raised px-2 py-[2px] text-[12px] font-semibold" onClick={() => save({ tags: tx.tags.filter((t) => t !== x) })} aria-label={`Remove tag ${x}`}>
+                <button key={x} type="button" className="inline-flex items-center gap-1 rounded-[3px] border border-rule bg-raised px-2 py-[2px] text-[12px] font-semibold" onClick={() => save({ tags: tx.tags.filter((t) => t !== x) })} aria-label={`Remove tag ${x}`}>
                   #{x} <X className="size-3" aria-hidden="true" />
                 </button>
               ))}

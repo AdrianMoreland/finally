@@ -20,7 +20,7 @@ export function Seg<T extends string>({
   className?: string;
 }): ReactNode {
   return (
-    <div role="group" aria-label={label} className={cn('inline-flex rounded-full border border-rule bg-surface p-0.5', className)}>
+    <div role="group" aria-label={label} className={cn('inline-flex flex-wrap gap-1.5', className)}>
       {options.map(([v, l]) => (
         <button
           key={v}
@@ -28,8 +28,8 @@ export function Seg<T extends string>({
           aria-pressed={value === v}
           onClick={() => onChange(v)}
           className={cn(
-            'rounded-full px-3 py-1 text-[13px] font-semibold text-ink-2 transition-colors',
-            value === v ? 'bg-ink text-paper' : 'hover:text-ink',
+            'rounded-[3px] border-[1.5px] px-3 py-1.5 text-[13px] font-semibold transition-colors',
+            value === v ? 'border-ink bg-ink text-paper' : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink',
           )}
         >
           {l}
@@ -40,26 +40,26 @@ export function Seg<T extends string>({
 }
 
 const CALLOUT = {
-  info: 'border-rule bg-raised text-ink-2',
+  info: 'border-transparent bg-brand-soft text-ink',
   warn: 'border-transparent bg-warn-soft text-ink',
-  act: 'border-transparent bg-marker/40 text-ink',
+  act: 'border-transparent bg-pink-soft text-ink',
 } as const;
 
 export function Callout({ tone = 'info', children, className }: { tone?: keyof typeof CALLOUT; children: ReactNode; className?: string }): ReactNode {
-  return <div className={cn('rounded-lg border px-3 py-2.5 text-[13px]', CALLOUT[tone], className)}>{children}</div>;
+  return <div className={cn('rounded-[4px] border px-3 py-2.5 text-[13px]', CALLOUT[tone], className)}>{children}</div>;
 }
 
 const CHIP = {
-  plain: 'border-rule bg-raised text-ink-2',
-  ok: 'border-transparent bg-brand-soft text-brand',
-  mark: 'border-transparent bg-marker font-bold text-marker-ink',
-  pend: 'border-dashed border-ink-3 bg-transparent text-ink-2',
-  warn: 'border-transparent bg-warn-soft text-warn',
+  plain: 'border-rule bg-transparent text-ink-2',
+  ok: 'border-brand bg-transparent text-brand',
+  mark: 'border-marker bg-marker font-bold text-marker-ink',
+  pend: 'border-dashed border-ink-3 bg-transparent text-ink-3',
+  warn: 'border-warn bg-transparent text-warn',
 } as const;
 
 export function Chip({ tone = 'plain', children, className }: { tone?: keyof typeof CHIP; children: ReactNode; className?: string }): ReactNode {
   return (
-    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-[2px] text-[11.5px] font-semibold', CHIP[tone], className)}>
+    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-[3px] border px-2 py-[2px] text-[11.5px] font-semibold', CHIP[tone], className)}>
       {children}
     </span>
   );
@@ -84,10 +84,10 @@ export function Stepper({
   const clamp = (v: number): number => Math.min(max ?? Infinity, Math.max(min, v));
   return (
     <span className="inline-flex items-center gap-1">
-      <button type="button" aria-label={`Less ${label}`} onClick={() => onChange(clamp(value - step))} className="grid size-7 place-items-center rounded-full border border-rule bg-surface text-ink-2 hover:text-ink">
+      <button type="button" aria-label={`Less ${label}`} onClick={() => onChange(clamp(value - step))} className="grid size-7 place-items-center rounded-[3px] border-[1.5px] border-rule text-ink-2 hover:border-brand hover:text-brand">
         <Minus className="size-3.5" aria-hidden="true" />
       </button>
-      <button type="button" aria-label={`More ${label}`} onClick={() => onChange(clamp(value + step))} className="grid size-7 place-items-center rounded-full border border-rule bg-surface text-ink-2 hover:text-ink">
+      <button type="button" aria-label={`More ${label}`} onClick={() => onChange(clamp(value + step))} className="grid size-7 place-items-center rounded-[3px] border-[1.5px] border-rule text-ink-2 hover:border-brand hover:text-brand">
         <Plus className="size-3.5" aria-hidden="true" />
       </button>
     </span>
@@ -184,8 +184,8 @@ export function AmountField({
             if (drag != null && drag !== value) onCommit(drag);
             setDrag(null);
           }}
-          style={{ accentColor: colour ? `var(${colour})` : 'var(--brand)', background: `linear-gradient(to right, ${colour ? `var(${colour})` : 'var(--brand)'} ${pctFill}%, var(--rule) ${pctFill}%)` }}
-          className="h-1.5 w-full cursor-pointer appearance-none rounded-full"
+          style={{ ['--p' as string]: `${pctFill}%`, ['--tone' as string]: colour ? `var(${colour})` : 'var(--brand)' }}
+          className="w-full"
         />
       ) : null}
     </div>
@@ -218,7 +218,7 @@ export function Tri({
         <span className={cn(state === 'NA' && 'text-ink-3')}>{label}</span>
         {hint ? <small className="block text-[12px] text-ink-3">{hint}</small> : null}
       </span>
-      <span role="group" aria-label={label} className="inline-flex rounded-full border border-rule bg-surface p-0.5">
+      <span role="group" aria-label={label} className="inline-flex gap-1">
         {TRI.map(([s, l]) => (
           <button
             key={s}
@@ -227,8 +227,8 @@ export function Tri({
             aria-pressed={state === s}
             onClick={() => state !== s && onChange(s)}
             className={cn(
-              'rounded-full px-2.5 py-[3px] text-[12px] font-semibold transition-colors',
-              state === s ? (s === 'DONE' ? 'bg-brand text-brand-ink' : 'bg-ink text-paper') : 'text-ink-2 hover:text-ink',
+              'rounded-[3px] border-[1.5px] px-2.5 py-[3px] text-[12px] font-semibold transition-colors',
+              state === s ? (s === 'DONE' ? 'border-fill bg-fill text-on-fill' : 'border-ink bg-ink text-paper') : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink',
             )}
           >
             {l}
@@ -243,7 +243,7 @@ export function Tri({
 export function StackBar({ parts, label }: { parts: Array<{ name: string; value: number; colour: string }>; label: string }): ReactNode {
   const total = parts.reduce((a, p) => a + Math.max(0, p.value), 0) || 1;
   return (
-    <div role="img" aria-label={label} className="flex h-4 overflow-hidden rounded-full border border-rule bg-raised">
+    <div role="img" aria-label={label} className="flex h-[22px] gap-0.5 overflow-hidden rounded-[3px] bg-track">
       {parts.map((p) =>
         p.value > 0 ? <span key={p.name} title={p.name} style={{ width: `${(p.value / total) * 100}%`, background: `var(${p.colour})` }} /> : null,
       )}

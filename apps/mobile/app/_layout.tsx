@@ -1,14 +1,12 @@
 import '../global.css';
 import { ApiProvider, useCategories } from '@finally/api-client';
 import {
-  BricolageGrotesque_600SemiBold,
-  BricolageGrotesque_700Bold,
-} from '@expo-google-fonts/bricolage-grotesque';
-import {
-  HankenGrotesk_400Regular,
-  HankenGrotesk_500Medium,
-  HankenGrotesk_600SemiBold,
-} from '@expo-google-fonts/hanken-grotesk';
+  Figtree_300Light,
+  Figtree_400Regular,
+  Figtree_500Medium,
+  Figtree_600SemiBold,
+  Figtree_700Bold,
+} from '@expo-google-fonts/figtree';
 import { IBMPlexMono_400Regular, IBMPlexMono_500Medium } from '@expo-google-fonts/ibm-plex-mono';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
@@ -71,12 +69,12 @@ function Routes(): ReactNode {
             {['bills', 'month', 'review', 'payday', 'pots', 'people', 'tax', 'bonus', 'investing', 'freedom'].map((n) => (
               <Stack.Screen key={n} name={n} />
             ))}
-            <Stack.Screen name="ask" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.7, 0.95], sheetGrabberVisible: true, sheetCornerRadius: 22 }} />
+            <Stack.Screen name="ask" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.7, 0.95], sheetGrabberVisible: true, sheetCornerRadius: 12 }} />
             <Stack.Screen name="tools" />
             <Stack.Screen name="settings" />
             <Stack.Screen
               name="categorise"
-              options={{ presentation: 'formSheet', sheetAllowedDetents: [0.62, 0.92], sheetGrabberVisible: true, sheetCornerRadius: 22 }}
+              options={{ presentation: 'formSheet', sheetAllowedDetents: [0.62, 0.92], sheetGrabberVisible: true, sheetCornerRadius: 12 }}
             />
           </Stack.Protected>
           <Stack.Protected guard={!session}>
@@ -91,11 +89,11 @@ function Routes(): ReactNode {
 
 export default function RootLayout(): ReactNode {
   const [loaded] = useFonts({
-    BricolageGrotesque_600SemiBold,
-    BricolageGrotesque_700Bold,
-    HankenGrotesk_400Regular,
-    HankenGrotesk_500Medium,
-    HankenGrotesk_600SemiBold,
+    Figtree_300Light,
+    Figtree_400Regular,
+    Figtree_500Medium,
+    Figtree_600SemiBold,
+    Figtree_700Bold,
     IBMPlexMono_400Regular,
     IBMPlexMono_500Medium,
   });

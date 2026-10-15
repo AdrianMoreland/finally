@@ -123,7 +123,7 @@ export default function Settings(): ReactNode {
   });
 
   const timeOk = (v: string): boolean => /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
-  const input = 'w-[88px] rounded-control border border-rule bg-surface px-3 py-2 text-center font-body text-[14px] text-ink';
+  const input = 'w-[88px] rounded-control border-[1.5px] border-rule bg-transparent px-3 py-2 text-center font-body text-[14px] text-ink';
 
   return (
     <StackScreen eyebrow="Read-only bank access via Enable Banking" title="Settings">

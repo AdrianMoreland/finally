@@ -12,11 +12,11 @@ const textVariants = cva('text-ink', {
       semi: 'font-body-semi text-[14px]',
       muted: 'font-body text-[13px] text-ink-2',
       small: 'font-body text-[12px] text-ink-2',
-      eyebrow: 'font-body-semi text-[11.5px] uppercase tracking-[1px] text-ink-3',
+      eyebrow: 'font-body-bold text-[11px] uppercase tracking-[1.2px] text-brand',
       mono: 'font-mono text-[11px] text-ink-3',
-      title: 'font-display text-[26px] leading-[30px] tracking-[-0.5px]',
-      heading: 'font-display-semi text-[18px]',
-      big: 'font-display text-[36px] leading-[40px] tracking-[-0.8px]',
+      title: 'font-display text-[30px] leading-[34px]',
+      heading: 'font-display-medium text-[17px]',
+      big: 'font-display-medium text-[36px] leading-[40px] tracking-[-0.4px]',
       num: 'font-body-semi text-[14px]',
     },
   },
@@ -30,7 +30,7 @@ export function Text({ variant, className, ...props }: TextProps & VariantProps<
 /* -------------------------------------------------------------- Card */
 
 export function Card({ className, ...props }: ViewProps): ReactNode {
-  return <View className={cn('rounded-card border border-rule bg-surface p-4', className)} {...props} />;
+  return <View className={cn('rounded-card bg-surface p-4', className)} {...props} />;
 }
 
 /* ------------------------------------------------------------ Button */
@@ -38,11 +38,11 @@ export function Card({ className, ...props }: ViewProps): ReactNode {
 const buttonVariants = cva('flex-row items-center justify-center gap-2 rounded-control px-4 py-3', {
   variants: {
     variant: {
-      primary: 'bg-brand',
-      outline: 'border border-rule bg-raised',
+      primary: 'bg-fill',
+      outline: 'border-[1.5px] border-rule',
       ghost: '',
       marker: 'bg-marker',
-      danger: 'border border-bad bg-surface',
+      danger: 'border-[1.5px] border-bad',
     },
     size: { md: '', sm: 'px-3 py-2' },
   },
@@ -50,7 +50,7 @@ const buttonVariants = cva('flex-row items-center justify-center gap-2 rounded-c
 });
 
 const buttonText: Record<string, string> = {
-  primary: 'text-brand-ink',
+  primary: 'text-on-fill',
   outline: 'text-ink',
   ghost: 'text-brand',
   marker: 'text-marker-ink',
@@ -92,7 +92,7 @@ export function Track({
   value,
   tick,
   color,
-  height = 8,
+  height = 6,
 }: {
   value: number;
   tick?: number | null;
@@ -101,10 +101,10 @@ export function Track({
 }): ReactNode {
   const clamp = (n: number): number => Math.max(0, Math.min(100, n));
   return (
-    <View className="rounded-full border border-rule bg-raised" style={{ height, justifyContent: 'center' }} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(clamp(value)) }}>
-      <View className={cn('absolute bottom-0 left-0 top-0 rounded-full', !color && 'bg-brand')} style={{ width: `${clamp(value)}%`, backgroundColor: color }} />
+    <View className="rounded-[3px] bg-track" style={{ height, justifyContent: 'center' }} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(clamp(value)) }}>
+      <View className={cn('absolute bottom-0 left-0 top-0 rounded-[3px]', !color && 'bg-fill')} style={{ width: `${clamp(value)}%`, backgroundColor: color }} />
       {tick != null ? (
-        <View className="absolute w-[2px] bg-ink opacity-70" style={{ left: `${clamp(tick)}%`, top: -4, bottom: -4 }} />
+        <View className="absolute w-[2px] bg-needle" style={{ left: `${clamp(tick)}%`, top: -4, bottom: -4 }} />
       ) : null}
     </View>
   );
@@ -113,17 +113,17 @@ export function Track({
 /* ---------------------------------------------------------- Severity */
 
 const SEV = {
-  ACT: { box: 'bg-bad-soft', text: 'text-bad', label: 'ACT' },
-  WATCH: { box: 'bg-warn-soft', text: 'text-warn', label: 'WATCH' },
-  INFO: { box: 'bg-brand-soft', text: 'text-brand', label: 'INFO' },
-  YOU: { box: 'bg-marker', text: 'text-marker-ink', label: 'YOU' },
+  ACT: { box: 'border-pink', text: 'text-pink', label: 'ACT' },
+  WATCH: { box: 'border-warn', text: 'text-warn', label: 'WATCH' },
+  INFO: { box: 'border-brand', text: 'text-brand', label: 'INFO' },
+  YOU: { box: 'border-marker bg-marker', text: 'text-marker-ink', label: 'YOU' },
 } as const;
 
 export function SeverityTag({ severity }: { severity: keyof typeof SEV }): ReactNode {
   const s = SEV[severity];
   return (
-    <View className={cn('self-start rounded-[4px] px-[7px] py-[3px]', s.box)}>
-      <Text className={cn('font-body-semi text-[10px] tracking-[0.8px]', s.text)}>{s.label}</Text>
+    <View className={cn('self-start rounded-[3px] border-[1.5px] px-[6px] py-[2px]', s.box)}>
+      <Text className={cn('font-body-bold text-[10px] tracking-[1px]', s.text)}>{s.label}</Text>
     </View>
   );
 }

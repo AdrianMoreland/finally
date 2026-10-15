@@ -153,8 +153,8 @@ export default function Categorise(): ReactNode {
               accessibilityRole="button"
               accessibilityLabel={`${c.name}`}
               className={cn(
-                'items-center gap-1.5 rounded-[12px] border px-1 py-2.5',
-                suggestedIds.has(c.id) ? 'border-brand bg-brand-soft' : 'border-rule bg-raised',
+                'items-center gap-1.5 rounded-[6px] border-[1.5px] px-1 py-2.5',
+                suggestedIds.has(c.id) ? 'border-brand bg-brand-soft' : 'border-rule',
                 busy && 'opacity-60',
               )}
               style={{ width: '31.5%' }}

@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
+    "@expo-google-fonts/figtree": "^0.4.1",
     "@expo-google-fonts/hanken-grotesk": "^0.4.3",
     "@expo-google-fonts/ibm-plex-mono": "^0.4.1",
     "@finally/api-client": "workspace:*",

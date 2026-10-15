@@ -49,7 +49,7 @@ function Hero({ t }: { t: TodayDto }): ReactNode {
       <PanelTitle>Safe to spend today</PanelTitle>
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div>
-          <Big className="text-[52px]">{eur(t.safe.perDay)}</Big>
+          <Big className="text-[52px] font-light md:text-[64px]">{eur(t.safe.perDay)}</Big>
           <Sub>
             a day for the {t.daysToPayday} days to payday on {shortDate(t.nextPayday)}, set by your {t.safe.binds === 'budget' ? 'budgets' : 'balance'}, the lower of the two.
           </Sub>
@@ -163,7 +163,7 @@ function Pins({ t }: { t: TodayDto }): ReactNode {
               <X className="size-3.5" aria-hidden="true" />
             </button>
             <div className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-3">{p.short}</div>
-            <div className="num mt-0.5 font-display text-[22px] font-bold">{maskText(p.big)}</div>
+            <div className="num mt-0.5 font-display text-[22px] font-medium">{maskText(p.big)}</div>
             <div className="mt-0.5 truncate text-[12px] text-ink-3">{p.text}</div>
           </div>
         ))}
@@ -180,7 +180,7 @@ function Rung({ t }: { t: TodayDto }): ReactNode {
       <PanelTitle action={<Link to="/plan/pots">Your ladder</Link>}>Your next rung</PanelTitle>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="font-display text-[20px] font-bold leading-snug">{rung.title}</h3>
+          <h3 className="font-display text-[20px] font-medium leading-snug">{rung.title}</h3>
           <p className="text-[13px] text-ink-2">
             {rung.when}
             {rung.left && Number(rung.left) > 0 ? ` · ${eur0(rung.left)} to go` : ''}
@@ -224,7 +224,7 @@ function TodayPage() {
         }
       />
       {!t.setupDone ? (
-        <Link to="/setup" className="mb-4 flex w-full items-center gap-3 rounded-[10px] border border-rule bg-surface px-4 py-3">
+        <Link to="/setup" className="mb-4 flex w-full items-center gap-3 rounded-[6px] bg-surface px-4 py-3">
           <span>
             <b>Finish setting up.</b> Check what Finally found, your payday and your budgets. It takes about two minutes.
           </span>
