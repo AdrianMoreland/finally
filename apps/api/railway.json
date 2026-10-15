@@ -1,0 +1,14 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "buildCommand": "pnpm turbo run build --filter=api..."
+  },
+  "deploy": {
+    "preDeployCommand": "pnpm --filter @finally/db db:deploy",
+    "startCommand": "pnpm --filter api start",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 60,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 5
+  }
+}
