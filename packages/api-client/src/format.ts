@@ -6,16 +6,32 @@
 const EUR = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' });
 const EUR0 = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
+/**
+ * Privacy mode hides every amount (for when someone is looking at your screen). It is a switch on the formatter, so
+ * every screen respects it without knowing about it; the app re-renders when it flips.
+ */
+let privacy = false;
+const MASK = '€••';
+export const setPrivacy = (on: boolean): void => {
+  privacy = on;
+};
+export const isPrivate = (): boolean => privacy;
+
+/** Hide euro amounts inside a sentence, when privacy mode is on. */
+export const maskText = (s: string): string => (privacy ? s.replace(/[−+-]?€\s?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?/g, MASK) : s);
+
 /** "-4.20" → "−€4.20"; with `signed`, positives get a "+". */
 export function eur(value: string | number, opts: { signed?: boolean } = {}): string {
   const n = typeof value === 'string' ? Number(value) : value;
   if (!Number.isFinite(n)) return '—';
+  if (privacy) return MASK;
   return (n < 0 ? '−' : opts.signed && n > 0 ? '+' : '') + EUR.format(Math.abs(n));
 }
 
 export function eur0(value: string | number): string {
   const n = typeof value === 'string' ? Number(value) : value;
   if (!Number.isFinite(n)) return '—';
+  if (privacy) return MASK;
   return (n < 0 ? '−' : '') + EUR0.format(Math.abs(n));
 }
 

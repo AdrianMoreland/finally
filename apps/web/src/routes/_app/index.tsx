@@ -1,159 +1,248 @@
-import { clockTime, eur, eur0, longDate, pct, shortDate, useOverview } from '@finally/api-client';
+import { clockTime, eur, eur0, longDate, maskText, shortDate, usePinMutations, useToday, useUnsnoozeAll } from '@finally/api-client';
+import type { TodayDto } from '@finally/contracts';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { DayBars, NetWorthChart, SpendDonut } from '@/components/charts/charts';
-import { Big, CategoryChip, ErrorNote, LoadingBlock, PageHeader, Panel, PanelTitle, Sub, Track } from '@/components/common';
-import { InsightList } from '@/components/insight-list';
-import { categoryVar } from '@/lib/category';
+import { ArrowRight, ChevronDown, X } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { ActionRow } from '@/components/actions';
+import { Big, ErrorNote, LoadingBlock, PageHeader, Panel, PanelTitle, Sub, Track } from '@/components/common';
+import { Callout, Chip, Line } from '@/components/kit';
 import { GRID, SPAN } from '@/lib/grid';
 import { cn } from '@/lib/utils';
 
-export const Route = createFileRoute('/_app/')({ component: OverviewPage });
+export const Route = createFileRoute('/_app/')({ component: TodayPage });
 
-function OverviewPage() {
-  const { data: o, error, refetch } = useOverview();
+function Maths({ t }: { t: TodayDto }): ReactNode {
+  const s = t.safe;
+  const budget = s.binds === 'budget';
+  return (
+    <div className="mt-3 grid gap-4 rounded-lg border border-rule bg-raised p-3.5 text-[13px] md:grid-cols-2">
+      <div className={cn('rounded-md p-2.5', budget && 'bg-surface ring-1 ring-brand')}>
+        <h4 className="mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-3">What your budgets allow {budget ? '· the lower one' : ''}</h4>
+        <Line label="Flexible budgets this month" value={eur(s.flexBudget)} />
+        <Line label="Spent so far" value={`−${eur(s.spentFlex)}`} />
+        <Line label="Not sorted yet (counts as spent)" value={`−${eur(s.unsorted)}`} />
+        <Line label="Left in budgets" value={eur(s.budgetLeft)} strong />
+        {Number(s.over) > 0 ? <p className="mt-1 text-[12px] text-warn">{eur(s.over)} of that is overspending on individual lines. It is not hidden.</p> : null}
+      </div>
+      <div className={cn('rounded-md p-2.5', !budget && 'bg-surface ring-1 ring-brand')}>
+        <h4 className="mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-3">What your balance allows {!budget ? '· the lower one' : ''}</h4>
+        <Line label="In your accounts now" value={eur(s.balance)} />
+        <Line label="Bills before payday" value={`−${eur(s.billsDue)}`} />
+        <Line label="Buffer you keep" value={`−${eur(s.buffer)}`} />
+        <Line label="Left from your balance" value={eur(s.balanceLeft)} strong />
+        {t.pending.count > 0 ? <p className="mt-1 text-[12px] text-ink-3">{t.pending.count} pending payment{t.pending.count > 1 ? 's' : ''} ({eur(t.pending.total)}) already counted.</p> : null}
+      </div>
+      <p className="text-ink-2 md:col-span-2">
+        The lower of the two, <b className="num">{eur(s.pool)}</b>, divided by <b>{s.daysLeft}</b> days to payday on {shortDate(t.nextPayday)} is <b className="num">{eur(s.perDay)}</b> a day. Refunds put money back; pending card payments already count.
+      </p>
+    </div>
+  );
+}
+
+function Hero({ t }: { t: TodayDto }): ReactNode {
+  const [maths, setMaths] = useState(false);
+  const delta = Number(t.safe.perDay) - Number(t.safeYesterday);
+  const week = t.week;
+  const over = Number(t.safe.pool) < 0;
+  return (
+    <Panel className={SPAN[12]}>
+      <PanelTitle>Safe to spend today</PanelTitle>
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+        <div>
+          <Big className="text-[52px]">{eur(t.safe.perDay)}</Big>
+          <Sub>
+            a day for the {t.daysToPayday} days to payday on {shortDate(t.nextPayday)}, set by your {t.safe.binds === 'budget' ? 'budgets' : 'balance'}, the lower of the two.
+          </Sub>
+          {Math.abs(delta) >= 0.01 ? (
+            <div className={cn('mt-1 text-[12.5px]', delta < 0 ? 'text-warn' : 'text-good')}>
+              {delta < 0 ? 'Down' : 'Up'} {eur(Math.abs(delta))} a day since you last looked
+            </div>
+          ) : null}
+        </div>
+        <div className="min-w-[220px] max-w-[320px] flex-1">
+          <div className="flex items-baseline justify-between text-[13px]">
+            <span className="text-ink-2">This week</span>
+            <b className={cn('num', Number(week.left) < 0 && 'text-warn')}>{Number(week.left) >= 0 ? `${eur(week.left)} left` : `${eur(Math.abs(Number(week.left)))} over`}</b>
+          </div>
+          <Track value={(Number(week.spent) / Math.max(1, Number(week.weekBudget))) * 100} className="my-2" height={9} />
+          <div className="text-[12px] text-ink-3">
+            {eur(week.spent)} of {eur0(week.weekBudget)} flexible budget for the week · {week.daysLeft} day{week.daysLeft === 1 ? '' : 's'} left
+          </div>
+        </div>
+      </div>
+      {over ? (
+        <Callout tone="act" className="mt-3">
+          Your {t.safe.binds === 'balance' ? 'balance is below the bills and buffer before payday' : 'budgets are used up'}. There is nothing safe to spend until payday; essentials are still covered by your bills.
+        </Callout>
+      ) : null}
+      <button type="button" aria-expanded={maths} onClick={() => setMaths((v) => !v)} className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-brand">
+        How this is worked out <ChevronDown className={cn('size-4 transition-transform', maths && 'rotate-180')} aria-hidden="true" />
+      </button>
+      {maths ? <Maths t={t} /> : null}
+    </Panel>
+  );
+}
+
+function Actions({ t }: { t: TodayDto }): ReactNode {
+  const [all, setAll] = useState(false);
+  const unsnooze = useUnsnoozeAll();
+  const shown = all ? t.actions : t.actions.slice(0, 3);
+  return (
+    <Panel className={SPAN[7]}>
+      <PanelTitle
+        action={
+          t.actions.length > 3 ? (
+            <button type="button" onClick={() => setAll((v) => !v)}>
+              {all ? 'Show top 3' : `Show all ${t.actions.length}`}
+            </button>
+          ) : undefined
+        }
+      >
+        Needs you
+      </PanelTitle>
+      {shown.length ? (
+        shown.map((a) => <ActionRow key={a.id} a={a} />)
+      ) : (
+        <p className="text-[13.5px] text-ink-2">Nothing needs you right now. Safe to spend is up to date.</p>
+      )}
+      {t.snoozed > 0 ? (
+        <p className="mt-3 text-[12px] text-ink-3">
+          {t.snoozed} snoozed.{' '}
+          <button type="button" className="font-semibold text-brand" onClick={() => unsnooze.mutate()}>
+            Show again
+          </button>
+        </p>
+      ) : null}
+    </Panel>
+  );
+}
+
+function Since({ t }: { t: TodayDto }): ReactNode {
+  const delta = Number(t.safe.perDay) - Number(t.safeYesterday);
+  return (
+    <Panel className={SPAN[5]}>
+      <PanelTitle>Since you last looked</PanelTitle>
+      {t.since.count ? (
+        <>
+          <Big className="text-[26px]">
+            {t.since.count} payment{t.since.count === 1 ? '' : 's'}
+          </Big>
+          <Sub>
+            {eur(t.since.out)} out{Number(t.since.back) > 0 ? `, ${eur(t.since.back)} back` : ''} today
+            {Math.abs(delta) >= 0.01 ? `, safe to spend ${delta < 0 ? 'down' : 'up'} ${eur(Math.abs(delta))}` : ''}.
+          </Sub>
+        </>
+      ) : (
+        <p className="text-[13.5px] text-ink-2">No new payments today. {t.lastSyncAt ? `Last synced at ${clockTime(t.lastSyncAt)}.` : 'Not synced yet.'}</p>
+      )}
+      {t.pending.count > 0 ? (
+        <div className="mt-3">
+          <Chip tone="pend">{t.pending.count} pending</Chip>{' '}
+          <span className="text-[12.5px] text-ink-2">
+            {eur(t.pending.total)} on cards, already counted.{' '}
+            <Link to="/money/payments" search={{ status: 'PENDING' } as never} className="font-semibold text-brand">
+              See them
+            </Link>
+          </span>
+        </div>
+      ) : null}
+    </Panel>
+  );
+}
+
+function Pins({ t }: { t: TodayDto }): ReactNode {
+  const { unpin } = usePinMutations();
+  if (!t.pins.length) return null;
+  return (
+    <Panel className={SPAN[12]}>
+      <PanelTitle>Pinned answers</PanelTitle>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-3">
+        {t.pins.map((p) => (
+          <div key={p.id} className="relative rounded-lg border border-rule bg-raised p-3">
+            <button type="button" aria-label={`Unpin ${p.short}`} onClick={() => unpin.mutate(p.id)} className="absolute right-2 top-2 text-ink-3 hover:text-ink">
+              <X className="size-3.5" aria-hidden="true" />
+            </button>
+            <div className="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-3">{p.short}</div>
+            <div className="num mt-0.5 font-display text-[22px] font-bold">{maskText(p.big)}</div>
+            <div className="mt-0.5 truncate text-[12px] text-ink-3">{p.text}</div>
+          </div>
+        ))}
+      </div>
+    </Panel>
+  );
+}
+
+function Rung({ t }: { t: TodayDto }): ReactNode {
+  const l = t.ladder;
+  const rung = l.rungs[l.current]!;
+  return (
+    <Panel className={SPAN[12]}>
+      <PanelTitle action={<Link to="/plan/pots">Your ladder</Link>}>Your next rung</PanelTitle>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-display text-[20px] font-bold leading-snug">{rung.title}</h3>
+          <p className="text-[13px] text-ink-2">
+            {rung.when}
+            {rung.left && Number(rung.left) > 0 ? ` · ${eur0(rung.left)} to go` : ''}
+          </p>
+        </div>
+        <ol className="flex items-center gap-1.5" aria-label="Money ladder progress">
+          {l.rungs.map((r, i) => (
+            <li key={r.key} title={r.title} className={cn('size-3 rounded-full border border-ink-3', r.done && 'border-brand bg-brand', i === l.current && !r.done && 'border-ink bg-ink')} />
+          ))}
+        </ol>
+      </div>
+    </Panel>
+  );
+}
+
+function TodayPage() {
+  const { data: t, error, refetch } = useToday();
   if (error) return <ErrorNote error={error} retry={() => void refetch()} />;
-  if (!o) {
+  if (!t) {
     return (
       <>
-        <PageHeader title="Overview" />
+        <PageHeader title="Today" />
         <div className={GRID}>
-          {[5, 3, 4, 5, 7, 5, 7].map((n, i) => (
-            <LoadingBlock key={i} className={cn('h-44', SPAN[n as keyof typeof SPAN])} />
+          {[12, 7, 5].map((n, i) => (
+            <LoadingBlock key={i} className={cn('h-40', SPAN[n as keyof typeof SPAN])} />
           ))}
         </div>
       </>
     );
   }
-
-  const today = o.asOf;
-  const flexUsed = Number(o.flexible.budget) > 0 ? (Number(o.flexible.spent) / Number(o.flexible.budget)) * 100 : 0;
-  const pace = (o.dayOfMonth / o.daysInMonth) * 100;
-  const ahead = Number(o.flexible.spent) - Number(o.flexible.expectedByToday);
-  const total = o.topCategories.reduce((a, c) => a + Number(c.spent), 0);
-  const banks = [...new Set(o.accounts.map((a) => a.institution === 'AIB' ? 'AIB' : 'Revolut'))].join(', ');
-
   return (
     <>
       <PageHeader
-        eyebrow={longDate(today)}
-        title="Overview"
+        eyebrow={longDate(t.today)}
+        title="Today"
         right={
           <div className="inline-flex items-center gap-2 text-[12.5px] text-ink-2">
-            <span className="size-2 rounded-full bg-good" aria-hidden="true" />
-            {o.lastSyncAt ? `Synced ${clockTime(o.lastSyncAt)} · ${banks}` : 'Not synced yet'}
+            <span className={cn('size-2 rounded-full', t.lastSyncAt ? 'bg-good' : 'bg-ink-3')} aria-hidden="true" />
+            {t.lastSyncAt ? `Synced ${clockTime(t.lastSyncAt)} · ${t.accounts.map((a) => a.institution).filter((v, i, a) => a.indexOf(v) === i).join(', ')}` : 'Not synced yet'}
           </div>
         }
       />
-
-      {o.toSortCount > 0 ? (
-        <Link
-          to="/sort"
-          className="mb-4 flex w-full items-center gap-3 rounded-[10px] border border-rule bg-surface px-4 py-3 text-left"
-        >
+      {!t.setupDone ? (
+        <Link to="/setup" className="mb-4 flex w-full items-center gap-3 rounded-[10px] border border-rule bg-surface px-4 py-3">
           <span>
-            <span className="rounded-[3px] bg-marker px-1.5 py-px font-bold text-marker-ink">
-              {o.toSortCount} merchant{o.toSortCount === 1 ? '' : 's'}
-            </span>{' '}
-            need a category. Each answer sorts every payment from that merchant.
+            <b>Finish setting up.</b> Check what Finally found, your payday and your budgets. It takes about two minutes.
           </span>
-          <span className="ml-auto whitespace-nowrap font-semibold text-brand">Sort them →</span>
+          <span className="ml-auto inline-flex items-center gap-1 whitespace-nowrap font-semibold text-brand">
+            Set up <ArrowRight className="size-4" aria-hidden="true" />
+          </span>
         </Link>
       ) : null}
-
       <div className={GRID}>
-        <Panel className={SPAN[5]}>
-          <PanelTitle>
-            <span>Net worth</span>
-            <span className={cn('num text-[12.5px] font-semibold normal-case tracking-normal', Number(o.netWorth.change12m) >= 0 ? 'text-good' : 'text-bad')}>
-              {eur0(o.netWorth.change12m)} in 12 months
-            </span>
-          </PanelTitle>
-          <Big>{eur(o.netWorth.current)}</Big>
-          <div className="mt-2.5">
-            <NetWorthChart series={o.netWorth.series} />
-          </div>
-        </Panel>
-
-        <Panel className={SPAN[3]}>
-          <PanelTitle>Safe to spend today</PanelTitle>
-          <Big>{eur(o.safeToSpend.perDay)}</Big>
-          <Sub>
-            {eur(o.safeToSpend.leftToPayday)} left for the {o.daysToPayday} days to payday ({shortDate(o.paydayDate)}), after {eur(o.safeToSpend.billsToCome)} of bills still to come.
-          </Sub>
-        </Panel>
-
-        <Panel className={SPAN[4]}>
-          <PanelTitle action={<Link to="/budgets">Budgets</Link>}>Flexible spend this month</PanelTitle>
-          <Big>
-            {eur(o.flexible.spent)}{' '}
-            <span className="font-body text-[14px] font-medium tracking-normal text-ink-2">of {eur0(o.flexible.budget)}</span>
-          </Big>
-          <Track value={flexUsed} tick={pace} height={10} className="my-3.5" />
-          <div className="flex justify-between text-[12px] text-ink-2">
-            <span>
-              <b className="num">{pct(flexUsed, 0)}</b> used
-            </span>
-            <span>
-              day {o.dayOfMonth} of {o.daysInMonth} · {pct(pace, 0)} of the month
-            </span>
-          </div>
-          <Sub className={cn('font-semibold', ahead > 0 ? 'text-warn' : 'text-good')}>
-            {ahead > 0 ? `Ahead of pace by ${eur(ahead)}` : `Under pace by ${eur(Math.abs(ahead))}`}
-          </Sub>
-        </Panel>
-
-        <Panel className={SPAN[5]}>
-          <PanelTitle>Where it went this month</PanelTitle>
-          <div className="grid grid-cols-[130px_minmax(0,1fr)] items-center gap-[18px] sm:grid-cols-[150px_minmax(0,1fr)]">
-            <SpendDonut items={o.topCategories} centreLabel="excl. rent" />
-            <div className="grid gap-[7px] text-[13px]">
-              {o.topCategories.map((c) => (
-                <div key={c.category.id} className="grid grid-cols-[10px_1fr_auto_44px] items-center gap-2.5">
-                  <i className="size-2.5 rounded-[3px]" style={{ background: categoryVar(c.category) }} />
-                  <span className="truncate">{c.category.name}</span>
-                  <b className="num font-semibold">{eur(c.spent)}</b>
-                  <span className="num text-right text-ink-3">{pct((Number(c.spent) / total) * 100, 0)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Panel>
-
-        <Panel className={SPAN[7]}>
-          <PanelTitle>Spend by day · excluding rent</PanelTitle>
-          <DayBars days={o.daysInMonth} spentByDay={o.spendByDay} evenPace={o.evenPacePerDay} month={o.month} />
-        </Panel>
-
-        <Panel className={SPAN[5]}>
-          <PanelTitle action={<Link to="/insights">All insights</Link>}>Latest insights</PanelTitle>
-          <InsightList items={o.latestInsights} toSort={o.toSortCount} limit={4} />
-        </Panel>
-
-        <Panel className={SPAN[7]}>
-          <PanelTitle action={<Link to="/transactions">All payments</Link>}>Recent payments</PanelTitle>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[13.5px]">
-              <tbody>
-                {o.recentTransactions.map((t) => (
-                  <tr key={t.id} className={cn('border-b border-rule last:border-0', !t.category && t.kind !== 'TRANSFER' && 'bg-[color-mix(in_srgb,var(--marker)_14%,transparent)]')}>
-                    <td className="num whitespace-nowrap px-1.5 py-2 text-ink-2">{shortDate(t.bookingDate)}</td>
-                    <td className="px-1.5 py-2">
-                      <div className="font-semibold">{t.merchant?.displayName ?? t.rawDescriptor}</div>
-                      <div className="mono-raw">{t.rawDescriptor}</div>
-                    </td>
-                    <td className="px-1.5 py-2">
-                      <CategoryChip category={t.category} kind={t.kind} />
-                    </td>
-                    <td className={cn('num whitespace-nowrap px-1.5 py-2 text-right font-semibold', Number(t.amountEur) > 0 && 'text-good')}>
-                      {eur(t.amountEur, { signed: true })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Panel>
+        <Hero t={t} />
+        <Actions t={t} />
+        <Since t={t} />
+        <Pins t={t} />
+        <Rung t={t} />
       </div>
+      <p className="mt-4 text-[12.5px] text-ink-3">
+        More on the <Link to="/money/month" className="font-semibold text-brand">month</Link>: are you on track, where it went, net worth.
+      </p>
     </>
   );
 }

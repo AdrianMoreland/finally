@@ -14,6 +14,8 @@ export interface IngestResult {
 }
 
 const REFUND_RE = /\b(refund|refd|reversal|rfnd|chargeback)\b/i;
+/** A direct debit the payer's bank sent back: the credit that undoes a payment that bounced. */
+const RETURNED_DD_RE = /^(unpay|unpaid|returned)\b.*\b(d\/d|d\/debit|direct debit)/i;
 
 /** Identity of a payment: the bank's id when it gives one, otherwise a hash of its content. */
 export function dedupeHashFor(accountId: string, raw: RawBankTx): string {
@@ -113,7 +115,8 @@ export class IngestService {
     const rows = [];
     for (const { raw, hash } of fresh) {
       const amount = D(raw.amount);
-      const kind = amount.isNegative() ? 'SPEND' : REFUND_RE.test(raw.rawDescriptor) ? 'REFUND' : 'INCOME';
+      const returned = !amount.isNegative() && RETURNED_DD_RE.test(raw.rawDescriptor);
+      const kind = amount.isNegative() ? 'SPEND' : returned || REFUND_RE.test(raw.rawDescriptor) ? 'REFUND' : 'INCOME';
       const amountEur = raw.currency === 'EUR' ? m2(amount) : await this.fx.toEur(m2(amount), raw.currency);
       rows.push({
         userId,
@@ -129,6 +132,7 @@ export class IngestService {
         merchantId: merchantId.get(normaliseMerchant(raw.rawDescriptor).merchantKey) ?? null,
         status: raw.status,
         kind,
+        flag: returned ? 'returned' : null,
       } as const);
     }
     const created = rows.length ? (await this.db.transaction.createMany({ data: rows, skipDuplicates: true })).count : 0;
@@ -147,10 +151,32 @@ export class IngestService {
     return { created, updatedPending, duplicates, removedPending: stale.count };
   }
 
+  /** A returned direct debit points back at the payment that bounced; flag both so neither counts as a real bill. */
+  async flagBouncedDebits(userId: string): Promise<number> {
+    const returned = await this.db.transaction.findMany({ where: { userId, flag: 'returned' }, select: { id: true, accountId: true, amount: true, bookingDate: true } });
+    let n = 0;
+    for (const r of returned) {
+      const from = new Date(r.bookingDate.getTime() - 5 * 86_400_000);
+      const res = await this.db.transaction.updateMany({
+        where: {
+          userId,
+          accountId: r.accountId,
+          flag: null,
+          amount: D(r.amount.toString()).neg().toFixed(2),
+          bookingDate: { gte: from, lte: r.bookingDate },
+          rawDescriptor: { startsWith: 'D/D', mode: 'insensitive' },
+        },
+        data: { flag: 'bounced' },
+      });
+      n += res.count;
+    }
+    return n;
+  }
+
   /** Pair equal-and-opposite payments across the user's own accounts as transfers (excluded from spending). */
   async linkTransfers(userId: string, today: string): Promise<number> {
     const accounts = await this.db.account.findMany({ where: { userId }, select: { id: true } });
-    const from = addDays(today, -420);
+    const from = addDays(today, -800);
     const rows = await this.db.transaction.findMany({
       where: {
         userId,

@@ -1,5 +1,6 @@
 import { normaliseMerchant } from '@finally/finance-core';
 import type { PrismaClient } from './generated/client.ts';
+import { DEMO_DESCRIPTORS } from './demo-statement.ts';
 import {
   DEMO_INSTRUMENTS,
   DEMO_LOTS,
@@ -43,7 +44,7 @@ export async function provisionDefaults(db: PrismaClient, userId: string): Promi
     const parentId = c.parent ? (bySlug.get(c.parent) ?? null) : null;
     const row = await db.category.upsert({
       where: { userId_slug: { userId, slug: c.slug } },
-      update: {},
+      update: { parentId },
       create: {
         userId,
         slug: c.slug,
@@ -143,4 +144,30 @@ export async function provisionDemoPortfolio(db: PrismaClient, userId: string): 
   }
   await db.user.update({ where: { id: userId }, data: { targetAllocation: DEMO_TARGET_ALLOCATION } });
   return DEMO_LOTS.length;
+}
+
+/**
+ * Merchant names and SEED rules for the demo statement, so the mock bank's payments land in the same categories as
+ * in the design prototype. One rule per raw descriptor (priority above the generic merchant rules) and one named
+ * merchant per normalised key. Idempotent.
+ */
+export async function provisionDemoStatement(db: PrismaClient, userId: string): Promise<{ merchants: number; rules: number }> {
+  const cats = await db.category.findMany({ where: { userId }, select: { id: true, slug: true } });
+  const bySlug = new Map(cats.map((c) => [c.slug, c.id]));
+  const merchants = new Map<string, string>();
+  const rules: Array<{ userId: string; matchType: 'REGEX'; pattern: string; categoryId: string; priority: number; source: 'SEED'; active: boolean }> = [];
+  for (const [raw, [name, slug]] of Object.entries(DEMO_DESCRIPTORS)) {
+    const { merchantKey } = normaliseMerchant(raw);
+    if (!merchants.has(merchantKey)) merchants.set(merchantKey, name);
+    const categoryId = slug ? bySlug.get(slug) : undefined;
+    if (categoryId) {
+      rules.push({ userId, matchType: 'REGEX', pattern: `^${escapeRe(raw)}$`, categoryId, priority: 120, source: 'SEED', active: true });
+    }
+  }
+  const m = await db.merchant.createMany({
+    data: [...merchants].map(([merchantKey, displayName]) => ({ userId, merchantKey, displayName })),
+    skipDuplicates: true,
+  });
+  const r = await db.merchantRule.createMany({ data: rules, skipDuplicates: true });
+  return { merchants: m.count, rules: r.count };
 }

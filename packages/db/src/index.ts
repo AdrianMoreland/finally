@@ -4,6 +4,7 @@ import { PrismaClient } from './generated/client.ts';
 export * from './generated/client.ts';
 export * from './provision.ts';
 export * from './seed-data.ts';
+export * from './demo-statement.ts';
 
 export type SslMode = 'verify' | 'require' | 'off';
 

@@ -45,6 +45,7 @@ enum TxKind {
   INCOME
   TRANSFER
   REFUND
+  SHARE // a housemate's share of the rent: netted against Rent, not counted as income
 }
 
 enum CategorisedBy {
@@ -134,6 +135,29 @@ enum Platform {
   WEB
 }
 
+enum PotType {
+  SAFETY
+  PLANNED
+  TREAT
+  INVESTING
+}
+
+enum PersonDirection {
+  OWE // you owe them
+  OWED // they owe you
+}
+
+enum ReviewKind {
+  WEEK
+  MONTH
+}
+
+enum CheckState {
+  TODO
+  DONE
+  NA
+}
+
 model User {
   id                   String   @id @default(cuid())
   authId               String   @unique // Supabase auth user id (JWT sub)
@@ -146,6 +170,11 @@ model User {
   quietHoursStart      String   @default("22:00")
   quietHoursEnd        String   @default("08:00")
   targetAllocation     Json     @default("{}")
+  bufferAmount         Decimal  @default(150) @db.Decimal(14, 2)
+  salaryOnly           Boolean  @default(true)
+  lifestyleGuard       Boolean  @default(false)
+  setupDoneAt          DateTime?
+  prefs                Json     @default("{}") // validated by userPrefs in @finally/contracts
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -157,7 +186,6 @@ model User {
   rules       MerchantRule[]
   requests    CategorisationRequest[]
   budgets     Budget[]
-  goals       Goal[]
   recurring   RecurringSeries[]
   insights    Insight[]
   instruments Instrument[]
@@ -167,6 +195,15 @@ model User {
   taxRules    TaxRule[]
   devices     PushDevice[]
   syncRuns    SyncRun[]
+  pots        Pot[]
+  wishlist    WishlistItem[]
+  people      Person[]
+  payments    PersonPayment[]
+  pins        PinnedQuestion[]
+  reviews     ReviewLog[]
+  snoozes     ActionSnooze[]
+  orders      StandingOrder[]
+  checks      TaxCheck[]
 }
 
 model BankConnection {
@@ -208,7 +245,7 @@ model Account {
   user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   connection   BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   transactions Transaction[]
-  goals        Goal[]
+  pots         Pot[]
 
   @@unique([userId, providerAccountId])
   @@index([connectionId])
@@ -280,6 +317,9 @@ model Transaction {
   categorisedBy  CategorisedBy @default(NONE)
   needsReview    Boolean       @default(false)
   note           String?
+  excluded       Boolean       @default(false) // left out of budgets and safe to spend
+  tags           String[]      @default([])
+  flag           String? // bounced | returned (direct debits that failed and came back)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -347,23 +387,6 @@ model Budget {
   category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@unique([userId, categoryId, month])
-}
-
-model Goal {
-  id         String   @id @default(cuid())
-  userId     String
-  name       String
-  target     Decimal  @db.Decimal(14, 2)
-  targetDate DateTime
-  accountId  String?
-  saved      Decimal  @default(0) @db.Decimal(14, 2)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
 }
 
 model RecurringSeries {
@@ -529,4 +552,138 @@ model SyncRun {
   connection BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
 
   @@index([connectionId, startedAt])
+}
+
+model Pot {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  type       PotType
+  accountId  String? // linked Revolut vault; its balance is the pot balance
+  balance    Decimal  @default(0) @db.Decimal(14, 2) // used when no account is linked
+  target     Decimal? @db.Decimal(14, 2) // SAFETY derives its target from essentials
+  targetDate DateTime? @db.Date
+  monthly    Decimal  @default(0) @db.Decimal(14, 2)
+  sortOrder  Int      @default(0)
+  archived   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account  Account?       @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  wishlist WishlistItem[]
+
+  @@index([userId])
+}
+
+model WishlistItem {
+  id        String    @id @default(cuid())
+  userId    String
+  potId     String
+  name      String
+  price     Decimal   @db.Decimal(14, 2)
+  addedOn   DateTime  @db.Date
+  boughtOn  DateTime? @db.Date
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pot  Pot  @relation(fields: [potId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Person {
+  id          String          @id @default(cuid())
+  userId      String
+  name        String
+  direction   PersonDirection
+  amount      Decimal         @db.Decimal(14, 2) // what was originally owed
+  note        String?
+  since       DateTime        @db.Date
+  merchantKey String? // payments from/to this merchant count towards the balance
+  remindText  String?
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments PersonPayment[]
+
+  @@index([userId])
+}
+
+model PersonPayment {
+  id       String   @id @default(cuid())
+  userId   String
+  personId String
+  amount   Decimal  @db.Decimal(14, 2)
+  paidOn   DateTime @db.Date
+  note     String?
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+}
+
+model PinnedQuestion {
+  id        String   @id @default(cuid())
+  userId    String
+  text      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, text])
+}
+
+model ReviewLog {
+  id          String     @id @default(cuid())
+  userId      String
+  kind        ReviewKind
+  period      String // 2026-W41 or 2026-09
+  decision    String?
+  completedAt DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, period])
+}
+
+model ActionSnooze {
+  id       String   @id @default(cuid())
+  userId   String
+  actionId String
+  until    DateTime @db.Date
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, actionId])
+}
+
+model StandingOrder {
+  id       String   @id @default(cuid())
+  userId   String
+  key      String // a pot id, or "payback"
+  amount   Decimal  @db.Decimal(14, 2) // what the user set up at the bank
+  markedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+}
+
+model TaxCheck {
+  id      String     @id @default(cuid())
+  userId  String
+  itemId  String
+  state   CheckState @default(TODO)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
 }

@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { createPrismaClient, provisionDefaults, provisionDemoPortfolio } from '../src/index.ts';
+import { createPrismaClient, provisionDefaults } from '../src/index.ts';
 
 config({ path: '../../.env', quiet: true });
 
@@ -19,13 +19,11 @@ try {
       email,
       authId: `pending:${email}`,
       displayName: 'Adrian',
-      paydayDayOfMonth: 28,
-      monthlySavingsTarget: '630.00',
+      paydayDayOfMonth: 25,
     },
   });
   const defaults = await provisionDefaults(db, user.id);
-  const lots = await provisionDemoPortfolio(db, user.id);
-  console.log(`Seeded ${email}:`, defaults, `demo lots: ${lots}`);
+  console.log(`Seeded ${email}:`, defaults);
 } finally {
   await db.$disconnect();
 }

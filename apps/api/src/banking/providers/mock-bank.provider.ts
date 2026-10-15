@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { D, m2 } from '@finally/finance-core';
 import type { Institution } from '@finally/contracts';
 import type { AuthResult, AuthStart, BankDataProvider, TransactionPage } from './bank-provider';
-import { generateHistory, generateLive, liveArrivals, MOCK_ACCOUNTS, todayDublin } from './mock-data';
+import { aibBalance, generateHistory, generateLive, liveArrivals, MOCK_ACCOUNTS, todayDublin } from './mock-data';
 
 /**
- * Default provider: deterministic six months of AIB and Revolut activity, and 0-3 new payments on each
- * sync so the ask-me loop can be exercised without a bank.
+ * Default provider. AIB serves the owner's real statement plus generated payments up to today; Revolut serves six
+ * deterministic generated months. Each sync adds 0-3 new payments so the ask-me loop can be exercised without a bank.
  */
 @Injectable()
 export class MockBankProvider implements BankDataProvider {
@@ -51,7 +51,8 @@ export class MockBankProvider implements BankDataProvider {
     if (!base) return Promise.reject(new Error('Unknown account'));
     const live = generateLive(institution, todayDublin(), this.liveCount.get(sessionId) ?? 0)[providerAccountId] ?? [];
     const delta = live.reduce((a, t) => a.plus(t.amount), D(0));
-    return Promise.resolve({ balance: m2(D(base.balance).plus(delta)), at: new Date() });
+    const start = institution === 'AIB' ? aibBalance(todayDublin()) : base.balance;
+    return Promise.resolve({ balance: m2(D(start).plus(delta)), at: new Date() });
   }
 
   getTransactions(

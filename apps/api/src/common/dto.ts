@@ -12,7 +12,6 @@ import {
   convertQuery,
   convertResponse,
   createCategoryBody,
-  createGoalBody,
   createInstrumentBody,
   createLotBody,
   createRuleBody,
@@ -21,7 +20,6 @@ import {
   exportQuery,
   fireBody,
   fireResponse,
-  goalSchema,
   importCsvBody,
   importCsvResponse,
   insightsResponse,
@@ -50,7 +48,6 @@ import {
   transactionSchema,
   updateAccountBody,
   updateCategoryBody,
-  updateGoalBody,
   updateInstrumentBody,
   updateLotBody,
   updateMeBody,
@@ -106,10 +103,6 @@ export class TestNotificationDto extends createZodDto(testNotificationResponse) 
 export class BudgetsQueryDto extends createZodDto(budgetsQuery) {}
 export class BudgetsDto extends createZodDto(budgetsResponse) {}
 export class UpsertBudgetDto extends createZodDto(upsertBudgetBody) {}
-export class GoalDto extends createZodDto(goalSchema) {}
-export class GoalListDto extends createZodDto(z.array(goalSchema)) {}
-export class CreateGoalDto extends createZodDto(createGoalBody) {}
-export class UpdateGoalDto extends createZodDto(updateGoalBody) {}
 export class InsightsDto extends createZodDto(insightsResponse) {}
 export class OverviewDto extends createZodDto(overviewSchema) {}
 export class RecurringListDto extends createZodDto(z.array(recurringSchema)) {}

@@ -98,7 +98,7 @@ export async function handleNotificationResponse(
 
   if (action === Notifications.DEFAULT_ACTION_IDENTIFIER) {
     if (data.requestId && data.requestId !== 'test') router.push({ pathname: '/categorise', params: { requestId: data.requestId } });
-    else if (data.screen === 'insights') router.push('/insights');
+    else if (data.screen === 'insights') router.push('/(tabs)');
     else router.push('/categorise');
     return;
   }

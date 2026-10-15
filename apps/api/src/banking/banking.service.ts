@@ -206,7 +206,7 @@ export class BankingService implements OnModuleInit {
       this.provider.beforeSync?.(sessionId);
       for (const account of conn.accounts) {
         const known = await this.db.transaction.count({ where: { accountId: account.id } });
-        const windowFrom = known === 0 ? addDays(today, -400) : addDays(today, -7);
+        const windowFrom = known === 0 ? addDays(today, -730) : addDays(today, -7);
         const bal = await this.provider.getBalances(sessionId, account.providerAccountId);
         await this.db.account.update({ where: { id: account.id }, data: { balance: bal.balance, balanceAt: bal.at } });
 
@@ -219,6 +219,7 @@ export class BankingService implements OnModuleInit {
         } while (key);
       }
       await this.ingest.linkTransfers(userId, today);
+      await this.ingest.flagBouncedDebits(userId);
 
       let status = conn.status === 'ERROR' ? 'ACTIVE' : conn.status;
       if (conn.validUntil) {
@@ -272,6 +273,7 @@ export class BankingService implements OnModuleInit {
       oldest,
     );
     await this.ingest.linkTransfers(userId, today);
+    await this.ingest.flagBouncedDebits(userId);
     await this.jobs.enqueue('categorise', { userId }, `categorise:${userId}`);
     await this.jobs.enqueue('insights', { userId }, `insights:${userId}`);
     return {

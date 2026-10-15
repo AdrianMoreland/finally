@@ -96,26 +96,37 @@ export class CategorisationService implements OnModuleInit {
       orderBy: { bookingDate: 'asc' },
     });
 
-    const groups = new Map<string, { categoryId: string; by: 'RULE' | 'SEED'; ids: string[] }>();
+    type Kind = 'SPEND' | 'INCOME' | 'TRANSFER' | 'REFUND' | 'SHARE';
+    const groups = new Map<string, { categoryId: string; by: 'RULE' | 'SEED'; kind: Kind | null; ids: string[] }>();
     const unmatched = new Map<string, typeof pending>();
     const incomeId = bySlug.get('income')?.id;
+    const catById = new Map(categories.map((c) => [c.id, c]));
+    /** Money coming in takes its kind from the category it lands in: a housemate's rent share nets against Rent. */
+    const kindOf = (categoryId: string, current: Kind): Kind => {
+      const c = catById.get(categoryId);
+      if (!c) return current;
+      // A transfer between your own accounts is a transfer whichever way the money went.
+      if (c.group === 'TRANSFER') return 'TRANSFER';
+      if (current === 'SPEND') return current;
+      if (c.group === 'INCOME') return 'INCOME';
+      return c.slug === 'rent' ? 'SHARE' : 'REFUND';
+    };
+    const add = (categoryId: string, by: 'RULE' | 'SEED', kind: Kind | null, id: string): void => {
+      const key = `${by}:${categoryId}:${kind ?? ''}`;
+      const g = groups.get(key) ?? { categoryId, by, kind, ids: [] };
+      g.ids.push(id);
+      groups.set(key, g);
+    };
 
     for (const tx of pending) {
-      if (tx.kind === 'INCOME') {
-        if (!incomeId) continue;
-        const g = groups.get(`SEED:${incomeId}`) ?? { categoryId: incomeId, by: 'SEED' as const, ids: [] };
-        g.ids.push(tx.id);
-        groups.set(`SEED:${incomeId}`, g);
-        continue;
-      }
       const target = { merchantKey: tx.merchant?.merchantKey ?? '', rawDescriptor: tx.rawDescriptor };
       const rule = target.merchantKey ? applyRules(target, rules) : null;
+      if (tx.kind === 'INCOME' && !rule) {
+        if (incomeId) add(incomeId, 'SEED', null, tx.id);
+        continue;
+      }
       if (rule) {
-        const by = rule.source === 'USER' ? 'RULE' : 'SEED';
-        const key = `${by}:${rule.categoryId}`;
-        const g = groups.get(key) ?? { categoryId: rule.categoryId, by, ids: [] };
-        g.ids.push(tx.id);
-        groups.set(key, g);
+        add(rule.categoryId, rule.source === 'USER' ? 'RULE' : 'SEED', kindOf(rule.categoryId, tx.kind as Kind), tx.id);
       } else {
         const key = target.merchantKey || tx.rawDescriptor;
         unmatched.set(key, [...(unmatched.get(key) ?? []), tx]);
@@ -127,7 +138,7 @@ export class CategorisationService implements OnModuleInit {
       // categoryId: null guards against a concurrent run (or a transfer link) that already decided these.
       const res = await this.db.transaction.updateMany({
         where: { id: { in: g.ids }, categoryId: null, kind: { in: ['SPEND', 'REFUND', 'INCOME'] } },
-        data: { categoryId: g.categoryId, categorisedBy: g.by, needsReview: false },
+        data: { categoryId: g.categoryId, categorisedBy: g.by, needsReview: false, ...(g.kind ? { kind: g.kind } : {}) },
       });
       categorised += res.count;
     }
@@ -269,9 +280,16 @@ export class CategorisationService implements OnModuleInit {
     });
     await this.db.merchant.update({ where: { id: merchant.id }, data: { defaultCategoryId: categoryId } });
     const res = await this.db.transaction.updateMany({
-      where: { userId, merchantId: merchant.id, kind: { in: ['SPEND', 'REFUND'] } },
+      where: { userId, merchantId: merchant.id, kind: { in: ['SPEND', 'REFUND', 'SHARE'] } },
       data: { categoryId, categorisedBy: 'RULE', needsReview: false },
     });
+    // Money coming back from this merchant now belongs to the new category too: refunds and rent shares net against it.
+    if (category.group !== 'INCOME' && category.group !== 'TRANSFER') {
+      await this.db.transaction.updateMany({
+        where: { userId, merchantId: merchant.id, kind: { in: ['REFUND', 'SHARE'] } },
+        data: { kind: category.slug === 'rent' ? 'SHARE' : 'REFUND' },
+      });
+    }
     await this.closeRequestsFor(userId, merchant.merchantKey);
     return { updatedCount: res.count };
   }

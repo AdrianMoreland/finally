@@ -33,7 +33,7 @@ export class TransactionsController {
   @Patch(':id')
   @ZodSerializerDto(TransactionDto)
   update(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: UpdateTransactionDto) {
-    return this.tx.setNote(user.id, id, body.note);
+    return this.tx.patch(user.id, id, body);
   }
 
   @Post(':id/category')

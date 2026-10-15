@@ -38,8 +38,10 @@ pnpm dev                  # api :3000, web :5173, Expo
 - Web: <http://localhost:5173>
 - Mobile: scan the Expo QR code, or press `i` / `a` for a simulator
 
-The first sign-in links the mock AIB and Revolut accounts, runs the whole pipeline once and adds demo budgets,
-goals and investments, so every screen has real numbers.
+The first sign-in links the mock AIB account, runs the whole pipeline once and adds starting budgets, pots and people,
+so every screen has real numbers. The mock AIB account serves a real statement export (1 May 2025 to 8 Sep 2026, in
+`packages/db/src/demo-statement.ts`) followed by generated payments up to today. Revolut can still be linked from
+Settings and serves six generated months. To start over, use Settings, Your data, Delete everything, then sign in again.
 
 `pnpm turbo run typecheck lint test build` runs the full check. API end-to-end tests (sync → categorise → answer →
 re-categorise) run with `pnpm --filter api test:e2e`; they use a throwaway user in the configured database.

@@ -38,12 +38,39 @@ package restart or let `tsup --watch` run (`pnpm --filter <pkg> dev`).
   and CSV import (`banking.service.ts`), dedupe/pending handling and transfer linking (`ingest.service.ts`).
 - `apps/api/src/categorisation`: the core loop. `categoriseUser` applies rules, flags unknown merchants and opens one
   request per `merchantKey`; `answer` writes a USER rule and re-categorises; pushes and the evening digest.
-- `apps/api/src/insights`, `budgets`, `overview`, `investments`, `tools`: thin services over finance-core.
+- `apps/api/src/snapshot`: `SnapshotService` loads fourteen months of payments, budgets, pots, people and prefs once, so
+  Today, Plan, Ask and Review agree. `data/ledger.service.ts` turns rows into `LedgerTx` and stores per-user prefs
+  (`User.prefs`, validated by `userPrefs` in contracts, defaults filled on read).
+- `apps/api/src/today`, `actions`, `ask`, `money` (bills, month, review), `plan` (payday, standing orders), `pots`,
+  `people`, `tax` (+ bonus), `grow` (investing, freedom, practice account, vault), `setup`: thin services over
+  finance-core. Today ranks `buildActions` by money involved; Ask parses with `parseQuestion` and answers spending
+  questions with `answerSpend`, on the server.
+- `apps/api/src/insights`, `budgets`, `overview`, `investments`, `tools`: older services, still used by pushes and the
+  Holdings and Tools pages.
 - `apps/api/src/jobs`: pg-boss. `JobsService.enqueue` runs inline when `DISABLE_JOBS=true` (tests).
 - `packages/db/src/seed-data.ts` and `provision.ts`: categories, merchant seed rules, tax rules. `provisionDefaults` is
   idempotent and runs on first login.
 - `apps/web/src/routes`: TanStack Router file routes (`_app/*` are behind the auth guard).
 - `apps/mobile/app`: Expo Router screens; `src/lib/notifications.ts` registers the per-askGroup notification categories.
+
+## Navigation
+
+Four sections on web and phone: Today, Money (Payments, To sort, Budgets, Bills, Month, Review), Plan (Payday plan,
+Pots, People, Bonus, Tax & pay) and Grow (Investing, Freedom, Holdings, Tools). Ask is a search bar on every page
+(⌘K), not a page. Privacy mode is a switch on the amount formatter in `packages/api-client/src/format.ts`.
+
+## Safe to spend
+
+`computeSafeToSpend` (finance-core `safe.ts`): the lower of what the flexible budgets still allow (unsorted payments
+count as spent, overspending is not hidden) and what the balance allows after bills before payday and the buffer,
+divided by days to payday. Pending payments count; refunds and housemates' rent shares (kind `SHARE`) net against the
+category they came from. Paydays that fall on a weekend move to the Friday before (`weekendShift`).
+
+## Demo data
+
+`packages/db/src/demo-statement.ts` is generated from an AIB statement export. `provisionDemoStatement` creates a
+merchant name and a SEED rule per raw descriptor, so the mock bank categorises like the real account.
+`apps/api/src/banking/providers/aib-statement.ts` appends generated payments up to today using the same descriptors.
 
 ## How to add a category
 
