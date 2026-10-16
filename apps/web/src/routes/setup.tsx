@@ -128,9 +128,11 @@ function SetupPage() {
             {(connections.data ?? []).map((c) => (
               <div key={c.id} className="flex items-center justify-between rounded-lg border border-rule bg-surface p-3.5"><div><b>{c.institution === 'AIB' ? 'AIB' : 'Revolut'}</b><div className="text-[12.5px] text-ink-3">{c.accountCount} account{c.accountCount === 1 ? '' : 's'} · {c.provider === 'MOCK' ? 'demo data' : 'live'}</div></div><Chip tone="ok"><Check className="size-3" aria-hidden="true" /> Connected</Chip></div>
             ))}
-            {!(connections.data ?? []).some((c) => c.institution === 'REVOLUT') ? (
-              <Button variant="outline" disabled={startConn.isPending} onClick={() => startConn.mutate({ institution: 'REVOLUT' }, { onSuccess: (r) => { window.location.href = r.url; } })}>Add Revolut</Button>
-            ) : null}
+            {(['AIB', 'REVOLUT'] as const)
+              .filter((inst) => !(connections.data ?? []).some((c) => c.institution === inst))
+              .map((inst) => (
+                <Button key={inst} variant="outline" disabled={startConn.isPending} onClick={() => startConn.mutate({ institution: inst }, { onSuccess: (r) => { window.location.href = r.url; } })}>Add {inst === 'AIB' ? 'AIB' : 'Revolut'}</Button>
+              ))}
           </div>
         );
       case 2:
