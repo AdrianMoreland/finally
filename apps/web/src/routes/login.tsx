@@ -20,11 +20,20 @@ export const Route = createFileRoute('/login')({
 const schema = z.object({ email: z.email('Enter a valid email address') });
 type Values = z.infer<typeof schema>;
 
+const testLogin = import.meta.env.VITE_TEST_LOGIN === 'true';
+
 function LoginPage() {
   const auth = useAuth();
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [password, setPassword] = useState('');
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: '' } });
+
+  const onPasswordSignIn = form.handleSubmit(async ({ email }) => {
+    setServerError(null);
+    const { error } = await auth.signInWithPassword(email.trim().toLowerCase(), password);
+    if (error) setServerError(error);
+  });
 
   const onSubmit = form.handleSubmit(async ({ email }) => {
     setServerError(null);
@@ -53,7 +62,7 @@ function LoginPage() {
         </div>
 
         {sentTo ? (
-          <div className="rounded-[6px] bg-surface p-5" role="status">
+          <div className="rounded-card bg-surface p-5" role="status">
             <MailCheck className="mb-2 size-6 text-brand" aria-hidden="true" />
             <h2 className="font-display text-[20px] font-medium">Check your email</h2>
             <p className="mt-1.5 text-[13.5px] text-ink-2">
@@ -64,7 +73,7 @@ function LoginPage() {
             </button>
           </div>
         ) : (
-          <form onSubmit={onSubmit} className="grid gap-3 rounded-[6px] bg-surface p-5" noValidate>
+          <form onSubmit={onSubmit} className="grid gap-3 rounded-card bg-surface p-5" noValidate>
             <div className="grid gap-1.5">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" autoComplete="email" autoFocus placeholder="you@example.com" aria-invalid={!!form.formState.errors.email} {...form.register('email')} />
@@ -74,6 +83,15 @@ function LoginPage() {
             <Button type="submit" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? 'Sending…' : 'Email me a sign-in link'}
             </Button>
+            {testLogin ? (
+              <div className="grid gap-1.5 border-t border-hair pt-3">
+                <Label htmlFor="test-password">Test password</Label>
+                <Input id="test-password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Button type="button" variant="outline" disabled={!password || form.formState.isSubmitting} onClick={() => void onPasswordSignIn()}>
+                  Sign in without email
+                </Button>
+              </div>
+            ) : null}
             <p className="text-[12px] text-ink-3">Only approved email addresses can use this app.</p>
           </form>
         )}

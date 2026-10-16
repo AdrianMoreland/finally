@@ -105,7 +105,7 @@ function WhereCard(): ReactNode {
               <div className="flex flex-wrap justify-between gap-2.5 text-[13.5px]">
                 <b className="font-semibold">
                   {o.label}
-                  {o.key === q.data.best ? <span className="ml-2 rounded-[4px] bg-brand-soft px-1.5 py-px text-[11px] font-bold text-brand">Best after tax</span> : null}
+                  {o.key === q.data.best ? <span className="ml-2 rounded-chip bg-brand-soft px-1.5 py-px text-[11px] font-bold text-brand">Best after tax</span> : null}
                 </b>
                 <span className="num font-bold">{eur0(o.afterTaxValue)}</span>
               </div>

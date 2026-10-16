@@ -1,4 +1,4 @@
-import { eur, eur0, longDate, shortDate, usePeople, usePeopleMutations } from '@finally/api-client';
+import { eur, eur0, longDate, monthLabel, shortDate, usePeople, usePeopleMutations } from '@finally/api-client';
 import type { PersonDto } from '@finally/contracts';
 import type { ReactNode } from 'react';
 import { Share, View } from 'react-native';
@@ -12,6 +12,22 @@ function Person({ p }: { p: PersonDto }): ReactNode {
   const { addPayment } = usePeopleMutations();
   const done = Number(p.left) <= 0;
   const owe = p.direction === 'OWE';
+  if (p.rentShare) {
+    return (
+      <View className="gap-1 border-t border-rule py-3 first:border-t-0">
+        <View className="flex-row items-baseline justify-between">
+          <Text variant="semi" className="flex-1">{p.name}</Text>
+          <Text variant="num">{done ? `Paid back${p.paidOffOn ? ` ${shortDate(p.paidOffOn)}` : ''}` : eur(p.left)}</Text>
+        </View>
+        <Text variant="small">{p.note} · since {shortDate(p.since)}{done ? ' · matched from AIB' : ''}</Text>
+        {!done ? (
+          <View className="flex-row justify-end">
+            <Button size="sm" variant="outline" onPress={() => void Share.share({ message: p.remindText })}>Send reminder</Button>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
   return (
     <View className="gap-1.5 border-t border-rule py-3 first:border-t-0">
       <View className="flex-row items-baseline justify-between">
@@ -39,6 +55,28 @@ export default function People(): ReactNode {
   if (!data) return <StackScreen title="People"><LoadingCard height={260} /></StackScreen>;
   return (
     <StackScreen eyebrow="Money between you and people you know" title="People">
+      {data.rent ? (
+        <Card>
+          <Text variant="eyebrow" className="mb-1">Rent you front</Text>
+          <Text variant="small" className="mb-1">{eur0(data.rent.total)} to the landlord on the {data.rent.day}th · your rent is your share, {eur0(data.rent.own)}</Text>
+          {data.rent.rounds.map((r) => (
+            <View key={r.date} className="gap-0.5 border-t border-rule py-2.5 first:border-t-0">
+              <View className="flex-row justify-between">
+                <Text variant="semi">{monthLabel(r.month)}</Text>
+                <Text variant="num">{eur(r.total)}</Text>
+              </View>
+              {r.mates.map((m) => (
+                <Text key={m.id} variant="small">
+                  {m.name}: {Number(m.left) <= 0 ? `✓ ${m.paid.map(shortDate).join(' + ')}` : `${eur0(m.left)} to come${Number(m.got) > 0 ? ` (${eur0(m.got)} on ${m.paid.map(shortDate).join(' + ')})` : ''}`}
+                </Text>
+              ))}
+            </View>
+          ))}
+          <View className="mt-2 flex-row justify-end">
+            <Button size="sm" variant="outline" onPress={() => void Share.share({ message: data.rent!.houseMessage })}>Message the house</Button>
+          </View>
+        </Card>
+      ) : null}
       <Card>
         <Text variant="eyebrow" className="mb-1">You owe · {eur(data.totalOwe)}</Text>
         {data.owe.length ? data.owe.map((p) => <Person key={p.id} p={p} />) : <Text variant="muted">You have not added anyone you owe. Add people on the web app.</Text>}

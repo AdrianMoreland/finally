@@ -20,10 +20,15 @@
   --font-display: var(--f-display);
   --font-mono: var(--f-mono);
 
-  --radius-sm: var(--radius-control);
-  --radius-md: var(--radius-control);
-  --radius-lg: var(--radius-card);
-  --radius-xl: var(--radius-card);
+  --radius-sm: var(--r-s);
+  --radius-md: var(--r-s);
+  --radius-lg: var(--r);
+  --radius-xl: var(--r);
+  --radius-card: var(--r);
+  --radius-control: var(--r-s);
+  --radius-chip: var(--r-c);
+  --radius-field: var(--radius-field);
+  --radius-frame: var(--radius-frame);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -69,6 +74,7 @@
   --color-bad-soft: var(--bad-soft);
   --color-good-soft: var(--good-soft);
   --color-well: var(--well);
+  --color-hair: var(--hair);
   --color-fill: var(--fill);
   --color-on-fill: var(--on-fill);
   --color-pink: var(--pink);
@@ -85,7 +91,7 @@
     scroll-padding-top: env(safe-area-inset-top, 0px);
   }
   body {
-    @apply bg-well text-ink;
+    @apply bg-paper text-ink;
     font: 400 14px/1.45 var(--f-body);
     -webkit-font-smoothing: antialiased;
   }
@@ -95,7 +101,7 @@
   :focus-visible {
     outline: 2px solid var(--brand);
     outline-offset: 2px;
-    border-radius: 3px;
+    border-radius: 4px;
   }
   [hidden] {
     display: none !important;
@@ -159,6 +165,92 @@ svg text {
   stroke: var(--ink-3);
   stroke-width: 1.5;
   stroke-dasharray: 4 4;
+}
+.ln-b {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 1.25;
+  stroke-dasharray: 2 3;
+}
+.ln-f {
+  fill: none;
+  stroke: var(--brand);
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+  stroke-linecap: round;
+}
+.ln-prev {
+  fill: none;
+  stroke: var(--ink-3);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+/* Cash flow Sankey */
+.cf-link {
+  opacity: 0.34;
+  transition: opacity 0.15s;
+}
+.cf-link:hover {
+  opacity: 0.58;
+}
+.cf-link.pass {
+  opacity: 0.18;
+}
+.cf-svg.has-sel .cf-link {
+  opacity: 0.1;
+}
+.cf-svg.has-sel .cf-link.on {
+  opacity: 0.6;
+}
+.cf-node {
+  cursor: pointer;
+}
+.cf-node:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.cf-node.on rect {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+.cf-l1 {
+  fill: var(--ink-2);
+  font-size: 12px;
+  font-weight: 500;
+}
+.cf-l2 {
+  fill: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.cf-l3 {
+  fill: var(--ink-3);
+  font-weight: 500;
+}
+@media (max-width: 860px) {
+  .cf-l3 {
+    display: none;
+  }
+}
+.band {
+  fill: var(--brand);
+  opacity: 0.16;
+}
+.ms-line {
+  stroke: var(--pink);
+  stroke-width: 1;
+  stroke-dasharray: 1 3;
+}
+.ms-dot {
+  fill: var(--surface);
+  stroke: var(--pink);
+  stroke-width: 1.5;
+}
+.ms-n {
+  fill: var(--ink);
+  font-size: 9.5px;
+  font-weight: 700;
 }
 .area {
   fill: var(--brand);

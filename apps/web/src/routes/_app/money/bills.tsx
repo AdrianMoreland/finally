@@ -110,6 +110,12 @@ function BillsPage() {
         <Panel className={SPAN[12]}>
           <PanelTitle>Rent and bills found</PanelTitle>
           <RepeatList items={bills} onToggle={(id, cancelled) => cancel.mutate({ id, cancelled })} />
+          {data.rent ? (
+            <p className="mt-3 border-t border-dashed border-rule pt-2 text-[12px] text-ink-3">
+              Rent: {eur0(data.rent.total)} leaves your account on the {data.rent.day}th. Your share, {eur0(data.rent.own)}, is what counts
+              {data.rent.names.length ? `; ${data.rent.names.join(', ').replace(/, ([^,]*)$/, ' and $1')} send the rest back` : ''}. Trips are planned in pots, so travel isn&apos;t a budget.
+            </p>
+          ) : null}
         </Panel>
       </div>
     </>
@@ -131,7 +137,10 @@ function RepeatList({ items, onToggle, cancellable }: { items: BillsDto['repeati
             {r.rise ? <Chip tone="mark" className="ml-2">Price rise</Chip> : null}
             {r.varies ? <span className="ml-2 text-ink-3">varies {eur0(r.lo)} to {eur0(r.hi)}</span> : null}
           </div>
-          <b className="num text-right">{r.varies ? `about ${eur(r.avg)}` : eur(r.amount)}</b>
+          <b className="num text-right">
+            {r.varies ? `about ${eur(r.avg)}` : eur(r.amount)}
+            {r.yours ? <small className="ml-1.5 text-[11.5px] font-medium text-ink-3">yours {eur0(r.yours)}</small> : null}
+          </b>
           {cancellable ? (
             <label className="hidden items-center gap-2 text-[12px] text-ink-3 sm:inline-flex">
               If I cancel

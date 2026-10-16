@@ -1,9 +1,31 @@
-import { CalendarCheck, House, Sprout, Wallet, type LucideIcon } from 'lucide-react';
+import {
+  Briefcase,
+  CalendarCheck,
+  Calculator,
+  ClipboardCheck,
+  Gift,
+  House,
+  Infinity as InfinityIcon,
+  ListChecks,
+  PiggyBank,
+  Receipt,
+  ReceiptText,
+  Sprout,
+  Target,
+  TrendingUp,
+  Users,
+  Waypoints,
+  Wallet,
+  CalendarDays,
+  LayoutList,
+  type LucideIcon,
+} from 'lucide-react';
 
 /** One navigation for web and phone: four sections, each with the pages inside it. */
 export interface NavPage {
   to: string;
   label: string;
+  icon: LucideIcon;
 }
 
 export interface NavSection {
@@ -23,12 +45,13 @@ export const SECTIONS: NavSection[] = [
     to: '/money/payments',
     icon: Wallet,
     pages: [
-      { to: '/money/payments', label: 'Payments' },
-      { to: '/money/sort', label: 'To sort' },
-      { to: '/money/budgets', label: 'Budgets' },
-      { to: '/money/bills', label: 'Bills' },
-      { to: '/money/month', label: 'Month' },
-      { to: '/money/review', label: 'Review' },
+      { to: '/money/payments', label: 'Transactions', icon: LayoutList },
+      { to: '/money/sort', label: 'To sort', icon: ListChecks },
+      { to: '/money/cashflow', label: 'Cash flow', icon: Waypoints },
+      { to: '/money/budgets', label: 'Budgets', icon: Target },
+      { to: '/money/bills', label: 'Bills & subscriptions', icon: Receipt },
+      { to: '/money/month', label: 'This month', icon: CalendarDays },
+      { to: '/money/review', label: 'Review', icon: ClipboardCheck },
     ],
   },
   {
@@ -37,11 +60,11 @@ export const SECTIONS: NavSection[] = [
     to: '/plan/payday',
     icon: CalendarCheck,
     pages: [
-      { to: '/plan/payday', label: 'Payday plan' },
-      { to: '/plan/pots', label: 'Pots' },
-      { to: '/plan/people', label: 'People' },
-      { to: '/plan/bonus', label: 'Bonus' },
-      { to: '/plan/tax', label: 'Tax & pay' },
+      { to: '/plan/payday', label: 'Payday plan', icon: CalendarCheck },
+      { to: '/plan/pots', label: 'Pots', icon: PiggyBank },
+      { to: '/plan/people', label: 'People', icon: Users },
+      { to: '/plan/bonus', label: 'Bonus', icon: Gift },
+      { to: '/plan/tax', label: 'Tax & pay', icon: ReceiptText },
     ],
   },
   {
@@ -50,10 +73,10 @@ export const SECTIONS: NavSection[] = [
     to: '/grow/investing',
     icon: Sprout,
     pages: [
-      { to: '/grow/investing', label: 'Investing' },
-      { to: '/grow/freedom', label: 'Freedom' },
-      { to: '/grow/holdings', label: 'Holdings' },
-      { to: '/grow/tools', label: 'Tools' },
+      { to: '/grow/investing', label: 'Investing', icon: TrendingUp },
+      { to: '/grow/freedom', label: 'Freedom', icon: InfinityIcon },
+      { to: '/grow/holdings', label: 'Holdings', icon: Briefcase },
+      { to: '/grow/tools', label: 'Tools', icon: Calculator },
     ],
   },
 ];

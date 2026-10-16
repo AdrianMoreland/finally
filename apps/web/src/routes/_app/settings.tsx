@@ -19,11 +19,12 @@ import {
 } from '@finally/api-client';
 import type { CategoryDto, ConnectionDto, Institution, Me } from '@finally/contracts';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Disclaimer, ErrorNote, KeyValue, LoadingBlock, PageHeader, Panel, PanelTitle, CategoryChip } from '@/components/common';
+import { RentSettings } from '@/components/rent-form';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -62,14 +63,14 @@ function ConnectionRow({ c }: { c: ConnectionDto }): ReactNode {
 
   return (
     <div className="grid grid-cols-[40px_1fr_auto] items-center gap-3 border-t border-rule py-3 first:border-t-0 first:pt-0">
-      <div className="grid size-10 place-items-center rounded-[6px] font-display text-[13px] font-medium text-white" style={{ background: BANK_COLOUR[c.institution] }}>
+      <div className="grid size-10 place-items-center rounded-card font-display text-[13px] font-medium text-white" style={{ background: BANK_COLOUR[c.institution] }}>
         {c.institution === 'AIB' ? 'AIB' : 'R'}
       </div>
       <div className="min-w-0">
         <b className="font-semibold">{c.institution === 'AIB' ? 'AIB' : 'Revolut'}</b>
         <div className={cn('text-[12.5px] text-ink-2', bad && 'text-warn')}>
           {STATUS_TEXT[c.status]}
-          {c.validUntil ? ` · consent valid until ${shortDate(c.validUntil)} ${c.validUntil.slice(0, 4)}` : ''}
+          {c.validUntil ? ` · approved until ${shortDate(c.validUntil)} ${c.validUntil.slice(0, 4)}` : ''}
           {c.lastSyncAt ? ` · last sync ${clockTime(c.lastSyncAt)}` : ''} · {c.accountCount} account{c.accountCount === 1 ? '' : 's'}
           {c.provider === 'MOCK' ? ' · sample data' : ''}
         </div>
@@ -379,9 +380,9 @@ function RulesCard(): ReactNode {
         <div>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-[11.5px] font-semibold uppercase tracking-[0.07em] text-ink-3">Rules</h3>
-            <div className="inline-flex rounded-[3px] border border-rule p-0.5 text-[12px] font-semibold">
+            <div className="inline-flex rounded-control border border-rule p-0.5 text-[12px] font-semibold">
               {(['USER', 'SEED'] as const).map((f) => (
-                <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)} className={cn('rounded-[3px] px-2.5 py-0.5', filter === f ? 'bg-ink text-paper' : 'text-ink-2')}>
+                <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)} className={cn('rounded-control px-2.5 py-0.5', filter === f ? 'bg-ink text-paper' : 'text-ink-2')}>
                   {f === 'USER' ? 'Yours' : 'Built in'}
                 </button>
               ))}
@@ -427,13 +428,15 @@ function DataCard(): ReactNode {
       toast.error(e instanceof Error ? e.message : 'Export failed');
     }
   };
+  const navigate = useNavigate();
   const wipe = useMutation({
     mutationFn: () => api.deleteAllData(),
     onSuccess: async () => {
       qc.clear();
       setConfirm(false);
       setTyped('');
-      toast.success('All data deleted');
+      toast.success('All data deleted. Setting you up again from the start.');
+      void navigate({ to: '/setup' });
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : 'Could not delete'),
   });
@@ -480,6 +483,7 @@ function SettingsPage() {
         <div className={GRID}>
           <ConnectionsCard />
           <NotificationsCard me={me.data} />
+          <RentSettings className={SPAN[7]} />
           <ProfileCard key={JSON.stringify(me.data.targetAllocation) + me.data.paydayDayOfMonth} me={me.data} />
           <DataCard />
           <RulesCard />

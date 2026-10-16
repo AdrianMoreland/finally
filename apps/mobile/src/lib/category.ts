@@ -3,7 +3,7 @@ import { categoryColour } from '@finally/tokens';
 
 const PARENT: Record<string, string> = {
   'public-transport': 'transport', taxi: 'transport', fuel: 'transport',
-  health: 'other', travel: 'other', cash: 'other', fees: 'bills', bars: 'fun',
+  health: 'other', cash: 'other', fees: 'bills', bars: 'fun',
   household: 'shopping', gifts: 'shopping',
   income: 'groceries', transfers: 'other', savings: 'other',
 };

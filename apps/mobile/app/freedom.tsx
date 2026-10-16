@@ -24,6 +24,17 @@ export default function Freedom(): ReactNode {
         <Text variant="big">{eur0(f.target)}</Text>
         <Text variant="small">{f.hitAge != null ? `The middle path gets there around age ${f.hitAge}.` : 'The middle path does not get there by 66 at this monthly amount.'} {Math.round(f.probBy55 * 100)}% of simulated runs get there by 55.</Text>
         <LineArea values={f.p50} height={110} />
+        {f.milestones.map((m) => (
+          <Line key={m.n} label={`${m.n}. ${m.name}`} value={m.date ? m.date.slice(0, 7) : `year ${Math.round(m.at)}`} />
+        ))}
+      </Card>
+      <Card>
+        <Text variant="eyebrow" className="mb-1">Year by year</Text>
+        <Text variant="small" className="mb-1">Today's euros, from 300 simulated markets</Text>
+        {f.table.years.map((y, k) => (
+          <Line key={y} label={`${y} · age ${f.table.age[k]}`} value={`${eur0(f.table.p50[k]!)} · ${Math.round(f.table.share[k]!)}%`} tone={f.table.enough[k] ? 'good' : undefined} />
+        ))}
+        <Text variant="small" className="mt-1">Contributions rise {i.raisePct}% a year. Returns are after inflation, so every figure is in today's money.</Text>
       </Card>
       <Card>
         <AmountStepper label="Comfortable yearly spending" value={i.spend} step={1000} min={15000} max={60000} format={eur0} onChange={(v) => set({ spend: v })} />

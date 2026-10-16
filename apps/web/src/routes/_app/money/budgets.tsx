@@ -1,4 +1,5 @@
-import { eur, eur0, monthLabel, shiftMonth, useBudgets, useBudgetSuggestions, useCategories, useUpsertBudget } from '@finally/api-client';
+import { eur, eur0, monthLabel, shiftMonth, useBudgets, useBudgetSuggestions, useCategories, usePrefs, useUpsertBudget } from '@finally/api-client';
+import { dublinDate, paceMonths, tripMonths } from '@finally/finance-core';
 import type { BudgetRow } from '@finally/contracts';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
@@ -16,7 +17,10 @@ export const Route = createFileRoute('/_app/money/budgets')({
   component: BudgetsPage,
 });
 
-function BudgetRowView({ r, month, day, days, suggestion }: { r: BudgetRow; month: string; day: number; days: number; suggestion?: string }): ReactNode {
+const SUB: Record<string, string> = { other: 'Health, cash and the rest', bills: 'Incl. bank fees', fun: 'Incl. bars & pubs' };
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function BudgetRowView({ r, month, day, days, suggestion, rentTotal }: { r: BudgetRow; month: string; day: number; days: number; suggestion?: string; rentTotal: string | null }): ReactNode {
   const upsert = useUpsertBudget();
   const amount = Number(r.amount);
   const spent = Number(r.spent);
@@ -36,9 +40,14 @@ function BudgetRowView({ r, month, day, days, suggestion }: { r: BudgetRow; mont
     <div className="grid gap-2 border-t border-rule py-3.5 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div className={cn('flex items-center gap-[9px] font-semibold', r.category.parentId && 'pl-4')}>
-          <i className="size-2.5 flex-none rounded-[3px]" style={{ background: categoryVar(r.category) }} />
-          {r.category.name}
-          {r.fixed ? <span className="rounded-[4px] border border-rule px-[5px] py-px text-[11px] font-semibold text-ink-3">Fixed</span> : null}
+          <i className="size-2.5 flex-none rounded-[2px]" style={{ background: categoryVar(r.category) }} />
+          <span>
+            {r.category.name}
+            {(r.category.slug === 'rent' && rentTotal ? `Your quarter of ${eur0(rentTotal)}` : SUB[r.category.slug]) ? (
+              <small className="block text-[11.5px] font-normal text-ink-3">{r.category.slug === 'rent' && rentTotal ? `Your quarter of ${eur0(rentTotal)}` : SUB[r.category.slug]}</small>
+            ) : null}
+          </span>
+          {r.fixed ? <span className="rounded-chip border border-rule px-[5px] py-px text-[11px] font-semibold text-ink-3">Fixed</span> : null}
           {r.carriedIn !== '0.00' ? <span className="text-[11px] font-medium text-ink-3">+{eur0(r.carriedIn)} carried</span> : null}
         </div>
         <div className="text-right">
@@ -78,6 +87,7 @@ function BudgetsPage() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { data, error, refetch, isFetching } = useBudgets(monthParam);
   const suggestions = useBudgetSuggestions();
+  const prefs = usePrefs();
   const categories = useCategories();
   const upsert = useUpsertBudget();
 
@@ -99,6 +109,11 @@ function BudgetsPage() {
     }
     toast.success(n ? `Updated ${n} budget${n === 1 ? '' : 's'} from your last three months` : 'Your budgets already match your last three months');
   };
+  const rentTotal = prefs.data && prefs.data.rent.household >= 2 && Number(prefs.data.rent.total) > 0 ? prefs.data.rent.total : null;
+  const learned = prefs.data ? paceMonths(dublinDate(new Date()), { tripMonths: tripMonths(prefs.data.trips) }) : [];
+  const lead = learned.length
+    ? `Built from your salary only. The tick on each bar is where you usually are by day ${data?.dayOfMonth ?? ''}, learned from ${MON[Number(learned[0]!.slice(5)) - 1]} to ${MON[Number(learned.at(-1)!.slice(5)) - 1]}, so a big weekly shop or weekday coffees don't look like overspending.`
+    : 'How much is left, and how much a day. The tick on each bar is where your own usual pace puts you today.';
   const flex = data?.rows.filter((r) => !r.fixed && !r.category.parentId) ?? [];
   const fixed = data?.rows.filter((r) => r.fixed && !r.category.parentId) ?? [];
   const children = data?.rows.filter((r) => r.category.parentId) ?? [];
@@ -108,13 +123,13 @@ function BudgetsPage() {
       <PageHeader
         eyebrow={data ? `${monthLabel(data.month)}${data.dayOfMonth > 0 && data.dayOfMonth < data.daysInMonth ? ` · day ${data.dayOfMonth} of ${data.daysInMonth}` : ''}` : 'Budgets'}
         title="Budgets"
-        lead="How much is left, and how much a day. The tick on each bar is where your own usual pace puts you today."
+        lead={lead}
         right={
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={applyAll} disabled={!suggestions.data || upsert.isPending}>
               <Sparkles /> Suggest from my last 3 months
             </Button>
-            <div className="inline-flex items-center gap-1 rounded-[3px] border border-rule bg-surface p-[3px]">
+            <div className="inline-flex items-center gap-1 rounded-control border border-rule bg-surface p-[3px]">
               <button type="button" onClick={() => go(-1)} aria-label="Previous month" className="grid size-8 place-items-center rounded-full hover:bg-raised">
                 <ChevronLeft className="size-4" aria-hidden="true" />
               </button>
@@ -135,13 +150,13 @@ function BudgetsPage() {
           <Panel>
             <h3 className="mb-3 text-[16px] font-medium text-ink-2">Flexible: what you choose to spend</h3>
             {flex.map((r) => (
-              <BudgetRowView key={r.categoryId} r={r} month={data.month} day={data.dayOfMonth} days={data.daysInMonth} suggestion={suggestions.data?.[slugOf(r.categoryId) ?? '']} />
+              <BudgetRowView key={r.categoryId} r={r} month={data.month} day={data.dayOfMonth} days={data.daysInMonth} suggestion={suggestions.data?.[slugOf(r.categoryId) ?? '']} rentTotal={rentTotal} />
             ))}
           </Panel>
           <Panel>
             <h3 className="mb-3 text-[16px] font-medium text-ink-2">Fixed: found from your repeating payments</h3>
             {fixed.map((r) => (
-              <BudgetRowView key={r.categoryId} r={r} month={data.month} day={data.dayOfMonth} days={data.daysInMonth} suggestion={suggestions.data?.[slugOf(r.categoryId) ?? '']} />
+              <BudgetRowView key={r.categoryId} r={r} month={data.month} day={data.dayOfMonth} days={data.daysInMonth} suggestion={suggestions.data?.[slugOf(r.categoryId) ?? '']} rentTotal={rentTotal} />
             ))}
           </Panel>
           {children.length ? (

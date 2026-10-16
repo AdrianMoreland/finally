@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { CategoryChip, EmptyState, ErrorNote, LoadingBlock, PageHeader, Panel } from '@/components/common';
 import { Callout, Chip, Seg } from '@/components/kit';
+import { Monogram } from '@/components/v4';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -31,7 +32,9 @@ const search = z.object({
   q: z.string().optional(),
   account: z.string().optional(),
   category: z.string().optional(),
-  kind: z.enum(['SPEND', 'INCOME', 'TRANSFER', 'REFUND', 'SHARE']).optional(),
+  kind: z.enum(['SPEND', 'INCOME', 'TRANSFER', 'REFUND']).optional(),
+  /** The rent payment and housemates' shares back. */
+  fronted: z.literal('true').optional(),
   status: z.enum(['PENDING', 'SORT', 'EXCLUDED']).optional(),
 });
 
@@ -108,13 +111,23 @@ function useDebounced<T>(value: T, ms = 300): T {
   return v;
 }
 
+/** Colour of a payee's monogram: income mint, rent share pink, transfers grey, unsorted marker, else the category. */
+function rowColour(t: TransactionDto): string {
+  if (t.kind === 'INCOME') return 'var(--brand)';
+  if (t.kind === 'SHARE') return 'var(--pink)';
+  if (t.kind === 'TRANSFER') return 'var(--ink-3)';
+  if (!t.category) return 'var(--marker)';
+  return categoryVar(t.category);
+}
+
 const tags = (t: TransactionDto): ReactNode => (
   <>
     {t.status === 'PENDING' ? <Chip tone="pend">Pending</Chip> : null}
     {t.excluded ? <Chip>Left out</Chip> : null}
     {t.flag === 'bounced' ? <Chip tone="warn">Bounced</Chip> : null}
     {t.flag === 'returned' ? <Chip tone="ok">Returned</Chip> : null}
-    {t.kind === 'SHARE' ? <Chip>Housemate share</Chip> : null}
+    {t.kind === 'SHARE' ? <Chip tone="ok">Rent share back · not income</Chip> : null}
+    {t.rentSplit ? <Chip>Your quarter</Chip> : null}
     {t.kind === 'REFUND' && !t.flag ? <Chip tone="ok">Refund</Chip> : null}
     {t.tags.map((x) => (
       <Chip key={x}>#{x}</Chip>
@@ -150,6 +163,18 @@ function Detail({ tx, categories, onClose }: { tx: TransactionDto | null; catego
             <CategoryPicker tx={tx} categories={categories} />
             {tags(tx)}
           </div>
+          {tx.rentSplit ? (
+            <div className="rounded-lg border border-rule p-3 text-[13px]">
+              <div className="flex justify-between py-0.5"><span className="text-ink-2">Left {tx.accountName.split(' ')[0]}</span><b className="num">{eur(tx.rentSplit.total)}</b></div>
+              <div className="flex justify-between py-0.5"><span className="text-ink-2">Your rent, your share</span><b className="num">{eur(tx.rentSplit.own)}</b></div>
+              {tx.rentSplit.shares.map((m) => (
+                <div key={m.id} className="flex justify-between gap-3 py-0.5">
+                  <span className="text-ink-2">{m.name}&apos;s share</span>
+                  <b className="num text-right">{Number(m.left) > 0 ? `${eur(m.got)} back · ${eur(m.left)} to come` : `back on ${m.paid.map(shortDate).join(', ')}`}</b>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <div>
             <div className="mb-1 text-[11.5px] font-semibold uppercase tracking-[0.07em] text-ink-3">What the bank says</div>
             <span className="raw-marker break-all">{tx.rawDescriptor}</span>
@@ -169,7 +194,7 @@ function Detail({ tx, categories, onClose }: { tx: TransactionDto | null; catego
             <label htmlFor="tx-tag" className="mb-1 block text-[13px] font-medium">Tags</label>
             <div className="flex flex-wrap items-center gap-1.5">
               {tx.tags.map((x) => (
-                <button key={x} type="button" className="inline-flex items-center gap-1 rounded-[3px] border border-rule bg-raised px-2 py-[2px] text-[12px] font-semibold" onClick={() => save({ tags: tx.tags.filter((t) => t !== x) })} aria-label={`Remove tag ${x}`}>
+                <button key={x} type="button" className="inline-flex items-center gap-1 rounded-chip border border-rule bg-raised px-2 py-[2px] text-[12px] font-semibold" onClick={() => save({ tags: tx.tags.filter((t) => t !== x) })} aria-label={`Remove tag ${x}`}>
                   #{x} <X className="size-3" aria-hidden="true" />
                 </button>
               ))}
@@ -223,6 +248,7 @@ function PaymentsPage() {
       status: params.status === 'PENDING' ? ('PENDING' as const) : undefined,
       excluded: params.status === 'EXCLUDED' ? ('true' as const) : undefined,
       kind: params.kind,
+      fronted: params.fronted,
     }),
     [params],
   );
@@ -245,7 +271,7 @@ function PaymentsPage() {
         out.push(g);
       }
       g.items.push(t);
-      if ((t.kind === 'SPEND' || t.kind === 'REFUND' || t.kind === 'SHARE') && !t.excluded) g.spent -= Number(t.amountEur);
+      if ((t.kind === 'SPEND' || t.kind === 'REFUND') && !t.excluded) g.spent -= Number(t.amountEur);
     }
     return out;
   }, [rows]);
@@ -259,8 +285,8 @@ function PaymentsPage() {
     <>
       <PageHeader
         eyebrow="Every payment"
-        title="Payments"
-        lead={'Search reads questions too: try "coffee over 4 last month" or "tesco since june". Transfers between your own accounts are kept out of spending.'}
+        title="Transactions"
+        lead={'Search reads questions too: try "coffee over 4 last month" or "tesco since june". Transfers between your own accounts are kept out of spending, refunds are netted, and flatmates\' rent shares only repay rent you fronted.'}
       />
 
       <div className="mb-3 flex flex-wrap items-center gap-2.5" role="search">
@@ -281,10 +307,14 @@ function PaymentsPage() {
             {accounts.data?.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={params.category ?? 'all'} onValueChange={(v) => set({ category: v === 'all' ? undefined : v })}>
-          <SelectTrigger aria-label="Category" className="w-[160px]"><SelectValue /></SelectTrigger>
+        <Select
+          value={params.fronted ? 'front' : (params.category ?? 'all')}
+          onValueChange={(v) => set(v === 'front' ? { fronted: 'true', category: undefined } : { category: v === 'all' ? undefined : v, fronted: undefined })}
+        >
+          <SelectTrigger aria-label="Category" className="w-[190px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All categories</SelectItem>
+            <SelectItem value="front">Rent fronted and shares back</SelectItem>
             {top.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -295,7 +325,6 @@ function PaymentsPage() {
             <SelectItem value="SPEND">Spending</SelectItem>
             <SelectItem value="INCOME">Income</SelectItem>
             <SelectItem value="REFUND">Refunds</SelectItem>
-            <SelectItem value="SHARE">Housemate shares</SelectItem>
             <SelectItem value="TRANSFER">Transfers</SelectItem>
           </SelectContent>
         </Select>
@@ -350,9 +379,14 @@ function PaymentsPage() {
                       t.status === 'PENDING' && 'opacity-80',
                     )}
                   >
-                    <div className="min-w-0">
-                      <div className={cn('truncate font-semibold', t.excluded && 'text-ink-3 line-through decoration-ink-3/60')}>{maskText(t.merchant?.displayName ?? t.rawDescriptor)}</div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-1">{tags(t)}</div>
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <Monogram name={t.merchant?.displayName ?? t.rawDescriptor} colour={rowColour(t)} />
+                      <div className="min-w-0">
+                        <div className={cn('truncate font-semibold', t.excluded && 'text-ink-3 line-through decoration-ink-3/60')}>{maskText(t.merchant?.displayName ?? t.rawDescriptor)}</div>
+                        {t.rentSplit ? <div className="truncate text-[12px] text-ink-3">{eur(t.rentSplit.total)} left {t.accountName.split(' ')[0]} · your quarter is counted</div> : null}
+                        {t.kind === 'SHARE' ? <div className="truncate text-[12px] text-ink-3">repays rent you fronted</div> : null}
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1">{tags(t)}</div>
+                      </div>
                     </div>
                     <div className="num order-last col-span-2 hidden truncate text-ink-3 md:order-none md:col-span-1 md:block">{t.accountName}</div>
                     <div className="order-3 md:order-none">

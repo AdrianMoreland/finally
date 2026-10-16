@@ -37,7 +37,7 @@ function SortCard({ req, categories }: { req: CategoriseRequestDto; categories: 
   const [first, ...rest] = req.suggestedCategories;
   const pickable = categories.filter((c) => !c.archived && c.group !== 'TRANSFER' && c.group !== 'INCOME');
   return (
-    <article className="flex flex-col gap-3 rounded-[6px] bg-surface p-4" aria-labelledby={`req-${req.id}`}>
+    <article className="flex flex-col gap-3 rounded-card bg-surface p-4" aria-labelledby={`req-${req.id}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 id={`req-${req.id}`} className="text-[16px] font-semibold">{req.displayName}</h2>
@@ -65,7 +65,7 @@ function SortCard({ req, categories }: { req: CategoriseRequestDto; categories: 
             type="button"
             disabled={answer.isPending}
             onClick={() => send(c, false)}
-            className="inline-flex items-center gap-[7px] rounded-[3px] border border-rule bg-raised px-3 py-[6px] text-[13px] font-semibold hover:border-brand hover:text-brand disabled:opacity-60"
+            className="inline-flex items-center gap-[7px] rounded-control border border-rule bg-raised px-3 py-[6px] text-[13px] font-semibold hover:border-brand hover:text-brand disabled:opacity-60"
           >
             <i className="size-2 rounded-full" style={{ background: categoryVar(c) }} />
             {c.name}

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { categoryVar } from '@/lib/category';
 import { cn } from '@/lib/utils';
 
-/** Surface card in the prototype's style: 10px radius, hairline border, 16/18 padding. */
+/** The v4 card: 12px radius, hairline border, 18/20 padding. */
 export function Panel({
   className,
   children,
@@ -14,7 +14,7 @@ export function Panel({
   flush?: boolean;
 }): ReactNode {
   return (
-    <section className={cn('min-w-0 rounded-[6px] bg-surface', flush ? 'p-1.5' : 'px-[18px] py-4', className)}>
+    <section className={cn('min-w-0 rounded-card bg-surface', 'border border-hair', flush ? 'p-1.5' : 'px-5 py-[18px]', className)}>
       {children}
     </section>
   );
@@ -22,7 +22,7 @@ export function Panel({
 
 export function PanelTitle({ children, action }: { children: ReactNode; action?: ReactNode }): ReactNode {
   return (
-    <h3 className="mb-3 flex flex-wrap items-baseline justify-between gap-2 text-[16px] font-medium text-ink-2">
+    <h3 className="mb-3 flex flex-wrap items-center justify-between gap-2 text-[15px] font-semibold text-ink">
       <span>{children}</span>
       {action ? <span className="text-[13px] font-semibold text-brand">{action}</span> : null}
     </h3>
@@ -44,7 +44,7 @@ export function PageHeader({
     <header className="mb-[18px] flex flex-wrap items-end justify-between gap-3">
       <div>
         {eyebrow ? <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-brand">{eyebrow}</div> : null}
-        <h1 className="mt-1.5 font-display text-[30px] font-light leading-[1.05] text-balance md:text-[34px]">{title}</h1>
+        <h1 className="mt-1.5 font-display text-[30px] font-normal leading-[1.05] tracking-[-0.01em] text-balance md:text-[34px]">{title}</h1>
         {lead ? <p className="mt-1.5 max-w-[62ch] text-ink-2">{lead}</p> : null}
       </div>
       {right}
@@ -70,7 +70,7 @@ export function CategoryChip({
   kind?: string;
   onClick?: () => void;
 }): ReactNode {
-  const base = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-[3px] border px-2 py-[2px] pl-1.5 text-[12px] font-medium';
+  const base = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-chip border px-2 py-[2px] pl-1.5 text-[12px] font-medium';
   if (!category) {
     const cls = cn(base, 'border-marker bg-marker font-bold text-marker-ink');
     return onClick ? (
@@ -108,7 +108,7 @@ const SEV_LABEL: Record<string, string> = { ACT: 'Act', WATCH: 'Watch', INFO: 'I
 
 export function SeverityTag({ severity }: { severity: 'ACT' | 'WATCH' | 'INFO' | 'YOU' }): ReactNode {
   return (
-    <span className={cn('mt-px whitespace-nowrap rounded-[3px] border-[1.5px] border-current px-1.5 py-[2px] text-[10.5px] font-bold uppercase tracking-[0.08em]', SEV[severity])}>
+    <span className={cn('mt-px whitespace-nowrap rounded-chip border border-current px-1.5 py-[2px] text-[10.5px] font-bold uppercase tracking-[0.08em]', SEV[severity])}>
       {SEV_LABEL[severity]}
     </span>
   );
@@ -130,14 +130,14 @@ export function Track({
 }): ReactNode {
   return (
     <div
-      className={cn('relative rounded-[3px] bg-track', className)}
+      className={cn('relative rounded-full bg-track', className)}
       style={{ height }}
       role="progressbar"
       aria-valuenow={Math.round(Math.min(100, Math.max(0, value)))}
       aria-valuemin={0}
       aria-valuemax={100}
     >
-      <i className="absolute inset-y-0 left-0 rounded-[3px]" style={{ width: `${Math.min(100, Math.max(0, value))}%`, background: color }} />
+      <i className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${Math.min(100, Math.max(0, value))}%`, background: color }} />
       {tick != null ? (
         <b className="absolute -bottom-[5px] -top-[5px] w-0.5 bg-needle" style={{ left: `${Math.min(100, Math.max(0, tick))}%` }} />
       ) : null}
@@ -172,7 +172,7 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
 }
 
 export function LoadingBlock({ className }: { className?: string }): ReactNode {
-  return <div className={cn('animate-pulse rounded-[6px] bg-raised', className ?? 'h-32')} aria-busy="true" />;
+  return <div className={cn('animate-pulse rounded-card bg-raised', className ?? 'h-32')} aria-busy="true" />;
 }
 
 export function ErrorNote({ error, retry }: { error: unknown; retry?: () => void }): ReactNode {

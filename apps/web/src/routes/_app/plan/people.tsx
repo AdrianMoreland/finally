@@ -1,4 +1,4 @@
-import { eur, eur0, longDate, shortDate, usePeople, usePeopleMutations } from '@finally/api-client';
+import { eur, eur0, longDate, monthLabel, shortDate, usePeople, usePeopleMutations } from '@finally/api-client';
 import type { PeopleDto, PersonDto } from '@finally/contracts';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, type ReactNode } from 'react';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CardTitle } from '@/components/v4';
 import { GRID, SPAN } from '@/lib/grid';
 
 export const Route = createFileRoute('/_app/plan/people')({ component: PeoplePage });
@@ -103,6 +104,24 @@ function OwePerson({ p, onPay }: { p: PersonDto; onPay: () => void }): ReactNode
 function OwedPerson({ p, onPay }: { p: PersonDto; onPay: () => void }): ReactNode {
   const { remove } = usePeopleMutations();
   const done = Number(p.left) <= 0;
+  if (p.rentShare) {
+    return (
+      <div className="border-t border-rule py-3 first:border-t-0 first:pt-0">
+        <div className="flex items-baseline justify-between gap-3">
+          <h4 className="font-semibold">{p.name}</h4>
+          <b className="num">{done ? <Chip tone="ok">Paid back{p.paidOffOn ? ` ${shortDate(p.paidOffOn)}` : ''} · matched from AIB</Chip> : eur(p.left)}</b>
+        </div>
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-[12.5px] text-ink-2">
+          <span>{p.note} · since {shortDate(p.since)}</span>
+          {!done ? (
+            <Button size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(p.remindText).then(() => toast.success('Reminder copied. Paste it into a message.'), () => toast.message(p.remindText))}>
+              Copy reminder
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="border-t border-rule py-3 first:border-t-0 first:pt-0">
       <div className="flex items-baseline justify-between gap-3">
@@ -152,6 +171,59 @@ function PlanCard({ d }: { d: PeopleDto }): ReactNode {
   );
 }
 
+/** Each rent payment and who has sent their share back: matched from the bank, never counted as income. */
+function RentCard({ rent }: { rent: NonNullable<PeopleDto['rent']> }): ReactNode {
+  const names = rent.onTime.map((o) => `${o.name} ${o.onTime} of ${o.of}`).join(', ');
+  return (
+    <Panel className={SPAN[12]}>
+      <CardTitle note={`${eur0(rent.total)} to the landlord on the ${rent.day}th · your rent is your share, ${eur0(rent.own)}`}>Rent you front</CardTitle>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] border-collapse text-[13.5px]">
+          <thead>
+            <tr className="text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">
+              <th className="pb-2 pr-3">Month</th>
+              <th className="pb-2 pr-3">Left your account</th>
+              {rent.rounds[0]?.mates.map((m) => <th key={m.id} className="pb-2 pr-3">{m.name}</th>)}
+              <th className="pb-2 text-right">Your rent</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rent.rounds.map((r) => (
+              <tr key={r.date} className="border-t border-rule align-top">
+                <td className="py-2 pr-3 font-medium">{monthLabel(r.month)}</td>
+                <td className="num py-2 pr-3">{eur(r.total)}</td>
+                {r.mates.map((m) => (
+                  <td key={m.id} className="py-2 pr-3">
+                    {Number(m.left) <= 0 ? (
+                      <Chip tone="ok">✓ {m.paid.map(shortDate).join(' + ')}</Chip>
+                    ) : (
+                      <>
+                        <Chip tone="mark">{eur0(m.left)} to come</Chip>
+                        {Number(m.got) > 0 ? <small className="mt-0.5 block text-[11.5px] text-ink-3">{eur0(m.got)} on {m.paid.map(shortDate).join(' + ')}</small> : null}
+                      </>
+                    )}
+                  </td>
+                ))}
+                <td className="num py-2 text-right font-semibold">{eur(r.own)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {rent.rounds.length ? (
+        <p className="mt-3 border-t border-dashed border-rule pt-2 text-[12px] text-ink-3">
+          Paid on or after rent day in the last {rent.rounds.length} months: {names}. Their transfers repay money you fronted, so Finally matches them here and never counts them as income.{' '}
+          <button type="button" className="font-semibold text-brand" onClick={() => void navigator.clipboard.writeText(rent.houseMessage).then(() => toast.success('Message copied. Paste it into the house chat.'), () => toast.message(rent.houseMessage))}>
+            Copy a message to the house
+          </button>
+        </p>
+      ) : (
+        <p className="text-[13px] text-ink-3">No rent payments found yet.</p>
+      )}
+    </Panel>
+  );
+}
+
 function PeoplePage() {
   const { data, error, refetch } = usePeople();
   const [adding, setAdding] = useState<'OWE' | 'OWED' | null>(null);
@@ -162,6 +234,7 @@ function PeoplePage() {
     <>
       <PageHeader eyebrow="Money between you and people you know" title="People" lead="What you owe, with a date you will be clear, and what is owed to you, matched when the transfer arrives." />
       <div className={GRID}>
+        {data.rent ? <RentCard rent={data.rent} /> : null}
         <Panel className={SPAN[6]}>
           <PanelTitle action={<button type="button" onClick={() => setAdding('OWE')}>+ Add</button>}>You owe <span className="num ml-1 normal-case tracking-normal">{eur(data.totalOwe)}</span></PanelTitle>
           {data.owe.length ? data.owe.map((p) => <OwePerson key={p.id} p={p} onPay={() => setPaying(p)} />) : (

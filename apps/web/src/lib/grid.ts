@@ -12,4 +12,4 @@ export const SPAN = {
   12: 'col-span-12',
 } as const;
 
-export const GRID = 'grid grid-cols-12 gap-1.5';
+export const GRID = 'grid grid-cols-12 gap-2.5';
