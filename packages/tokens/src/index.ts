@@ -33,6 +33,8 @@ export interface Palette {
   ink2: string;
   ink3: string;
   rule: string;
+  /** Hairline card border: ink at low alpha (rgba string). */
+  hair: string;
   /** Text and strokes in the accent colour. */
   brand: string;
   /** Text on a solid `brand` background. */
@@ -59,14 +61,15 @@ export interface Palette {
 }
 
 export const dark: Palette = {
-  paper: '#0B0B0C',
-  well: '#050505',
-  surface: '#1C1C1E',
-  raised: '#262628',
+  paper: '#09090B',
+  well: '#111113',
+  surface: '#18181B',
+  raised: '#222226',
   ink: '#E2E2E2',
   ink2: '#ABABB0',
   ink3: '#7A7A80',
-  rule: '#343437',
+  rule: '#2A2A2F',
+  hair: 'rgba(255,255,255,.065)',
   brand: '#9CFCEF',
   brandInk: '#0A1715',
   brandSoft: '#1A3431',
@@ -87,11 +90,12 @@ export const dark: Palette = {
 };
 
 export const light: Palette = {
-  paper: '#DEDEDA',
-  well: '#C6C6C1',
-  surface: '#F6F6F3',
-  raised: '#EAEAE6',
-  rule: '#D2D2CC',
+  paper: '#E4E4DF',
+  well: '#EFEFEB',
+  surface: '#FFFFFF',
+  raised: '#F3F3EF',
+  rule: '#E2E2DC',
+  hair: 'rgba(0,0,0,.08)',
   ink: '#18181A',
   ink2: '#4F4F55',
   ink3: '#7A7A80',
@@ -132,6 +136,7 @@ export const categoryColours = {
   subscriptions: { light: '#008300', dark: '#008300' },
   fun: { light: '#E34948', dark: '#E66767' },
   other: { light: '#A0A0A5', dark: '#6B6B70' },
+  travel: { light: '#1F8FB3', dark: '#4CB7D9' },
 } as const;
 
 export type CategoryColourSlug = keyof typeof categoryColours;
@@ -141,7 +146,8 @@ export function categoryColour(slug: string, mode: 'light' | 'dark' = 'dark'): s
   return (entry ?? categoryColours.other)[mode];
 }
 
-export const radius = { control: 3, card: 6, chip: 3 } as const;
+/** Web radii (px). Phone keeps its own (card 14, button 12, sheet 22). */
+export const radius = { card: 12, control: 8, chip: 6, field: 10, frame: 18 } as const;
 
 /** 4-point spacing scale (px). */
 export const spacing = {
