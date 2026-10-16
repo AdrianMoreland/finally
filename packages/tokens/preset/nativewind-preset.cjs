@@ -28,6 +28,7 @@ module.exports = {
   "bad-soft": "rgb(var(--m-bad-soft) / <alpha-value>)",
   "track": "rgb(var(--m-track) / <alpha-value>)",
   "needle": "rgb(var(--m-needle) / <alpha-value>)",
+  "hair": "rgb(var(--m-hair) / var(--m-hair-a))",
   "c-rent": "rgb(var(--m-c-rent) / <alpha-value>)",
   "c-groceries": "rgb(var(--m-c-groceries) / <alpha-value>)",
   "c-eating-out": "rgb(var(--m-c-eating-out) / <alpha-value>)",
@@ -37,9 +38,10 @@ module.exports = {
   "c-shopping": "rgb(var(--m-c-shopping) / <alpha-value>)",
   "c-subscriptions": "rgb(var(--m-c-subscriptions) / <alpha-value>)",
   "c-fun": "rgb(var(--m-c-fun) / <alpha-value>)",
-  "c-other": "rgb(var(--m-c-other) / <alpha-value>)"
+  "c-other": "rgb(var(--m-c-other) / <alpha-value>)",
+  "c-travel": "rgb(var(--m-c-travel) / <alpha-value>)"
 },
-      borderRadius: { control: '3px', card: '6px', chip: '3px' },
+      borderRadius: { control: '8px', card: '12px', chip: '6px', field: '10px', frame: '18px' },
       fontFamily: {
         display: ['Figtree_300Light'],
         'display-medium': ['Figtree_500Medium'],
