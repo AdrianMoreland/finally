@@ -76,13 +76,13 @@ function fillDay(date: string): Fill[] {
 
   for (const s of SUBSCRIPTIONS) if (s.day === dom) out.push({ date, desc: s.desc, amount: s.amount });
   if (date === paydayOf(month)) {
-    out.push({ date, desc: `WAGES MT${monthIdx} ${month.slice(2, 4)}${month.slice(5)}${pad2(Math.max(1, dom - 6))}${pad2(5 + (hash(date) % 15))}`, amount: 2416.78 });
+    out.push({ date, desc: `WAGES MT${monthIdx} ${month.slice(2, 4)}${month.slice(5)}${pad2(Math.max(1, dom - 6))}${pad2(5 + (hash(date) % 15))}`, amount: 2450 });
   }
   if (dom === 8) out.push({ date, desc: `RENT ${mon3}`, amount: -2500 });
-  if (dom === 6 || dom === 7) if (dom === 6 + (hash(month) % 2)) out.push({ date, desc: 'VICTOR PRATS', amount: 614 });
-  if (dom === 9 + (hash(`e${month}`) % 3)) out.push({ date, desc: 'EIMER RENT SHARE', amount: Math.round((600 + (hash(`s${month}`) % 70)) * 100) / 100 });
-  // Adila pays a few days late; October's share has not arrived yet.
-  if (dom === 12 && month === '2026-09') out.push({ date, desc: 'RENT', amount: 614 });
+  // Each flatmate sends their quarter of the rent: B the day before, C and D the days after.
+  if (dom === 7) out.push({ date, desc: 'FLATMATE B RENT SHARE', amount: 625 });
+  if (dom === 9) out.push({ date, desc: 'FLATMATE C RENT SHARE', amount: 625 });
+  if (dom === 10) out.push({ date, desc: 'FLATMATE D RENT SHARE', amount: 625 });
   if (dom === 28 || (dom === 27 && wd === 6)) out.push({ date, desc: `ACCOUNT FEE ${mon3} ${month.slice(2, 4)}`, amount: -6 });
 
   const weekend = wd === 0 || wd === 6;

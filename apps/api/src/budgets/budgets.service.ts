@@ -10,12 +10,15 @@ import {
   m2,
   monthOf,
   pacing,
+  paceShare,
+  tripMonths,
   type BudgetHistoryRow,
   type BudgetLine,
   type Decimal,
 } from '@finally/finance-core';
 import { InjectDb } from '../common/tokens';
 import { FinanceDataService } from '../data/finance-data.service';
+import { LedgerService } from '../data/ledger.service';
 
 const lastDay = (month: string): string => `${month}-${String(daysInMonth(month)).padStart(2, '0')}`;
 
@@ -24,6 +27,7 @@ export class BudgetsService {
   constructor(
     @InjectDb() private readonly db: Db,
     private readonly data: FinanceDataService,
+    private readonly ledger: LedgerService,
   ) {}
 
   /** A month with no budgets yet starts from the most recent earlier month that has some. */
@@ -48,6 +52,10 @@ export class BudgetsService {
     const day = month === thisMonth ? dayOfMonth(today) : month < thisMonth ? dim : 0;
 
     const cats = await this.data.categories(userId);
+    // The tick on each bar is your own usual pace: learned from the last four ordinary months, trips left out.
+    const prefs = month === thisMonth ? await this.ledger.prefs(userId) : null;
+    const ledgerTxs = prefs ? await this.ledger.txs(userId, `${addMonths(month, -9)}-01`, today, prefs) : [];
+    const away = prefs ? tripMonths(prefs.trips) : new Set<string>();
     const budgetable = cats.filter((c) => !c.archived && (c.group === 'ESSENTIALS' || c.group === 'LIFESTYLE'));
     const first = addMonths(month, -6);
     const [budgets, txs] = await Promise.all([
@@ -101,7 +109,8 @@ export class BudgetsService {
         rollover: b?.rollover ?? false,
         carriedIn: m2(carry),
         spent: m2(spent),
-        expectedByToday: day === 0 ? '0.00' : month < thisMonth ? m2(amount) : p.expectedByToday,
+        expectedByToday:
+          day === 0 ? '0.00' : month < thisMonth ? m2(amount) : c.fixed ? p.expectedByToday : m2(amount.times(paceShare(ledgerTxs, c.slug, day, today, { tripMonths: away }))),
         projected: month < thisMonth ? m2(spent) : p.projected,
         fixed: c.fixed,
       });

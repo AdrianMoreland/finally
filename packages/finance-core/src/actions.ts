@@ -7,7 +7,9 @@ export type ActionSeverity = 'YOU' | 'ACT' | 'WATCH';
 export type ActionCta =
   | { kind: 'go'; label: string; to: string }
   | { kind: 'check'; label: string; itemId: string; state: 'DONE' }
-  | { kind: 'remind'; label: string; personId: string };
+  | { kind: 'remind'; label: string; personId: string }
+  /** Put this text on the clipboard (a message to the house, a reminder to one flatmate). */
+  | { kind: 'copy'; label: string; text: string };
 
 export interface ActionItem {
   id: string;
@@ -31,7 +33,15 @@ export interface ActionInput {
   owed: Array<{ id: string; name: string; left: string; since: string; note: string | null }>;
   pots: Array<{ id: string; name: string; late: boolean; reaches: string; targetDate: string; need: string; monthly: string; shortfall: string }>;
   pace: Array<{ slug: string; name: string; spent: string; budget: string; projected: string; day: number }>;
-  overdrawn: { balance: string; fees12m: string } | null;
+  /** `rentOn` is set when a rent payment this month is why the account is below zero. */
+  overdrawn: { balance: string; fees12m: string; rentOn?: string } | null;
+  /**
+   * Set only when a rent round exists this month and the account's lowest end-of-day balance this month is below
+   * zero: you fronted the rent and the shares arrived after it.
+   */
+  frontOverdraft: { low: string; day: string; total: string; rentDay: number; payByDay: number; fees12m: string; message: string } | null;
+  /** Flatmates who still owe part of this month's share. */
+  shareReminders: Array<{ id: string; name: string; monthName: string; total: string; rentDate: string; got: string; own: string; left: string; message: string }>;
   doubles: Array<{ id: string; merchantName: string; date: string; amount: string; count: number }>;
   rises: Array<{ id: string; name: string; from: string; to: string; since: string }>;
   /** Action ids the user has snoozed. */
@@ -140,12 +150,39 @@ export function buildActions(i: ActionInput): ActionItem[] {
       });
     }
   }
+  const ord = (n: number): string => `${n}${n % 100 > 10 && n % 100 < 14 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th')}`;
+  if (i.frontOverdraft) {
+    const f = i.frontOverdraft;
+    A.push({
+      id: 'front',
+      severity: 'ACT',
+      title: `AIB went ${eur(D(f.low).abs().toFixed(2))} overdrawn on ${shortDate(f.day)} while you fronted the rent`,
+      body: `The landlord gets ${eur0(f.total)} on the ${ord(f.rentDay)} and the shares arrive after it. Overdraft interest and fees cost you ${eur(f.fees12m)} in the last 12 months. Ask the house to pay by the ${ord(f.payByDay)}.`,
+      amount: f.fees12m,
+      cta: { kind: 'copy', label: 'Copy message', text: f.message },
+      pinned: true,
+    });
+  }
+  for (const r of i.shareReminders) {
+    if (!D(r.left).gt(0)) continue;
+    A.push({
+      id: `share-${r.id}`,
+      severity: 'WATCH',
+      title: `${r.name} has sent ${eur0(r.got)} of ${eur0(r.own)} for ${r.monthName}`,
+      body: `You paid the full ${eur0(r.total)} on ${shortDate(r.rentDate)}. ${eur0(r.left)} is still to come. It counts as owed to you, not as your rent.`,
+      amount: r.left,
+      cta: { kind: 'copy', label: 'Copy reminder', text: r.message },
+      pinned: false,
+    });
+  }
   if (i.overdrawn) {
     A.push({
       id: 'overdrawn',
       severity: 'ACT',
       title: `AIB is overdrawn: ${eur(i.overdrawn.balance)}`,
-      body: `AIB charged ${eur(i.overdrawn.fees12m)} in overdraft interest and fees in the last 12 months.`,
+      body: i.overdrawn.rentOn
+        ? `Rent went out on ${shortDate(i.overdrawn.rentOn)} before every share was in. AIB charged ${eur(i.overdrawn.fees12m)} in overdraft interest and fees in the last 12 months.`
+        : `AIB charged ${eur(i.overdrawn.fees12m)} in overdraft interest and fees in the last 12 months.`,
       amount: D(i.overdrawn.balance).neg().toFixed(2),
       cta: { kind: 'go', label: 'See the forecast', to: '/plan/payday' },
       pinned: true,

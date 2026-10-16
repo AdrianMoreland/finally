@@ -4,7 +4,9 @@ import {
   advanceMoves,
   BUYBACK_DISCOUNT,
   D,
+  freedomMilestones,
   freedomSim,
+  yearTable,
   GOLD_PER_OZ,
   GUARD_DROP,
   m2,
@@ -116,6 +118,12 @@ export class GrowService {
       probBy55: r.probBy55,
       myFutureFund: m2(myFutureFund(s.prefs.tax.gross, f.age)),
       ladder: this.pots.ladder(s),
+      milestones: freedomMilestones({ today: s.today, ...this.pots.milestoneDates(s), hitYear: r.hitYear }),
+      table: (() => {
+        const t = yearTable(r, { startYear: Number(s.today.slice(0, 4)), age: f.age, monthly: f.monthly, raisePct: f.raisePct });
+        return { years: t.years, age: t.age, p50: t.p50.map(Math.round), p10: t.p10.map(Math.round), p90: t.p90.map(Math.round), put: t.put.map(Math.round), share: t.share, enough: t.enough };
+      })(),
+      gross: s.prefs.tax.gross,
     };
   }
 

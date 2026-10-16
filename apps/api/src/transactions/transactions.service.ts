@@ -11,8 +11,11 @@ import type {
 } from '@finally/contracts';
 import { AskService } from '../ask/ask.service';
 import { CategorisationService } from '../categorisation/categorisation.service';
+import { D, addDays, dublinDate, isRentDebit, m2, rentRounds, type LedgerTx } from '@finally/finance-core';
 import { iso, money } from '../common/mappers';
 import { InjectDb } from '../common/tokens';
+import { LedgerService } from '../data/ledger.service';
+import { toRentConfig } from '../data/rent-config';
 
 type TxRow = Prisma.TransactionGetPayload<{
   include: {
@@ -34,6 +37,7 @@ export class TransactionsService {
     @InjectDb() private readonly db: Db,
     private readonly categorisation: CategorisationService,
     private readonly ask: AskService,
+    private readonly ledger: LedgerService,
   ) {}
 
   toDto(t: TxRow): TransactionDto {
@@ -62,6 +66,34 @@ export class TransactionsService {
     };
   }
 
+  /**
+   * A rent payment you front shows as one row: your share is the amount, `rentSplit` says what left the bank and who
+   * has sent their share back. Everything else passes through untouched.
+   */
+  async withRentSplits(userId: string, rows: TransactionDto[]): Promise<TransactionDto[]> {
+    const prefs = await this.ledger.prefs(userId);
+    const cfg = toRentConfig(prefs);
+    if (!cfg) return rows;
+    const rentRows = rows.filter((r) => r.category?.slug === 'rent' && D(r.amountEur).lt(0));
+    if (!rentRows.length) return rows;
+    const dates = rentRows.map((r) => dublinDate(new Date(r.bookingDate))).sort();
+    const ledger = await this.ledger.txs(userId, addDays(dates[0]!, -12), addDays(dates.at(-1)!, 35), prefs);
+    const rounds = rentRounds(ledger, cfg);
+    const byId = new Map<string, LedgerTx>(ledger.map((t) => [t.id, t]));
+    return rows.map((r) => {
+      const t = byId.get(r.id);
+      if (!t || !t.bankAmount || !isRentDebit({ ...t, amount: t.bankAmount }, cfg)) return r;
+      const round = rounds.find((x) => x.date === t.date);
+      if (!round) return r;
+      return {
+        ...r,
+        amount: m2(t.amount),
+        amountEur: m2(t.amount),
+        rentSplit: { total: m2(D(t.bankAmount).abs()), own: round.own, fronted: round.fronted, shares: round.mates.map((m) => ({ id: m.id, name: m.name, got: m.got, left: m.left, paid: m.paid })) },
+      };
+    });
+  }
+
   async list(userId: string, q: ListTransactionsQuery): Promise<TransactionPage> {
     const and: Prisma.TransactionWhereInput[] = [{ userId }];
     if (q.accountId) and.push({ accountId: q.accountId });
@@ -76,6 +108,7 @@ export class TransactionsService {
     if (q.maxAmount !== undefined) and.push({ amountEur: { lte: q.maxAmount } });
     if (q.from) and.push({ bookingDate: { gte: new Date(`${q.from}T00:00:00Z`) } });
     if (q.to) and.push({ bookingDate: { lt: new Date(new Date(`${q.to}T00:00:00Z`).getTime() + 86_400_000) } });
+    if (q.fronted === 'true') and.push({ OR: [{ kind: 'SHARE' }, { kind: 'SPEND', amountEur: { lt: 0 }, category: { slug: 'rent' } }] });
     if (q.status) and.push({ status: q.status });
     if (q.excluded) and.push({ excluded: q.excluded === 'true' });
     // The search box understands questions such as "coffee over 4 last month"; anything else is a plain text search.
@@ -125,7 +158,7 @@ export class TransactionsService {
     const page = rows.slice(0, q.limit);
     const last = page.at(-1);
     return {
-      items: page.map((r) => this.toDto(r)),
+      items: await this.withRentSplits(userId, page.map((r) => this.toDto(r))),
       readAs,
       nextCursor: rows.length > q.limit && last ? Buffer.from(`${last.bookingDate.toISOString()}|${last.id}`).toString('base64url') : null,
       total,
@@ -135,7 +168,7 @@ export class TransactionsService {
   async get(userId: string, id: string): Promise<TransactionDto> {
     const t = await this.db.transaction.findFirst({ where: { id, userId }, include });
     if (!t) throw new NotFoundException('Transaction not found');
-    return this.toDto(t);
+    return (await this.withRentSplits(userId, [this.toDto(t)]))[0]!;
   }
 
   async patch(userId: string, id: string, body: UpdateTransactionBody): Promise<TransactionDto> {

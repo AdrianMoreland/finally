@@ -6,6 +6,11 @@ import {
   buildActions,
   D,
   doubleCharges,
+  frontOverdraftInput,
+  overdraftFees,
+  rentRounds,
+  rentShareDebts,
+  shareReminderInputs,
   FLEX_BUDGET_SLUGS,
   m2,
   PAYE_YEARS,
@@ -20,6 +25,7 @@ import {
   dayOfMonth,
 } from '@finally/finance-core';
 import { InjectDb } from '../common/tokens';
+import { toRentConfig } from '../data/rent-config';
 import { dateOnly, parseDateOnly } from '../common/mappers';
 import { PeopleService } from '../people/people.service';
 import { PlanService } from '../plan/plan.service';
@@ -74,13 +80,25 @@ export class ActionsService {
 
     const pace = FLEX_BUDGET_SLUGS.map((slug) => {
       const sp = spent(s.txs, { slug, from: monthFrom, to: s.today });
-      return { slug, name: s.names[slug] ?? slug, spent: m2(sp), budget: s.budgets[slug] ?? '0.00', projected: m2(projectedSpend(s.txs, slug, sp, s.today)), day };
+      return { slug, name: s.names[slug] ?? slug, spent: m2(sp), budget: s.budgets[slug] ?? '0.00', projected: m2(projectedSpend(s.txs, slug, sp, s.today, s.pace)), day };
     });
 
     const dismissed = new Set(s.prefs.dismissed);
     const owed = s.people
       .filter((p) => p.direction === 'OWED')
       .map((p) => ({ id: p.id, name: p.name, left: m2(this.people.left(s, p)), since: dateOnly(p.since), note: p.note }));
+
+    const cfg = toRentConfig(s.prefs);
+    const fees12m = cfg
+      ? overdraftFees(s.txs, cfg, addDays(s.today, -365), s.today)
+      : m2(spent(s.txs, { slug: 'fees', from: addDays(s.today, -365), to: s.today }));
+    const aib = cfg ? await this.db.account.findFirst({ where: { userId: s.userId, type: 'CURRENT', connection: { institution: 'AIB' } }, select: { id: true, balance: true } }) : null;
+    const frontOverdraft = cfg && aib ? frontOverdraftInput({ txs: s.txs, cfg, accountId: aib.id, balance: aib.balance.toString(), today: s.today, fees12m }) : null;
+    const rentOn = cfg ? rentRounds(s.txs, cfg).find((r) => r.month === s.month)?.date : undefined;
+    // Rent shares still owed that are older than three weeks join the "owes you" nudges.
+    const shareOwed = cfg
+      ? rentShareDebts(rentRounds(s.txs, cfg)).map(({ round, mate }) => ({ id: `rent-${round.month}-${mate.id}`, name: mate.name, left: mate.left, since: round.date, note: `${round.month} rent share` }))
+      : [];
 
     return buildActions({
       today: s.today,
@@ -89,10 +107,12 @@ export class ActionsService {
       orders: await this.plan.orderIssues(s),
       rentCredit: { state: states.get('rent') ?? 'TODO', amount: PAYE_YEARS[year]?.rentCredit ?? 1000, year },
       prevRentCredit: { state: states.get('rentPrev') ?? 'TODO', amount: previousRentCredit(s.prefs.tax.tenancy, year), sinceYear: s.prefs.tax.tenancy?.slice(0, 4) ?? '' },
-      owed,
+      owed: [...owed, ...shareOwed],
       pots: potsWithStatus,
       pace,
-      overdrawn: D(s.balance).lt(0) ? { balance: s.balance, fees12m: m2(spent(s.txs, { slug: 'fees', from: addDays(s.today, -365), to: s.today })) } : null,
+      overdrawn: D(s.balance).lt(0) ? { balance: s.balance, fees12m, rentOn: frontOverdraft ? rentOn : undefined } : null,
+      frontOverdraft,
+      shareReminders: shareReminderInputs(s.txs, cfg, s.today),
       doubles: doubleCharges(s.txs, s.today).filter((d) => !dismissed.has(d.id)),
       rises: s.repeating
         .filter((r) => r.rise && !s.cancelled.has(r.id))

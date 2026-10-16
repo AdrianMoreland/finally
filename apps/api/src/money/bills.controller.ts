@@ -1,11 +1,12 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { budgetSuggestions } from '@finally/finance-core';
 import { ZodSerializerDto } from 'nestjs-zod';
-import { BillsDto, CancelRepeatingDto, DismissDto, MonthDto } from '../common/app-dto';
+import { BillsDto, CancelRepeatingDto, CashflowDto, CashflowQueryDto, DismissDto, MonthDto } from '../common/app-dto';
 import { CurrentUser, type AuthUser } from '../common/tokens';
 import { SnapshotService } from '../snapshot/snapshot.service';
 import { BillsService } from './bills.service';
+import { CashflowService } from './cashflow.service';
 import { MonthService } from './month.service';
 
 @ApiTags('money')
@@ -15,6 +16,7 @@ export class MoneyController {
   constructor(
     private readonly bills: BillsService,
     private readonly month: MonthService,
+    private readonly cashflow: CashflowService,
     private readonly snapshot: SnapshotService,
   ) {}
 
@@ -35,6 +37,13 @@ export class MoneyController {
   @ZodSerializerDto(BillsDto)
   dismiss(@CurrentUser() user: AuthUser, @Body() body: DismissDto) {
     return this.bills.dismiss(user.id, body.id);
+  }
+
+  /** What came in and where it went over a period, for the Cash flow chart. Housemates' rent only passes through. */
+  @Get('money/cashflow')
+  @ZodSerializerDto(CashflowDto)
+  getCashflow(@CurrentUser() user: AuthUser, @Query() q: CashflowQueryDto) {
+    return this.cashflow.get(user.id, q.period, q.pass === 'true');
   }
 
   /** Budgets worth starting from: the middle of the last three months, rounded up to the next €5. */

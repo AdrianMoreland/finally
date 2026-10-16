@@ -6,6 +6,9 @@ import {
   askEvaluateBody,
   askResponse,
   billsSchema,
+  cashflowQuery,
+  refillBody,
+  cashflowSchema,
   bonusSchema,
   cancelRepeatingBody,
   chooseMonthBody,
@@ -105,3 +108,7 @@ export class CompleteSetupDto extends createZodDto(completeSetupBody) {}
 
 export class PrefsDto extends createZodDto(userPrefs) {}
 export class PrefsPatchDto extends createZodDto(userPrefsPatch) {}
+
+export class CashflowDto extends createZodDto(cashflowSchema) {}
+export class CashflowQueryDto extends createZodDto(cashflowQuery) {}
+export class RefillDto extends createZodDto(refillBody) {}

@@ -17,6 +17,8 @@ export class OnboardingService {
   private readonly log = new Logger(OnboardingService.name);
   private readonly inflight = new Map<string, Promise<void>>();
   private readonly done = new Set<string>();
+  /** Bumped on reset, so a run that was in flight cannot mark a reset user as onboarded. */
+  private readonly generation = new Map<string, number>();
 
   constructor(
     @InjectDb() private readonly db: Db,
@@ -27,14 +29,27 @@ export class OnboardingService {
     private readonly setup: SetupService,
   ) {}
 
+  /** Forget that this user was onboarded: the next request sets them up again, like someone who just signed up. */
+  reset(userId: string): void {
+    this.generation.set(userId, (this.generation.get(userId) ?? 0) + 1);
+    this.done.delete(userId);
+    this.inflight.delete(userId);
+  }
+
   async ensureOnboarded(userId: string): Promise<void> {
     if (this.done.has(userId)) return;
     let p = this.inflight.get(userId);
     if (!p) {
-      p = this.run(userId).finally(() => {
-        this.inflight.delete(userId);
-        this.done.add(userId);
-      });
+      const gen = this.generation.get(userId) ?? 0;
+      const run: Promise<void> = this.run(userId)
+        .then(() => {
+          // Only a successful run on the current generation counts; a failed one is retried on the next request.
+          if ((this.generation.get(userId) ?? 0) === gen) this.done.add(userId);
+        })
+        .finally(() => {
+          if (this.inflight.get(userId) === run) this.inflight.delete(userId);
+        });
+      p = run;
       this.inflight.set(userId, p);
     }
     await p;

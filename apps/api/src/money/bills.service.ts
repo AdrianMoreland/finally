@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { BillsDto as BillsShape } from '@finally/contracts';
 import { addDays, D, doubleCharges, m2, recentRefunds, returnedDirectDebits, spent, sum } from '@finally/finance-core';
+import { toRentConfig } from '../data/rent-config';
 import { LedgerService } from '../data/ledger.service';
 import { SnapshotService, type Snapshot } from '../snapshot/snapshot.service';
 
@@ -25,8 +26,13 @@ export class BillsService {
     const active = subs.filter((r) => !s.cancelled.has(r.id));
     const monthly = sum(active.map((r) => r.amount));
     const dismissed = new Set(s.prefs.dismissed);
+    const cfg = toRentConfig(s.prefs);
     return {
-      repeating: s.repeating.map((r) => ({ ...r, cancelled: s.cancelled.has(r.id) })),
+      repeating: s.repeating.map((r) => {
+        const front = cfg && r.slug === 'rent';
+        return { ...r, amount: front ? m2(D(r.amount).times(cfg.household)) : r.amount, yours: front ? m2(r.amount) : null, cancelled: s.cancelled.has(r.id) };
+      }),
+      rent: cfg ? { total: m2(cfg.total), own: m2(D(cfg.total).div(cfg.household)), day: cfg.day, names: cfg.flatmates.map((f) => f.name) } : null,
       upcoming: s.upcoming,
       billsBeforePayday: m2(sum(s.upcoming.filter((b) => b.date < s.nextPay).map((b) => b.amount))),
       subscriptions: {

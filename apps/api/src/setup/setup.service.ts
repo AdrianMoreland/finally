@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { Db } from '@finally/db';
 import type { CompleteSetupBody, FoundDto } from '@finally/contracts';
-import { addDays, addMonths, budgetSuggestions, D, dublinDate, m2, median, spent } from '@finally/finance-core';
+import { addDays, addMonths, budgetSuggestions, D, dublinDate, m2, median } from '@finally/finance-core';
 import { BudgetsService } from '../budgets/budgets.service';
 import { parseDateOnly } from '../common/mappers';
 import { InjectDb } from '../common/tokens';
 import { LedgerService } from '../data/ledger.service';
 import { PotsService } from '../pots/pots.service';
+import { toRentConfig } from '../data/rent-config';
 import { SnapshotService, type Snapshot } from '../snapshot/snapshot.service';
 
 /** First-run setup: what Finally found in the history, and applying the answers. */
@@ -38,14 +39,21 @@ export class SetupService {
       cur.count++;
       byMate.set(key, cur);
     }
-    const rentShareNet = median(last3.map((m) => spent(s.txs, { slug: 'rent', from: `${m}-01`, to: `${m}-31` })));
+    const cfg = toRentConfig(s.prefs);
+    const landlord = recentRent.length ? median(recentRent.map((t) => D(t.bankAmount ?? t.amount).neg())) : D(0);
+    // Household size is asked. We only suggest 4 when three distinct payers each send about a quarter.
+    const quarter = landlord.div(4);
+    const quarterPayers = [...byMate.values()].filter((m) => m.count > 0 && m.total.div(m.count).minus(quarter).abs().lte(quarter.times('0.15')));
+    const household = cfg ? cfg.household : quarterPayers.length === 3 ? 4 : 1;
     return {
       salary: s.salary ? { amount: s.salary.amount, day: s.salary.day, count: s.salary.count, lastDate: s.salary.date } : null,
       rent: recentRent.length
         ? {
-            amount: m2(median(recentRent.map((t) => D(t.amount).neg()))),
+            amount: m2(landlord),
             day: Number(recentRent.at(-1)!.date.slice(8)),
-            netAmount: m2(rentShareNet),
+            netAmount: m2(household >= 2 ? landlord.div(household) : landlord),
+            household,
+            own: m2(household >= 2 ? landlord.div(household) : landlord),
             shareCount: shares.length,
           }
         : null,
@@ -106,8 +114,7 @@ export class SetupService {
   }
 
   /**
-   * Demo defaults for the mock bank: budgets from the last three months, the three starting pots, a housemate who
-   * still owes part of a deposit, and a payday that matches the salary credits.
+   * Demo defaults for the mock bank: budgets from the last three months, the three starting pots, and a payday that matches the salary credits.
    */
   async applyDemoDefaults(userId: string): Promise<void> {
     const s = await this.snapshot.get(userId);
@@ -124,24 +131,5 @@ export class SetupService {
     }
     await this.pots.provisionDefaults(userId);
     if (s.salary) await this.db.user.update({ where: { id: userId }, data: { paydayDayOfMonth: 25 } });
-    if ((await this.db.person.count({ where: { userId } })) === 0) {
-      const lastRent = s.txs.filter((t) => t.slug === 'rent' && t.kind === 'SPEND').at(-1)?.date ?? s.today;
-      const month = new Date(`${lastRent}T12:00:00Z`).toLocaleString('en-IE', { month: 'long', timeZone: 'UTC' });
-      await this.db.person.createMany({
-        data: [
-          { userId, name: 'Adila', direction: 'OWED', amount: '614.00', note: `Her share of the ${month} rent`, since: parseDateOnly(lastRent), sortOrder: 0 },
-          {
-            userId,
-            name: 'Adila',
-            direction: 'OWED',
-            amount: '229.00',
-            note: 'The rest of her deposit',
-            since: parseDateOnly('2026-05-11'),
-            remindText: 'Hi Adila, quick one about the deposit: I have €458 from you, and a 4-way share of the €2,748 deposit is €687. Could you send the other €229 when you get a chance? Thanks!',
-            sortOrder: 1,
-          },
-        ],
-      });
-    }
   }
 }

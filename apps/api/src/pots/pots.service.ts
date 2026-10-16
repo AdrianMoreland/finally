@@ -5,6 +5,9 @@ import {
   addDays,
   D,
   Decimal,
+  dublinDate,
+  FIXED_BUDGET_SLUGS,
+  FLEX_BUDGET_SLUGS,
   freedomSim,
   m2,
   moneyLadder,
@@ -18,6 +21,8 @@ import {
 } from '@finally/finance-core';
 import { dateOnly, money, parseDateOnly } from '../common/mappers';
 import { InjectDb } from '../common/tokens';
+import { LedgerService } from '../data/ledger.service';
+import { toRentConfig } from '../data/rent-config';
 import { PeopleService } from '../people/people.service';
 import { SnapshotService, type PotRow, type Snapshot } from '../snapshot/snapshot.service';
 
@@ -30,6 +35,7 @@ export class PotsService {
     @InjectDb() private readonly db: Db,
     private readonly snapshot: SnapshotService,
     private readonly people: PeopleService,
+    private readonly ledger: LedgerService,
   ) {}
 
   core(s: Snapshot, p: PotRow): PotCore {
@@ -61,6 +67,18 @@ export class PotsService {
       age: s.prefs.freedom.age,
       investAccountOpens: '2027-07-01',
     });
+  }
+
+  /** Dates the chart marks: debts cleared, three and six months saved, and the Investment Account opening. */
+  milestoneDates(s: Snapshot): { payoffDate: string | null; threeMonthsDate: string | null; sixMonthsDate: string | null; investAccountOpens: string } {
+    const safety = s.pots.find((p) => p.type === 'SAFETY');
+    const dateOf = (months: number): string | null => {
+      if (!safety) return null;
+      const core = this.core(s, safety);
+      const r = potReach(core, D(s.essentials).times(months), s.cal);
+      return r && 'date' in r ? r.date : null;
+    };
+    return { payoffDate: this.people.payoff(s).freeDate, threeMonthsDate: dateOf(3), sixMonthsDate: dateOf(6), investAccountOpens: '2027-07-01' };
   }
 
   private dto(s: Snapshot, p: PotRow): PotDto {
@@ -122,7 +140,41 @@ export class PotsService {
       essentialsPerMonth: m2(s.essentials),
       total: m2(sum(s.pots.map((p) => this.snapshot.potBalance(p)))),
       linkableAccounts: accounts.map((a) => ({ id: a.id, name: a.name, balance: money(a.balance) })),
+      runway: this.runway(s),
     };
+  }
+
+  private runway(s: Snapshot): PotsShape['runway'] {
+    const rainy = s.pots.find((p) => p.type === 'SAFETY');
+    const cfg = toRentConfig(s.prefs);
+    return {
+      rainyId: rainy?.id ?? null,
+      rainyBalance: rainy ? m2(this.snapshot.potBalance(rainy)) : '0.00',
+      accounts: m2(s.balance),
+      fixedBudget: m2(sum(FIXED_BUDGET_SLUGS.map((k) => s.budgets[k] ?? 0))),
+      flexBudget: m2(sum(FLEX_BUDGET_SLUGS.map((k) => s.budgets[k] ?? 0))),
+      rentOwn: cfg ? m2(D(cfg.total).div(cfg.household)) : null,
+      nextPayday: s.nextPay,
+      refills: s.prefs.refills.filter((r) => r.payday >= s.today).map((r) => ({ potId: r.potId, amount: m2(r.amount), payday: r.payday })),
+    };
+  }
+
+  /** Add an amount to put back on the next payday. The user takes the money out in Revolut themselves. */
+  async refill(userId: string, id: string, amount: string): Promise<PotsShape> {
+    if (D(amount).lte(0)) throw new BadRequestException('A refill must be more than zero');
+    const s = await this.snapshot.get(userId);
+    if (!s.pots.some((p) => p.id === id)) throw new NotFoundException('Pot not found');
+    const keep = s.prefs.refills.filter((r) => !(r.potId === id && r.payday === s.nextPay) && r.payday >= s.today);
+    const prev = s.prefs.refills.find((r) => r.potId === id && r.payday === s.nextPay);
+    const total = D(prev?.amount ?? 0).plus(amount);
+    await this.ledger.setSection(userId, 'refills', [...keep, { potId: id, amount: m2(total), payday: s.nextPay }]);
+    return this.get(userId);
+  }
+
+  async undoRefill(userId: string, id: string): Promise<PotsShape> {
+    const prefs = await this.ledger.prefs(userId);
+    await this.ledger.setSection(userId, 'refills', prefs.refills.filter((r) => r.potId !== id));
+    return this.get(userId);
   }
 
   async create(userId: string, body: CreatePotBody): Promise<PotsShape> {
@@ -172,7 +224,7 @@ export class PotsService {
     const pot = await this.owned(userId, potId);
     if (pot.type !== 'TREAT') throw new BadRequestException('Wishlist items live in a treat pot');
     await this.db.wishlistItem.create({
-      data: { userId, potId, name: body.name.trim(), price: m2(body.price), addedOn: parseDateOnly(new Date().toISOString().slice(0, 10)) },
+      data: { userId, potId, name: body.name.trim(), price: m2(body.price), addedOn: parseDateOnly(dublinDate(new Date())) },
     });
     return this.get(userId);
   }
@@ -180,7 +232,7 @@ export class PotsService {
   async setWishBought(userId: string, id: string, bought: boolean): Promise<PotsShape> {
     const res = await this.db.wishlistItem.updateMany({
       where: { id, userId },
-      data: { boughtOn: bought ? parseDateOnly(new Date().toISOString().slice(0, 10)) : null },
+      data: { boughtOn: bought ? parseDateOnly(dublinDate(new Date())) : null },
     });
     if (res.count === 0) throw new NotFoundException('Wishlist item not found');
     return this.get(userId);

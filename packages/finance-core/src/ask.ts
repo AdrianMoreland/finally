@@ -426,14 +426,15 @@ export function answerSpend(q: ParsedQuery, txs: readonly LedgerTx[], n: SpendNa
   let list = spendList(txs, f);
   r.trend = q.slug || q.merchantKey ? { slug: q.slug ?? null, merchantKey: q.merchantKey ?? null } : null;
   if (q.merchantKey && n.shareMerchants.has(q.merchantKey) && ['sum', 'count', 'list', 'average'].includes(q.intent)) {
-    const got = sum(list.map((t) => t.amount));
+    const paid = txs.filter((t) => t.kind === 'SHARE' && t.merchantKey === q.merchantKey && D(t.amount).gt(0) && t.date >= p.from && t.date <= p.to);
+    const got = sum(paid.map((t) => t.amount));
     const who = n.merchant(q.merchantKey).split(' ·')[0]!;
     r.big = eur(got.toFixed(2));
     r.short = `${who} paid you`;
-    r.text = `${who} paid you ${eur(got.toFixed(2))} towards the rent ${lc(p.label)} (${rng(p.from, p.to)}), in ${list.length} payment${list.length === 1 ? '' : 's'}. Netted against your Rent.`;
+    r.text = `${who} paid you ${eur(got.toFixed(2))} towards the rent ${lc(p.label)} (${rng(p.from, p.to)}), in ${paid.length} payment${paid.length === 1 ? '' : 's'}. It repays rent you fronted, so it isn't income.`;
     r.trend = null;
-    r.count = list.length;
-    r.rows = list.slice(0, 8).map((t) => ({ label: dl(t.date), value: eur(t.amount) }));
+    r.count = paid.length;
+    r.rows = paid.slice(0, 8).map((t) => ({ label: dl(t.date), value: eur(t.amount) }));
     return r;
   }
   const noRent = (q.intent === 'top' || q.intent === 'biggest') && !q.slug && !q.merchantKey;
@@ -471,8 +472,7 @@ export function answerSpend(q: ParsedQuery, txs: readonly LedgerTx[], n: SpendNa
   r.count = list.length;
   hint();
   const refunds = list.filter((t) => t.kind === 'REFUND');
-  const shares = list.filter((t) => t.kind === 'SHARE');
-  const refNote = `${refunds.length ? ` Includes ${eur(sum(refunds.map((t) => t.amount)).toFixed(2))} refunded.` : ''}${shares.length ? ` Net of ${eur(sum(shares.map((t) => t.amount)).toFixed(2))} from housemates.` : ''}`;
+  const refNote = `${refunds.length ? ` Includes ${eur(sum(refunds.map((t) => t.amount)).toFixed(2))} refunded.` : ''}${q.slug === 'rent' ? ' Your rent is your share of what the landlord takes.' : ''}`;
   const head = `${scopeName(q, n)}${qualifier} ${lc(p.label)} (${rng(p.from, p.to)})`;
   if (q.intent === 'count') {
     r.big = `${count} ${count === 1 ? 'time' : 'times'}`;

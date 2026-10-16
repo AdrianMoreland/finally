@@ -18,7 +18,7 @@ try {
     create: {
       email,
       authId: `pending:${email}`,
-      displayName: 'Adrian',
+      displayName: 'Demo',
       paydayDayOfMonth: 25,
     },
   });

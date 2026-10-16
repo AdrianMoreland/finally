@@ -274,3 +274,58 @@ export const priceSeriesSchema = z.object({
 });
 export type PriceSeriesDto = z.infer<typeof priceSeriesSchema>;
 
+
+/* ================================================================ cash flow */
+
+export const cashflowPeriod = z.enum(['sincepay', 'thismonth', 'lastmonth', 'last3', 'ytd', 'last12']);
+export type CashflowPeriod = z.infer<typeof cashflowPeriod>;
+
+export const cashflowQuery = z.object({
+  period: cashflowPeriod.default('lastmonth'),
+  /** Show the rent you fronted passing through, in grey. */
+  pass: z.enum(['true', 'false']).default('false'),
+});
+
+export const cfNodeSchema = z.object({ id: z.string(), name: z.string(), colour: z.string(), v: money, pass: z.boolean().optional() });
+export const cfGroupSchema = cfNodeSchema.extend({ cats: z.array(cfNodeSchema) });
+
+export const cashflowPaymentSchema = z.object({
+  id: z.string(),
+  date: dateOnly,
+  name: z.string(),
+  /** What counts: your share for rent, the fronted part for a FRONT row. */
+  amount: money,
+  /** What left the bank, for the rent row. */
+  bankAmount: money.nullable(),
+  account: z.string(),
+  kind: z.enum(['SPEND', 'INCOME', 'TRANSFER', 'REFUND', 'SHARE', 'FRONT']),
+  category: categoryRef.nullable(),
+  excluded: z.boolean(),
+  pending: z.boolean(),
+  /** Node keys this payment belongs to, so the client only filters. */
+  keys: z.array(z.string()),
+});
+
+export const cashflowSchema = z.object({
+  period: cashflowPeriod,
+  label: z.string(),
+  from: dateOnly,
+  to: dateOnly,
+  income: money,
+  spent: money,
+  saved: money,
+  paidBack: money,
+  fromPots: money,
+  fronted: money,
+  back: money,
+  out: money,
+  inn: money,
+  /** `(income − spent) / income`; null when no pay fell in the period. */
+  kept: z.object({ pct: z.string(), kept: money }).nullable(),
+  sources: z.array(cfNodeSchema),
+  groups: z.array(cfGroupSchema),
+  payments: z.array(cashflowPaymentSchema),
+  /** Rent facts for the copy under the chart. */
+  rent: z.object({ own: money, total: money }).nullable(),
+});
+export type CashflowDto = z.infer<typeof cashflowSchema>;

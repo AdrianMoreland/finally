@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { dateOnly, id, instant, money, moneyInput, monthKey } from './common';
 import { checkState, personDirection, potType, reviewKind } from './enums';
-import { accountSchema, categoryRef, parsedQuerySchema } from './core';
+import { accountSchema, categoryRef, parsedQuerySchema, transactionSchema } from './core';
 
 /* ====================================================================== prefs */
 
@@ -17,10 +17,10 @@ const taxPrefs = z.object({
   /** What-if raise, euro a year. */
   raise: num(3000),
   /** Month the current tenancy started, YYYY-MM. */
-  tenancy: z.string().nullable().catch('2025-05'),
+  tenancy: z.string().nullable().catch(null),
 });
 const bonusPrefs = z.object({
-  target: num(13200),
+  target: num(0),
   pct: num(100),
   year: num(2026),
   pension: num(0),
@@ -50,6 +50,26 @@ const paperPrefs = z.object({
   log: z.array(z.string()).catch([]),
 });
 
+/**
+ * Rent you front: the landlord takes `total` on `day`, `household` people share it, and each flatmate is found by
+ * text matchers on the bank descriptor. Below two people the feature is off.
+ */
+export const rentFlatmate = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().min(1).max(60),
+  matchers: z.array(z.object({ kind: z.literal('text'), value: z.string().min(1).max(80) })).max(8).catch([]),
+  /** Only credits on this account count. */
+  account: z.string().nullable().catch(null).optional(),
+});
+const rentPrefs = z.object({
+  total: z.string().catch('0'),
+  day: z.number().int().min(1).max(28).catch(1),
+  household: z.number().int().min(1).max(12).catch(1),
+  flatmates: z.array(rentFlatmate).max(11).catch([]),
+  overdraftPatterns: z.array(z.string()).catch(['INTEREST CHARGED', 'OVERDRAFT']),
+});
+const tripRange = z.object({ from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) });
+
 function emptyIfMissing(v: unknown): unknown {
   return v && typeof v === 'object' ? v : {};
 }
@@ -68,12 +88,20 @@ export const userPrefs = z.object({
   /** Ids of double-charge warnings the user looked at and dismissed. */
   dismissed: z.array(z.string()).catch([]),
   contractRemind: bool(false),
+  rent: sec(rentPrefs),
+  /** Away months, left out of "your usual pace". */
+  trips: z.array(tripRange).catch([]),
+  /** Money you took out of a pot in Revolut: a one-off extra amount to put back on a payday. */
+  refills: z.array(z.object({ potId: z.string(), amount: z.string(), payday: z.string() })).catch([]),
+  /** Revolut vaults behind pots: a text matcher on the transfers that fill each one. */
+  vaults: z.array(z.object({ potId: z.string(), match: z.string() })).catch([]),
   paper: sec(paperPrefs),
   vault: z.array(z.object({ product: z.string(), qty: z.number(), paid: z.number() })).catch([]),
   /** Phrases the user has taught Ask: normalised text → text it should be read as. */
   learned: z.record(z.string(), z.string()).catch({}),
 });
 export type UserPrefs = z.infer<typeof userPrefs>;
+export type RentPrefs = z.infer<typeof rentPrefs>;
 
 /** Deep partial for updates; the server merges it into what is stored. */
 export const userPrefsPatch = z.record(z.string(), z.unknown());
@@ -108,6 +136,7 @@ export const actionCta = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('go'), label: z.string(), to: z.string() }),
   z.object({ kind: z.literal('check'), label: z.string(), itemId: z.string(), state: z.literal('DONE') }),
   z.object({ kind: z.literal('remind'), label: z.string(), personId: z.string() }),
+  z.object({ kind: z.literal('copy'), label: z.string(), text: z.string() }),
 ]);
 
 export const actionItemSchema = z.object({
@@ -176,7 +205,20 @@ export const createPinBody = z.object({ text: z.string().min(1).max(300) });
 
 /* ===================================================================== today */
 
+export const todayKpisSchema = z.object({
+  payday: z.object({ date: dateOnly, daysAway: z.number().int(), amount: money }),
+  owed: z.object({ total: money, people: z.array(z.object({ name: z.string(), amount: money })) }),
+  runway: z.object({ months: z.string(), saved: money, threeMonths: money }),
+  netWorth: z.object({ value: money, changeSixMonths: money }),
+});
+export const comingUpSchema = z.object({
+  items: z.array(z.object({ date: dateOnly, name: z.string(), amount: money, varies: z.boolean() })),
+  payday: z.object({ date: dateOnly, amount: money }),
+});
+
 export const todaySchema = z.object({
+  kpis: todayKpisSchema,
+  comingUp: comingUpSchema,
   asOf: instant,
   today: dateOnly,
   nextPayday: dateOnly,
@@ -187,7 +229,7 @@ export const todaySchema = z.object({
   week: weekLeftSchema,
   actions: z.array(actionItemSchema),
   snoozed: z.number().int(),
-  since: z.object({ count: z.number().int(), out: money, back: money }),
+  since: z.object({ count: z.number().int(), out: money, back: money, items: z.array(transactionSchema), at: instant.nullable() }),
   ladder: ladderSchema,
   pins: z.array(pinSchema),
   accounts: z.array(accountSchema),
@@ -212,6 +254,10 @@ export const monthSchema = z.object({
     /** Your usual pace: cumulative budget share per day. */
     pace: z.array(z.object({ day: z.number().int(), value: money })),
     forecast: z.array(z.object({ day: z.number().int(), value: money })),
+    /** Last month's cumulative flexible spend per day, for "vs last month". */
+    previous: z.array(z.object({ day: z.number().int(), value: money })),
+    /** Short month name for the comparison label, such as "September". */
+    previousLabel: z.string(),
   }),
   ranked: z.array(z.object({ category: categoryRef, spent: money, budget: money })),
   netWorth: z.object({ current: money, series: z.array(z.object({ month: monthKey, value: money })), changeSixMonths: money }),
@@ -240,6 +286,8 @@ export const repeatingSchema = z.object({
   since: dateOnly,
   usualDay: z.number().int(),
   cancelled: z.boolean(),
+  /** Rent you front: `amount` is what the landlord takes, `yours` your share. Null for everything else. */
+  yours: money.nullable(),
 });
 export const upcomingBillSchema = z.object({ id: z.string(), name: z.string(), date: dateOnly, amount: money, varies: z.boolean(), slug: z.string().nullable() });
 
@@ -247,6 +295,8 @@ export const billsSchema = z.object({
   repeating: z.array(repeatingSchema),
   upcoming: z.array(upcomingBillSchema),
   billsBeforePayday: money,
+  /** Rent facts for the note under the list, when you front rent. */
+  rent: z.object({ total: money, own: money, day: z.number().int(), names: z.array(z.string()) }).nullable(),
   subscriptions: z.object({ monthly: money, yearly: money, savedMonthly: money }),
   doubles: z.array(z.object({ id: z.string(), merchantName: z.string(), date: dateOnly, amount: money, count: z.number().int() })),
   refunds: z.array(z.object({ id, merchantName: z.string(), date: dateOnly, amount: money, category: categoryRef.nullable() })),
@@ -335,6 +385,18 @@ export const potsSchema = z.object({
   essentialsPerMonth: money,
   total: money,
   linkableAccounts: z.array(z.object({ id, name: z.string(), balance: money })),
+  /** "If your pay stopped tomorrow": what the rainy day pot and your accounts hold, against what a month costs. */
+  runway: z.object({
+    rainyId: id.nullable(),
+    rainyBalance: money,
+    accounts: money,
+    fixedBudget: money,
+    flexBudget: money,
+    rentOwn: money.nullable(),
+    nextPayday: dateOnly,
+    /** Refills waiting for the next payday, per pot. */
+    refills: z.array(z.object({ potId: id, amount: money, payday: dateOnly })),
+  }),
 });
 export type PotsDto = z.infer<typeof potsSchema>;
 
@@ -349,6 +411,8 @@ export const createPotBody = z.object({
 });
 export type CreatePotBody = z.infer<typeof createPotBody>;
 export const updatePotBody = createPotBody.partial();
+
+export const refillBody = z.object({ amount: moneyInput });
 
 export const createWishBody = z.object({ name: z.string().min(1).max(80), price: moneyInput });
 export const updateWishBody = z.object({ bought: z.boolean() });
@@ -370,10 +434,37 @@ export const personSchema = z.object({
   paidOffOn: dateOnly.nullable(),
   nextPayment: money.nullable(),
   payments: z.array(z.object({ id, amount: money, paidOn: dateOnly, note: z.string().nullable() })),
+  /** A flatmate's share of the rent, derived from the rent rounds rather than stored. */
+  rentShare: z.boolean(),
 });
 export type PersonDto = z.infer<typeof personSchema>;
 
+export const rentRoundSchema = z.object({
+  date: dateOnly,
+  month: monthKey,
+  from: dateOnly,
+  to: dateOnly,
+  total: money,
+  own: money,
+  fronted: money,
+  back: money,
+  mates: z.array(z.object({ id: z.string(), name: z.string(), got: money, left: money, paid: z.array(dateOnly), late: z.boolean(), back: money })),
+});
+export type RentRoundDto = z.infer<typeof rentRoundSchema>;
+
 export const peopleSchema = z.object({
+  /** Rent you front: the last six rounds and who has paid. Null when rent sharing is not set up. */
+  rent: z
+    .object({
+      total: money,
+      day: z.number().int(),
+      own: money,
+      rounds: z.array(rentRoundSchema),
+      /** Rounds paid on or after rent day, out of the rounds shown, per flatmate. */
+      onTime: z.array(z.object({ id: z.string(), name: z.string(), onTime: z.number().int(), of: z.number().int() })),
+      houseMessage: z.string(),
+    })
+    .nullable(),
   owe: z.array(personSchema),
   owed: z.array(personSchema),
   totalOwe: money,
@@ -532,6 +623,21 @@ export const freedomSchema = z.object({
   probBy55: z.number(),
   myFutureFund: money,
   ladder: ladderSchema,
+  /** Dated milestones on the chart, numbered from 1, then the year the typical path reaches "enough". */
+  milestones: z.array(z.object({ n: z.number().int(), name: z.string(), date: dateOnly.nullable(), at: z.number() })),
+  /** Every five years from now, plus the last: the table under the chart. */
+  table: z.object({
+    years: z.array(z.number().int()),
+    age: z.array(z.number().int()),
+    p50: z.array(z.number()),
+    p10: z.array(z.number()),
+    p90: z.array(z.number()),
+    put: z.array(z.number()),
+    share: z.array(z.number()),
+    enough: z.array(z.boolean()),
+  }),
+  /** Yearly pay the My Future Fund steps are worked from. */
+  gross: z.number(),
 });
 export type FreedomDto = z.infer<typeof freedomSchema>;
 export const updateFreedomBody = freedomPrefs.partial();
@@ -565,7 +671,7 @@ export const addVaultBody = z.object({ product: z.string(), qty: z.number().int(
 
 export const foundSchema = z.object({
   salary: z.object({ amount: money, day: z.number().int(), count: z.number().int(), lastDate: dateOnly }).nullable(),
-  rent: z.object({ amount: money, day: z.number().int(), netAmount: money, shareCount: z.number().int() }).nullable(),
+  rent: z.object({ amount: money, day: z.number().int(), netAmount: money, shareCount: z.number().int(), household: z.number().int(), own: money }).nullable(),
   housemates: z.array(z.object({ name: z.string(), merchantKey: z.string(), total: money, count: z.number().int() })),
   bills: z.array(z.object({ id: z.string(), name: z.string(), amount: money, cadence: z.string(), kind: z.enum(['bill', 'subscription']), usualDay: z.number().int() })),
   ownTransfers: z.number().int(),
