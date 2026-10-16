@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Db } from '@finally/db';
 import type { CreatePersonBody, PeopleDto as PeopleShape, PersonDto as PersonShape } from '@finally/contracts';
-import { D, Decimal, eur0, m2, payoffPlan, sum, type PayoffPlan } from '@finally/finance-core';
+import { D, Decimal, eur0, houseMessage, m2, monthName, payoffPlan, rentRounds, rentShareDebts, shareReminder, sum, type PayoffPlan } from '@finally/finance-core';
 import { dateOnly, money, parseDateOnly } from '../common/mappers';
 import { InjectDb } from '../common/tokens';
 import { LedgerService } from '../data/ledger.service';
+import { toRentConfig } from '../data/rent-config';
 import { SnapshotService, type PersonRow, type Snapshot } from '../snapshot/snapshot.service';
 
 @Injectable()
@@ -27,9 +28,43 @@ export class PeopleService {
     return payoffPlan(debts, String(pb.monthly), pb.order, pb.custom, s.cal, extra);
   }
 
+  /** Rent rounds worth showing: the last six, newest first. */
+  rent(s: Snapshot): ReturnType<typeof rentRounds> {
+    return rentRounds(s.txs, toRentConfig(s.prefs)).slice(0, 6);
+  }
+
+  /** Flatmates' shares for the latest round and any earlier one still unpaid, as "owed to you" rows. */
+  private rentRows(s: Snapshot): PersonShape[] {
+    const cfg = toRentConfig(s.prefs);
+    if (!cfg) return [];
+    const rounds = this.rent(s);
+    const owed = new Set(rentShareDebts(rounds).map((x) => `${x.round.date}:${x.mate.id}`));
+    return rounds.flatMap((r, i) =>
+      r.mates
+        .filter((m) => (i === 0 && D(m.left).lte(0)) || owed.has(`${r.date}:${m.id}`))
+        .map((m): PersonShape => ({
+          id: `rent-${r.month}-${m.id}`,
+          name: m.name,
+          direction: 'OWED',
+          amount: r.own,
+          paid: m.back,
+          left: m.left,
+          note: `${monthName(r.month)} rent share`,
+          since: r.date,
+          merchantKey: null,
+          remindText: shareReminder({ name: m.name, monthName: monthName(r.month), total: r.total, day: Number(r.date.slice(8)), got: m.got, own: r.own, left: m.left }),
+          paidOffOn: D(m.left).lte(0) ? (m.paid[m.paid.length - 1] ?? null) : null,
+          nextPayment: null,
+          payments: [],
+          rentShare: true,
+        })),
+    );
+  }
+
   totals(s: Snapshot): { owe: Decimal; owed: Decimal } {
     const part = (dir: 'OWE' | 'OWED'): Decimal => sum(s.people.filter((p) => p.direction === dir).map((p) => this.left(s, p)));
-    return { owe: part('OWE'), owed: part('OWED') };
+    const share = sum(this.rentRows(s).map((r) => r.left));
+    return { owe: part('OWE'), owed: part('OWED').plus(share) };
   }
 
   private remind(p: PersonRow, left: Decimal): string {
@@ -55,6 +90,7 @@ export class PeopleService {
       paidOffOn: plan.done[p.id] ?? null,
       nextPayment: plan.first[p.id] ?? null,
       payments: p.payments.map((x) => ({ id: x.id, amount: money(x.amount), paidOn: dateOnly(x.paidOn), note: x.note })),
+      rentShare: false,
     };
   }
 
@@ -67,9 +103,26 @@ export class PeopleService {
     const plan = this.payoff(s);
     const t = this.totals(s);
     const pb = s.prefs.payback;
+    const cfg = toRentConfig(s.prefs);
+    const rounds = this.rent(s);
     return {
+      rent: cfg
+        ? {
+            total: m2(cfg.total),
+            day: cfg.day,
+            own: m2(D(cfg.total).div(cfg.household)),
+            rounds,
+            onTime: cfg.flatmates.map((f) => ({
+              id: f.id,
+              name: f.name,
+              onTime: rounds.filter((r) => r.mates.find((m) => m.id === f.id)?.late).length,
+              of: rounds.length,
+            })),
+            houseMessage: houseMessage(cfg),
+          }
+        : null,
       owe: s.people.filter((p) => p.direction === 'OWE').map((p) => this.dto(s, p, plan)),
-      owed: s.people.filter((p) => p.direction === 'OWED').map((p) => this.dto(s, p, plan)),
+      owed: [...s.people.filter((p) => p.direction === 'OWED').map((p) => this.dto(s, p, plan)), ...this.rentRows(s)],
       totalOwe: m2(t.owe),
       totalOwed: m2(t.owed),
       plan: {

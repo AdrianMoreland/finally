@@ -42,12 +42,12 @@ export class PlanService {
   async orders(s: Snapshot): Promise<OrderWithArrival[]> {
     const set = new Map((await this.db.standingOrder.findMany({ where: { userId: s.userId } })).map((o) => [o.key, o.amount.toString()]));
     const rows: Array<Omit<OrderWithArrival, 'state' | 'arrived'>> = s.pots
-      .filter((p) => D(p.monthly.toString()).gt(0))
+      .filter((p) => D(p.monthly.toString()).gt(0) || s.prefs.refills.some((r) => r.potId === p.id && r.payday === s.nextPay))
       .map((p) => ({
         key: p.id,
         name: p.name,
         to: p.account ? `${p.account.name}` : `Revolut · ${p.name} vault`,
-        amount: m2(p.monthly.toString()),
+        amount: m2(D(p.monthly.toString()).plus(sum(s.prefs.refills.filter((r) => r.potId === p.id && r.payday === s.nextPay).map((r) => r.amount)))),
         set: set.get(p.id) ? m2(set.get(p.id)!) : null,
         color: POT_COLOUR[p.type],
       }));

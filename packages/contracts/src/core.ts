@@ -208,6 +208,16 @@ export const transactionSchema = z.object({
   excluded: z.boolean(),
   tags: z.array(z.string()),
   flag: z.string().nullable(),
+  /** Rent payments only: your share is `amountEur`; the bank line was `total`. */
+  rentSplit: z
+    .object({
+      total: money,
+      own: money,
+      fronted: money,
+      shares: z.array(z.object({ id: z.string(), name: z.string(), got: money, left: money, paid: z.array(dateOnly) })),
+    })
+    .nullable()
+    .optional(),
 });
 export type TransactionDto = z.infer<typeof transactionSchema>;
 
@@ -223,6 +233,8 @@ export const listTransactionsQuery = pageQuery.extend({
   q: z.string().max(100).optional(),
   status: txStatus.optional(),
   excluded: z.enum(['true', 'false']).optional(),
+  /** The rent payment and housemates' shares back. */
+  fronted: z.enum(['true', 'false']).optional(),
 });
 export type ListTransactionsQuery = z.infer<typeof listTransactionsQuery>;
 

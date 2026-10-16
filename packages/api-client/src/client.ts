@@ -17,6 +17,8 @@ import {
   potsSchema,
   taxSchema,
   todaySchema,
+  cashflowSchema,
+  type CashflowPeriod,
   userPrefs,
   vaultSchema,
   weeklyReviewSchema,
@@ -196,6 +198,7 @@ export class FinallyApi {
 
   /* today, ask, month */
   today = () => this.call(todaySchema, 'GET', '/today');
+  cashflow = (period: CashflowPeriod, pass: boolean) => this.call(cashflowSchema, 'GET', '/money/cashflow', { query: { period, pass: String(pass) } });
   snooze = (actionId: string) => this.call(okResponse, 'POST', '/today/snooze', { body: { actionId } });
   unsnoozeAll = () => this.call(okResponse, 'DELETE', '/today/snooze');
   ask = (text: string, previous?: ParsedQueryDto | null) => this.call(askResponse, 'POST', '/ask', { body: { text, previous: previous ?? null } });
@@ -230,6 +233,8 @@ export class FinallyApi {
   addWish = (potId: string, body: { name: string; price: string }) => this.call(potsSchema, 'POST', `/pots/${potId}/wishlist`, { body });
   setWishBought = (id: string, bought: boolean) => this.call(potsSchema, 'PATCH', `/pots/wishlist/${id}`, { body: { bought } });
   removeWish = (id: string) => this.call(potsSchema, 'DELETE', `/pots/wishlist/${id}`);
+  refillPot = (id: string, amount: string) => this.call(potsSchema, 'POST', `/pots/${id}/refill`, { body: { amount } });
+  undoRefill = (id: string) => this.call(potsSchema, 'DELETE', `/pots/${id}/refill`);
   people = () => this.call(peopleSchema, 'GET', '/people');
   createPerson = (body: Partial<CreatePersonBody> & Pick<CreatePersonBody, 'name' | 'direction' | 'amount'>) => this.call(peopleSchema, 'POST', '/people', { body });
   updatePerson = (id: string, body: Partial<CreatePersonBody>) => this.call(peopleSchema, 'PATCH', `/people/${id}`, { body });

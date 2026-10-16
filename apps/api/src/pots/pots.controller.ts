@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ZodSerializerDto } from 'nestjs-zod';
-import { CreatePotDto, CreateWishDto, PotsDto, UpdatePotDto, UpdateWishDto } from '../common/app-dto';
+import { CreatePotDto, CreateWishDto, PotsDto, RefillDto, UpdatePotDto, UpdateWishDto } from '../common/app-dto';
 import { CurrentUser, type AuthUser } from '../common/tokens';
 import { PotsService } from './pots.service';
 
@@ -33,6 +33,22 @@ export class PotsController {
   @ZodSerializerDto(PotsDto)
   remove(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.pots.remove(user.id, id);
+  }
+
+  /**
+   * You took money out of a pot in Revolut (Finally cannot move money). This records an extra amount to put back on
+   * your next payday, which the payday plan then shows on that pot's standing order.
+   */
+  @Post(':id/refill')
+  @ZodSerializerDto(PotsDto)
+  refill(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: RefillDto) {
+    return this.pots.refill(user.id, id, body.amount);
+  }
+
+  @Delete(':id/refill')
+  @ZodSerializerDto(PotsDto)
+  undoRefill(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.pots.undoRefill(user.id, id);
   }
 
   @Post(':id/wishlist')

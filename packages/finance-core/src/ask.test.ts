@@ -10,7 +10,7 @@ const ctx: AskContext = {
   merchants: [
     { key: 'tesco', name: 'Tesco', aliases: ['tesco'] },
     { key: 'freenow', name: 'FreeNow', aliases: ['freenow', 'free now'] },
-    { key: 'victor', name: 'Housemate · Victor', aliases: ['victor'], share: true },
+    { key: 'zed', name: 'Housemate · Zed', aliases: ['zed'], share: true },
   ],
   categories: [],
   people: [{ id: 'dan', name: 'Dan' }],
@@ -94,7 +94,7 @@ describe('previousPeriod', () => {
   });
 });
 
-const names = { category: (s: string) => s, merchant: (k: string) => (k === 'victor' ? 'Housemate · Victor' : k), shareMerchants: new Set(['victor']) };
+const names = { category: (s: string) => s, merchant: (k: string) => (k === 'zed' ? 'Housemate · Zed' : k), shareMerchants: new Set(['zed']) };
 const none = (): string[] => [];
 
 describe('answerSpend', () => {
@@ -103,7 +103,7 @@ describe('answerSpend', () => {
     tx({ date: '2026-10-09', amount: '-6.00', slug: 'coffee', merchantKey: 'nero', merchantName: 'Nero' }),
     tx({ date: '2026-09-09', amount: '-3.00', slug: 'coffee', merchantKey: 'nero', merchantName: 'Nero' }),
     tx({ date: '2026-10-08', amount: '-2500', slug: 'rent', merchantKey: 'rent', merchantName: 'Rent' }),
-    tx({ date: '2026-10-06', amount: '614', kind: 'SHARE', slug: 'rent', merchantKey: 'victor', merchantName: 'Housemate · Victor' }),
+    tx({ date: '2026-10-06', amount: '614', kind: 'SHARE', slug: 'rent', merchantKey: 'zed', merchantName: 'Housemate · Zed' }),
   ];
 
   it('totals a category for a period and counts payments', () => {
@@ -127,8 +127,10 @@ describe('answerSpend', () => {
     expect(a.rows?.map((r) => r.label)).toEqual(['coffee']);
   });
 
-  it('nets a housemate share against rent', () => {
-    expect(answerSpend(q('how much has Victor paid me this month'), txs, names, none).big).toBe('€614.00');
+  it('answers what a housemate paid from their shares, never as income', () => {
+    const a = answerSpend(q('how much has Zed paid me this month'), txs, names, none);
+    expect(a.big).toBe('€614.00');
+    expect(a.text).toContain("isn't income");
   });
 
   it('hints at unsorted payments that could change the answer', () => {

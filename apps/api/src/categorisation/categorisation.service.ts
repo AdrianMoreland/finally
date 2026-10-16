@@ -4,6 +4,8 @@ import type { Db } from '@finally/db';
 import {
   applyRules,
   eur,
+  matchShare,
+  rentEnabled,
   suggestAskGroup,
   type CoreRule,
   type KnownMerchant,
@@ -11,6 +13,7 @@ import {
 import {
   ASK_GROUP_BUTTONS,
   askCategoryId,
+  resolvePrefs,
   type AnswerCategoriseBody,
   type AskGroup,
   type CategoriseQueueResponse,
@@ -19,6 +22,7 @@ import {
 import { ENV, type Env } from '../common/env';
 import { iso, isoOrNull, money } from '../common/mappers';
 import { InjectDb } from '../common/tokens';
+import { toRentConfig } from '../data/rent-config';
 import { JobsService } from '../jobs/jobs.service';
 import { PushService } from '../notifications/push.service';
 import { AiSuggestService } from './ai-suggest.service';
@@ -70,11 +74,53 @@ export class CategorisationService implements OnModuleInit {
 
   /* ------------------------------------------------------ categorisation */
 
+  private async rentConfig(userId: string) {
+    const u = await this.db.user.findUniqueOrThrow({ where: { id: userId }, select: { prefs: true } });
+    return toRentConfig(resolvePrefs(u.prefs));
+  }
+
+  /**
+   * Credits from the people who share your rent are rent shares: they repay what you fronted, so they are never
+   * income and never netted against Rent. Matching is by the text matchers in your rent settings, and it re-runs
+   * whenever those change. With no rent settings the older rule applies (a credit in the Rent category).
+   */
+  async reclassifyShares(userId: string): Promise<number> {
+    const cfg = await this.rentConfig(userId);
+    if (!rentEnabled(cfg)) return 0;
+    const rent = await this.db.category.findFirst({ where: { userId, slug: 'rent' }, select: { id: true } });
+    const since = new Date(Date.now() - 460 * 86_400_000);
+    const rows = await this.db.transaction.findMany({
+      where: { userId, amountEur: { gt: 0 }, kind: { in: ['INCOME', 'REFUND', 'SHARE'] }, bookingDate: { gte: since } },
+      select: { id: true, kind: true, accountId: true, rawDescriptor: true, amountEur: true, categoryId: true, flag: true },
+    });
+    const share: string[] = [];
+    const unshare: string[] = [];
+    for (const r of rows) {
+      const hit = matchShare({ amount: r.amountEur.toString(), rawDescriptor: r.rawDescriptor, accountId: r.accountId }, cfg) !== null;
+      if ((hit || (r.categoryId === rent?.id && !r.flag)) && r.kind !== 'SHARE') share.push(r.id);
+      // A credit in the Rent category that matches nobody is still a housemate's money, not a refund: keep it a share.
+      else if (!hit && r.kind === 'SHARE' && r.categoryId !== rent?.id) unshare.push(r.id);
+    }
+    const ops = [];
+    if (share.length) {
+      ops.push(
+        this.db.transaction.updateMany({
+          where: { id: { in: share }, userId },
+          data: { kind: 'SHARE', needsReview: false, ...(rent ? { categoryId: rent.id, categorisedBy: 'RULE' as const } : {}) },
+        }),
+      );
+    }
+    if (unshare.length) ops.push(this.db.transaction.updateMany({ where: { id: { in: unshare }, userId }, data: { kind: 'REFUND' } }));
+    if (ops.length) await this.db.$transaction(ops);
+    return share.length + unshare.length;
+  }
+
   /**
    * Apply rules to every uncategorised payment. Unknown merchants are flagged `needsReview` and get one OPEN
    * request per merchantKey (later payments attach to the same request).
    */
   async categoriseUser(userId: string): Promise<{ categorised: number; flagged: number; requests: number }> {
+    await this.reclassifyShares(userId);
     const [categories, ruleRows] = await Promise.all([
       this.db.category.findMany({ where: { userId } }),
       this.db.merchantRule.findMany({ where: { userId, active: true } }),
@@ -101,7 +147,7 @@ export class CategorisationService implements OnModuleInit {
     const unmatched = new Map<string, typeof pending>();
     const incomeId = bySlug.get('income')?.id;
     const catById = new Map(categories.map((c) => [c.id, c]));
-    /** Money coming in takes its kind from the category it lands in: a housemate's rent share nets against Rent. */
+    /** Money coming in takes its kind from the category it lands in. With rent settings, housemates are matched separately. */
     const kindOf = (categoryId: string, current: Kind): Kind => {
       const c = catById.get(categoryId);
       if (!c) return current;
@@ -280,15 +326,17 @@ export class CategorisationService implements OnModuleInit {
     });
     await this.db.merchant.update({ where: { id: merchant.id }, data: { defaultCategoryId: categoryId } });
     const res = await this.db.transaction.updateMany({
-      where: { userId, merchantId: merchant.id, kind: { in: ['SPEND', 'REFUND', 'SHARE'] } },
+      where: { userId, merchantId: merchant.id, kind: { in: ['SPEND', 'REFUND'] } },
       data: { categoryId, categorisedBy: 'RULE', needsReview: false },
     });
     // Money coming back from this merchant now belongs to the new category too: refunds and rent shares net against it.
     if (category.group !== 'INCOME' && category.group !== 'TRANSFER') {
+      const rentOn = rentEnabled(await this.rentConfig(userId));
       await this.db.transaction.updateMany({
         where: { userId, merchantId: merchant.id, kind: { in: ['REFUND', 'SHARE'] } },
         data: { kind: category.slug === 'rent' ? 'SHARE' : 'REFUND' },
       });
+      if (rentOn) await this.reclassifyShares(userId);
     }
     await this.closeRequestsFor(userId, merchant.merchantKey);
     return { updatedCount: res.count };

@@ -20,22 +20,22 @@ describe('PAYE 2026 on €40,000', () => {
 
 describe('bonus', () => {
   it('nets a full bonus after tax, USC and PRSI', () => {
-    const b = bonusCalc({ salary: 40000, target: 13200, pct: 100, year: 2026, pension: 0 });
-    expect(Math.round(b.gross)).toBe(13200);
+    const b = bonusCalc({ salary: 40000, target: 12000, pct: 100, year: 2026, pension: 0 });
+    expect(Math.round(b.gross)).toBe(12000);
     expect(b.netWithoutPension).toBeLessThan(b.gross * 0.6);
-    expect(b.aboveBand).toBe(9200);
+    expect(b.aboveBand).toBe(8000);
   });
 
   it('gives pension relief at the top rate, capped at 20% of pay', () => {
-    const none = bonusCalc({ salary: 40000, target: 13200, pct: 100, year: 2026, pension: 0 });
-    const some = bonusCalc({ salary: 40000, target: 13200, pct: 100, year: 2026, pension: 5000 });
+    const none = bonusCalc({ salary: 40000, target: 12000, pct: 100, year: 2026, pension: 0 });
+    const some = bonusCalc({ salary: 40000, target: 12000, pct: 100, year: 2026, pension: 5000 });
     expect(some.taxWith).toBeLessThan(none.taxWithout);
-    expect(bonusCalc({ salary: 40000, target: 13200, pct: 100, year: 2026, pension: 99999 }).pension).toBeLessThanOrEqual(some.cap);
+    expect(bonusCalc({ salary: 40000, target: 12000, pct: 100, year: 2026, pension: 99999 }).pension).toBeLessThanOrEqual(some.cap);
   });
 
   it('shows the size of the bet at 0, 50 and 100%', () => {
-    expect(bonusScenarios(40000, 13200, 2026).map((s) => s.pct)).toEqual([0, 50, 100]);
-    expect(bonusScenarios(40000, 13200, 2026)[0]!.net).toBe(0);
+    expect(bonusScenarios(40000, 12000, 2026).map((s) => s.pct)).toEqual([0, 50, 100]);
+    expect(bonusScenarios(40000, 12000, 2026)[0]!.net).toBe(0);
   });
 });
 

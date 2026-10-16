@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import type { Db } from '@finally/db';
 import { resolvePrefs, type UserPrefs } from '@finally/contracts';
-import { D, dublinDate, sum, type LedgerTx } from '@finally/finance-core';
+import { D, dublinDate, expandRentSplits, sum, type LedgerTx } from '@finally/finance-core';
 import { InjectDb } from '../common/tokens';
+import { toRentConfig } from './rent-config';
 
 /** Plain objects merge recursively; arrays and scalars replace. */
 function merge(base: unknown, patch: unknown): unknown {
@@ -19,7 +20,12 @@ function merge(base: unknown, patch: unknown): unknown {
 export class LedgerService {
   constructor(@InjectDb() private readonly db: Db) {}
 
-  async txs(userId: string, from: string, to: string): Promise<LedgerTx[]> {
+  /**
+   * Payments in a Dublin-date range. A rent payment you front is expanded here, once, into your share (what every
+   * screen counts as Rent) and a virtual FRONT row, so budgets, safe to spend, Month, Ask and Cash flow all agree.
+   */
+  async txs(userId: string, from: string, to: string, prefs?: UserPrefs): Promise<LedgerTx[]> {
+    const cfg = toRentConfig(prefs ?? (await this.prefs(userId)));
     const rows = await this.db.transaction.findMany({
       where: {
         userId,
@@ -32,7 +38,7 @@ export class LedgerService {
       },
       orderBy: [{ bookingDate: 'asc' }, { id: 'asc' }],
     });
-    return rows
+    const plain = rows
       .map((t): LedgerTx => ({
         id: t.id,
         date: dublinDate(t.bookingDate),
@@ -51,6 +57,7 @@ export class LedgerService {
         note: t.note,
       }))
       .filter((t) => t.date >= from && t.date <= to);
+    return expandRentSplits(plain, cfg);
   }
 
   /** What the accounts that fund day-to-day spending hold: current accounts counted in net worth. */

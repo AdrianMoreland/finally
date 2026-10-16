@@ -19,10 +19,12 @@ import {
   paydaysUntil,
   spent,
   sum,
+  tripMonths,
   takeHome,
   upcomingBills,
   type Decimal,
   type LedgerTx,
+  type PaceOpts,
   type PayCalendar,
   type Repeating,
   type SafeResult,
@@ -68,6 +70,8 @@ export interface Snapshot {
   salary: ReturnType<typeof findSalary>;
   /** What lands each payday. */
   netPay: Decimal;
+  /** Learn "your usual pace" from ordinary months only: trip months are left out. */
+  pace: PaceOpts;
 }
 
 const HISTORY_MONTHS = 14;
@@ -85,11 +89,12 @@ export class SnapshotService {
   async get(userId: string, now = new Date()): Promise<Snapshot> {
     const today = dublinDate(now);
     const month = monthOf(today);
+    const prefsLoad = this.ledger.prefs(userId);
     const [user, prefs, cats, txs, budgetData, accounts, pots, people] = await Promise.all([
       this.db.user.findUniqueOrThrow({ where: { id: userId } }),
-      this.ledger.prefs(userId),
+      prefsLoad,
       this.data.categories(userId),
-      this.ledger.txs(userId, `${addMonths(month, -HISTORY_MONTHS)}-01`, today),
+      prefsLoad.then((p) => this.ledger.txs(userId, `${addMonths(month, -HISTORY_MONTHS)}-01`, today, p)),
       this.budgetsService.rows(userId, month, now),
       this.db.account.findMany({ where: { userId } }),
       this.db.pot.findMany({ where: { userId, archived: false }, orderBy: { sortOrder: 'asc' }, include: { account: { select: { id: true, name: true, balance: true } } } }),
@@ -137,6 +142,7 @@ export class SnapshotService {
       essentials,
       salary,
       netPay,
+      pace: { tripMonths: tripMonths(prefs.trips) },
     };
   }
 

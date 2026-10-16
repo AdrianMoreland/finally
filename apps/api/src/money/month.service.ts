@@ -12,6 +12,7 @@ import {
   eur0,
   FIXED_BUDGET_SLUGS,
   FLEX_BUDGET_SLUGS,
+  rentRounds,
   flexPaceShare,
   incomeIn,
   m2,
@@ -23,6 +24,7 @@ import {
   sum,
   type Decimal,
 } from '@finally/finance-core';
+import { toRentConfig } from '../data/rent-config';
 import { SnapshotService, type Snapshot } from '../snapshot/snapshot.service';
 
 @Injectable()
@@ -49,12 +51,12 @@ export class MonthService {
         .plus(spent(s.txs, { unsorted: true, from: date, to: date }));
       spentSeries.push({ day: d, value: m2(cum) });
     }
-    const shareNow = flexPaceShare(s.txs, s.budgets, day, s.today);
+    const shareNow = flexPaceShare(s.txs, s.budgets, day, s.today, s.pace);
     const projected = shareNow > 0.05 ? cum.div(shareNow) : cum.div(day).times(dim);
     const pace: Array<{ day: number; value: string }> = [];
     const forecast: Array<{ day: number; value: string }> = [];
     for (let d = 1; d <= dim; d++) {
-      const share = flexPaceShare(s.txs, s.budgets, d, s.today);
+      const share = flexPaceShare(s.txs, s.budgets, d, s.today, s.pace);
       pace.push({ day: d, value: m2(budget.times(share)) });
       if (d >= day) forecast.push({ day: d, value: m2(cum.plus(projected.minus(cum).times(share - shareNow).div(Math.max(0.0001, 1 - shareNow)))) });
     }
@@ -83,11 +85,24 @@ export class MonthService {
     const withToday = [...series.slice(0, -1), { month: s.month, value: m2(today) }];
     void months;
 
+    // Last month, day by day, for "vs last month".
+    const prevMonth = addMonths(s.month, -1);
+    const prevDim = daysInMonth(prevMonth);
+    const previous: Array<{ day: number; value: string }> = [];
+    let pcum = D(0);
+    for (let d = 1; d <= prevDim; d++) {
+      const date = `${prevMonth}-${String(d).padStart(2, '0')}`;
+      pcum = pcum
+        .plus(sum(FLEX_BUDGET_SLUGS.map((k) => spent(s.txs, { slug: k, from: date, to: date }))))
+        .plus(spent(s.txs, { unsorted: true, from: date, to: date }));
+      previous.push({ day: d, value: m2(pcum) });
+    }
+
     return {
       month: s.month,
       day,
       daysInMonth: dim,
-      burn: { budget: m2(budget), projected: m2(projected), spent: spentSeries, pace, forecast },
+      burn: { budget: m2(budget), projected: m2(projected), spent: spentSeries, pace, forecast, previous, previousLabel: MONTH_NAMES[Number(prevMonth.slice(5)) - 1]! },
       ranked,
       netWorth: {
         current: m2(today),
@@ -106,7 +121,7 @@ export class MonthService {
     if (coffee.gt(0)) {
       out.push({
         title: `Coffee: ${money(coffee)} so far this month`,
-        body: `About ${eur0(projectedSpend(s.txs, 'coffee', coffee, s.today).times(12).toFixed(2))} a year at your usual pace.`,
+        body: `About ${eur0(projectedSpend(s.txs, 'coffee', coffee, s.today, s.pace).times(12).toFixed(2))} a year at your usual pace.`,
       });
     }
     const prev = addMonths(s.month, -1);
@@ -122,13 +137,16 @@ export class MonthService {
           : { title: `${prevName}: you spent ${eur0(out2.minus(inc).toFixed(2))} more than came in`, body: `${eur0(out2.toFixed(2))} of spending, your rent share included, against ${eur0(inc.toFixed(2))} in.` },
       );
     }
-    const shares = s.txs.filter((t) => t.kind === 'SHARE' && D(t.amount).gt(0) && t.date >= monthFrom);
-    const rentOut = sum(s.txs.filter((t) => t.slug === 'rent' && t.kind === 'SPEND' && t.date >= monthFrom).map((t) => D(t.amount).neg()));
-    if (rentOut.gt(0)) {
-      const who = [...new Set(shares.map((t) => t.merchantName.split(' ·')[0]))].join(' and ');
+    const cfg = toRentConfig(s.prefs);
+    const round = cfg ? rentRounds(s.txs, cfg).find((r) => r.month === s.month) : undefined;
+    const dShort = (d: string): string => `${Number(d.slice(8))} ${MONTH_NAMES[Number(d.slice(5, 7)) - 1]!.slice(0, 3)}`;
+    if (round) {
+      const who = round.mates.map((m) =>
+        D(m.left).lte(0) ? `${m.name} paid on ${dShort(m.paid[m.paid.length - 1]!)}` : D(m.got).gt(0) ? `${m.name} has sent ${eur0(m.got)} of ${eur0(round.own)}` : `${m.name} has not paid yet`,
+      );
       out.push({
-        title: `${eur0(rentOut.toFixed(2))} rent went out this month`,
-        body: `${money(sum(shares.map((t) => t.amount)))} has come back from ${who || 'housemates'}.`,
+        title: `Rent: your share is ${eur0(round.own)}`,
+        body: `${eur0(round.total)} left AIB on ${dShort(round.date)}. ${who.join('; ')}. None of it counts as income.`,
       });
     }
     const rv = s.txs.filter((t) => t.kind === 'TRANSFER' && D(t.amount).lt(0) && diffDays(t.date, s.today) <= 92);

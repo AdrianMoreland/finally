@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import type { Db } from '@finally/db';
-import { FIXED_CATEGORY_SLUGS } from '@finally/contracts';
-import { D, dublinDate, type CoreCategory, type CoreTx, type Decimal } from '@finally/finance-core';
+import { FIXED_CATEGORY_SLUGS, resolvePrefs } from '@finally/contracts';
+import { D, dublinDate, m2, type CoreCategory, type CoreTx, type Decimal } from '@finally/finance-core';
 import { InjectDb } from '../common/tokens';
+import { toRentConfig } from './rent-config';
 
 export interface CategoryInfo extends CoreCategory {
   colour: string;
@@ -43,12 +44,22 @@ export class FinanceDataService {
       include: { merchant: { select: { merchantKey: true, displayName: true } } },
       orderBy: { bookingDate: 'asc' },
     });
+    // Rent you front counts as your share only (the same rule as the ledger).
+    const user = await this.db.user.findUniqueOrThrow({ where: { id: userId }, select: { prefs: true } });
+    const cfg = toRentConfig(resolvePrefs(user.prefs));
+    const rentCat = cfg ? await this.db.category.findFirst({ where: { userId, slug: 'rent' }, select: { id: true } }) : null;
+    const total = D(cfg?.total || 0);
+    const ownShare = (t: (typeof rows)[number]): string => {
+      const amt = D(t.amountEur.toString());
+      const isRent = cfg && rentCat && t.kind === 'SPEND' && t.categoryId === rentCat.id && amt.lt(0) && (total.lte(0) || amt.abs().minus(total).abs().lte(1));
+      return isRent ? m2(amt.div(cfg.household)) : t.amountEur.toString();
+    };
     return rows
       .map((t) => ({
         id: t.id,
         accountId: t.accountId,
         date: dublinDate(t.bookingDate),
-        amountEur: t.amountEur.toString(),
+        amountEur: ownShare(t),
         kind: t.kind,
         categoryId: t.categoryId,
         merchantKey: t.merchant?.merchantKey ?? null,
@@ -59,7 +70,7 @@ export class FinanceDataService {
   }
 
   /**
-   * Net spend per category for transactions in `[from, to]`: SPEND minus REFUND and housemates' SHAREs; payments marked excluded are left out. Children roll up into their
+   * Net spend per category for transactions in `[from, to]`: SPEND minus REFUND (housemates' SHAREs repay fronted rent and are not spending); payments marked excluded are left out. Children roll up into their
    * parent when `rollUp` is set. Transfers and income are excluded.
    */
   spendByCategory(txs: readonly CoreTx[], categories: readonly CoreCategory[], rollUp: boolean): Map<string, Decimal> {
@@ -67,7 +78,7 @@ export class FinanceDataService {
     const out = new Map<string, Decimal>();
     for (const t of txs) {
       if (!t.categoryId) continue;
-      if (t.kind !== 'SPEND' && t.kind !== 'REFUND' && t.kind !== 'SHARE') continue;
+      if (t.kind !== 'SPEND' && t.kind !== 'REFUND') continue;
       if (t.excluded) continue;
       const spend = D(t.amountEur).neg(); // negative amount = money out = positive spend; refunds net down
       const keys = [t.categoryId];

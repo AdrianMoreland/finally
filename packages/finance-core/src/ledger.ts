@@ -7,12 +7,15 @@ import { addMonths, dayOfMonth, daysInMonth, monthOf } from './dates';
  * A payment as the Today, Money and Plan maths see it: Dublin date, signed EUR amount, and the category slug together
  * with its parent's slug so "Taxi" counts towards "Transport".
  */
+/** `FRONT` is the part of a rent payment you fronted for others: a virtual row, never stored. */
+export type LedgerKind = TxKind | 'FRONT';
+
 export interface LedgerTx {
   id: string;
   date: string;
   /** Signed EUR, negative = money out. */
   amount: string;
-  kind: TxKind;
+  kind: LedgerKind;
   accountId: string;
   /** AIB or REVOLUT, so questions can say "on AIB". */
   institution: string;
@@ -26,6 +29,10 @@ export interface LedgerTx {
   /** bounced | returned (a direct debit that failed, and the credit that undid it). */
   flag: string | null;
   note: string | null;
+  /** Rent rows only: what actually left the bank (your share is `amount`). */
+  bankAmount?: string;
+  /** FRONT rows only: the id of the rent payment this was split from. */
+  frontOf?: string;
 }
 
 /** The ten budget lines, in display order. Everything else rolls up into one of them through its parent. */
@@ -49,8 +56,14 @@ export const FLEX_BUDGET_SLUGS: readonly BudgetSlug[] = BUDGET_SLUGS.filter((s) 
 
 export const isFixedSlug = (slug: string): boolean => (FIXED_BUDGET_SLUGS as readonly string[]).includes(slug);
 
-/** Roommates' rent shares and refunds net against the category they came from, so they count with spending. */
-export const isSpendish = (t: Pick<LedgerTx, 'kind'>): boolean => t.kind === 'SPEND' || t.kind === 'REFUND' || t.kind === 'SHARE';
+/** Housemates' shares repay what you fronted, so like transfers they are neither spending nor income. */
+export const isSpendish = (t: Pick<LedgerTx, 'kind'>): boolean => t.kind === 'SPEND' || t.kind === 'REFUND';
+
+/**
+ * Travel is planned in pots, so it is a root category with no budget line: it never counts towards the flexible
+ * allowance (`FLEX_BUDGET_SLUGS` does not include it) and `other` only covers health, cash and the rest.
+ */
+export const NON_BUDGET_SLUGS: readonly string[] = ['travel'];
 
 /** The budget line a payment belongs to (its parent when it has one). */
 export const rootSlug = (t: Pick<LedgerTx, 'slug' | 'parentSlug'>): string | null => t.parentSlug ?? t.slug;
@@ -107,17 +120,35 @@ export const up5 = (n: Decimal | number): number => Math.max(5, Math.ceil(D(n).d
 
 /* ------------------------------------------------------------------ pace */
 
+export interface PaceOpts {
+  /** How many full months to average. */
+  history?: number;
+  /** Months to skip (trips): the usual pace is learned from ordinary months only. */
+  tripMonths?: ReadonlySet<string>;
+}
+
+/** The last `history` full months before `today`'s month that are not trip months, oldest first. */
+export function paceMonths(today: string, opts: PaceOpts = {}): string[] {
+  const history = opts.history ?? 4;
+  const month = monthOf(today);
+  const out: string[] = [];
+  for (let k = 1; k <= 24 && out.length < history; k++) {
+    const m = addMonths(month, -k);
+    if (!opts.tripMonths?.has(m)) out.unshift(m);
+  }
+  return out;
+}
+
 /**
- * How much of a category's month you have usually spent by `day`: the average over previous full months of
+ * How much of a category's month you have usually spent by `day`: the average over previous full non-trip months of
  * (spent by that day) / (spent that month). Falls back to an even pace when there is no history.
  */
-export function paceShare(txs: readonly LedgerTx[], slug: string, day: number, today: string, history = 4): number {
-  const month = monthOf(today);
-  const dim = daysInMonth(month);
+export function paceShare(txs: readonly LedgerTx[], slug: string, day: number, today: string, opts: PaceOpts | number = {}): number {
+  const o: PaceOpts = typeof opts === 'number' ? { history: opts } : opts;
+  const dim = daysInMonth(monthOf(today));
   let acc = 0;
   let n = 0;
-  for (let k = history; k >= 1; k--) {
-    const m = addMonths(month, -k);
+  for (const m of paceMonths(today, o)) {
     const list = spendList(txs, { slug, from: `${m}-01`, to: `${m}-31` });
     const total = sum(list.map((t) => D(t.amount).neg()));
     if (total.lte(0)) continue;
@@ -129,10 +160,10 @@ export function paceShare(txs: readonly LedgerTx[], slug: string, day: number, t
 }
 
 /** Where a category is heading by month end, using your own spending curve rather than an even pace. */
-export function projectedSpend(txs: readonly LedgerTx[], slug: string, spentSoFar: Decimal, today: string): Decimal {
+export function projectedSpend(txs: readonly LedgerTx[], slug: string, spentSoFar: Decimal, today: string, opts: PaceOpts = {}): Decimal {
   const day = dayOfMonth(today);
   const dim = daysInMonth(monthOf(today));
-  const share = paceShare(txs, slug, day, today);
+  const share = paceShare(txs, slug, day, today, opts);
   return share > 0.05 ? spentSoFar.div(share) : spentSoFar.div(day).times(dim);
 }
 
@@ -142,10 +173,11 @@ export function flexPaceShare(
   budgets: Readonly<Record<string, string>>,
   day: number,
   today: string,
+  opts: PaceOpts = {},
 ): number {
   const total = sum(FLEX_BUDGET_SLUGS.map((s) => budgets[s] ?? 0));
   if (total.isZero()) return day / daysInMonth(monthOf(today));
-  const used = sum(FLEX_BUDGET_SLUGS.map((s) => D(budgets[s] ?? 0).times(paceShare(txs, s, day, today))));
+  const used = sum(FLEX_BUDGET_SLUGS.map((s) => D(budgets[s] ?? 0).times(paceShare(txs, s, day, today, opts))));
   return used.div(total).toNumber();
 }
 

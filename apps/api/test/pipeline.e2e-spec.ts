@@ -296,4 +296,65 @@ describe('Finally pipeline (e2e)', () => {
     const hashes = await db.transaction.groupBy({ by: ['dedupeHash'], where: { userId: user.id }, _count: true, having: { dedupeHash: { _count: { gt: 1 } } } });
     expect(hashes).toHaveLength(0);
   });
+  it('rent you front: shows your share, never counts housemates as income, and the Sankey balances', async () => {
+    const debit = await db.transaction.findFirstOrThrow({
+      where: { userId: user.id, kind: 'SPEND', amountEur: { lt: -1000 }, category: { slug: 'rent' } },
+      orderBy: { bookingDate: 'desc' },
+    });
+    const total = debit.amountEur.abs().toFixed(2);
+    const credits = await db.transaction.findMany({
+      where: { userId: user.id, amountEur: { gt: 0 }, category: { slug: 'rent' } },
+      select: { rawDescriptor: true },
+      distinct: ['rawDescriptor'],
+    });
+    const flatmates = credits.map((c, i) => ({ id: `m${i}`, name: `Flatmate ${i + 1}`, matchers: [{ kind: 'text', value: c.rawDescriptor }] }));
+    await http().patch('/me/prefs').send({ rent: { total, day: 8, household: 4, flatmates } }).expect(200);
+    const own = (Number(total) / 4).toFixed(2);
+
+    // one row, your quarter, with the split attached
+    const row = (await http().get(`/transactions/${debit.id}`).expect(200)).body;
+    expect(row.amountEur).toBe(`-${own}`);
+    expect(row.rentSplit).toMatchObject({ total, own });
+
+    // housemates' credits are shares, never income
+    const incomeRows = await db.transaction.count({ where: { userId: user.id, kind: 'INCOME', rawDescriptor: { contains: 'RENT SHARE' } } });
+    expect(incomeRows).toBe(0);
+
+    // cash flow: income is pay only, rent counts as your quarter, and the chart balances
+    const cf = (await http().get('/money/cashflow?period=last12&pass=false').expect(200)).body;
+    const dbIncome = await db.transaction.aggregate({
+      _sum: { amountEur: true },
+      where: { userId: user.id, kind: 'INCOME', bookingDate: { gte: new Date(`${cf.from}T00:00:00Z`), lte: new Date(`${cf.to}T23:59:59Z`) } },
+    });
+    expect(Number(cf.income)).toBeCloseTo(Number(dbIncome._sum.amountEur ?? 0), 2);
+    const sources = cf.sources.reduce((a: number, x: { v: string }) => a + Number(x.v), 0);
+    const groups = cf.groups.reduce((a: number, x: { v: string }) => a + Number(x.v), 0);
+    expect(sources).toBeCloseTo(groups, 1);
+    const home = cf.groups.find((g: { id: string }) => g.id === 'home');
+    const rentNode = home.cats.find((c: { id: string }) => c.id === 'rent');
+    expect(Number(rentNode.v)).toBeLessThanOrEqual(Number(own) * 12 + 1);
+
+    // pass-through adds a grey band and changes no totals
+    const withPass = (await http().get('/money/cashflow?period=last12&pass=true').expect(200)).body;
+    expect(withPass.sources.at(-1).pass).toBe(true);
+    expect(withPass.out).toBe(cf.out);
+    expect(withPass.income).toBe(cf.income);
+
+    // Today carries the new pieces
+    const today = (await http().get('/today').expect(200)).body;
+    expect(today.kpis.payday.date).toBe(today.nextPayday);
+    expect(today.comingUp.payday.date).toBe(today.nextPayday);
+  });
+  it('deleting all data starts again like a new sign-up, with no rent settings', async () => {
+    await http().delete('/me/data').send({ confirm: 'DELETE' }).expect(200);
+    expect((await http().get('/me').expect(200)).body.setupDone).toBe(false);
+    expect((await http().get('/transactions?limit=1').expect(200)).body.total).toBe(0);
+    // the next request after a wipe re-links the demo account, as for someone who just signed up
+    await app.get(OnboardingService).ensureOnboarded(user.id);
+    expect((await http().get('/accounts').expect(200)).body).toHaveLength(1);
+    expect((await http().get('/me').expect(200)).body.setupDone).toBe(false);
+    const prefs = (await http().get('/me/prefs').expect(200)).body;
+    expect(prefs.rent.household).toBe(1);
+    expect((await http().get('/people').expect(200)).body.owed).toHaveLength(0);
+  });
 });

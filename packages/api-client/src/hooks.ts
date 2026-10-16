@@ -7,6 +7,7 @@ import {
   type QueryClient,
 } from '@tanstack/react-query';
 import type {
+  CashflowPeriod,
   AnswerCategoriseBody,
   CheckState,
   CompleteSetupBody,
@@ -62,7 +63,7 @@ export const keys = {
 /** Everything that derives from payments or categories needs a refresh after these change. */
 export function invalidateMoney(qc: QueryClient): Promise<unknown> {
   return Promise.all(
-    ['overview', 'today', 'month', 'bills', 'pots', 'people', 'payday', 'pins', 'review', 'transactions', 'queue', 'budgets', 'insights', 'accounts', 'investments', 'recurring', 'rules'].map((k) =>
+    ['overview', 'today', 'cashflow', 'month', 'bills', 'pots', 'people', 'payday', 'pins', 'review', 'transactions', 'queue', 'budgets', 'insights', 'accounts', 'investments', 'recurring', 'rules'].map((k) =>
       qc.invalidateQueries({ queryKey: [k] }),
     ),
   );
@@ -245,6 +246,11 @@ export const useUnsnoozeAll = () => {
   return useMutation({ mutationFn: api.unsnoozeAll, onSuccess: done });
 };
 
+export const useCashflow = (period: CashflowPeriod, pass: boolean) => {
+  const api = useApi();
+  return useQuery({ queryKey: ['cashflow', period, pass] as const, queryFn: () => api.cashflow(period, pass), staleTime: 30_000 });
+};
+
 export const useMonth = () => {
   const api = useApi();
   return useQuery({ queryKey: keys.month, queryFn: api.month, staleTime: 30_000 });
@@ -396,6 +402,8 @@ export const usePotMutations = () => {
     addWish: useMutation({ mutationFn: (v: { potId: string; name: string; price: string }) => api.addWish(v.potId, { name: v.name, price: v.price }), onSuccess: set }),
     setBought: useMutation({ mutationFn: (v: { id: string; bought: boolean }) => api.setWishBought(v.id, v.bought), onSuccess: set }),
     removeWish: useMutation({ mutationFn: (id: string) => api.removeWish(id), onSuccess: set }),
+    refill: useMutation({ mutationFn: (v: { id: string; amount: string }) => api.refillPot(v.id, v.amount), onSuccess: set }),
+    undoRefill: useMutation({ mutationFn: (id: string) => api.undoRefill(id), onSuccess: set }),
   };
 };
 
@@ -549,7 +557,7 @@ export const usePatchPrefs = () => {
     mutationFn: (b: Record<string, unknown>) => api.patchPrefs(b),
     onSuccess: (d) => {
       qc.setQueryData(keys.prefs, d);
-      void qc.invalidateQueries({ queryKey: keys.today });
+      void invalidateMoney(qc);
     },
   });
 };

@@ -4,6 +4,8 @@ import type { Response } from 'express';
 import { ZodSerializerDto } from 'nestjs-zod';
 import { PrefsDto, PrefsPatchDto } from '../common/app-dto';
 import { DeleteAllDataDto, ExportQueryDto, MeDto, OkDto, UpdateMeDto } from '../common/dto';
+import { OnboardingService } from '../auth/onboarding.service';
+import { CategorisationService } from '../categorisation/categorisation.service';
 import { LedgerService } from '../data/ledger.service';
 import { CurrentUser, type AuthUser } from '../common/tokens';
 import { MeService } from './me.service';
@@ -15,6 +17,8 @@ export class MeController {
   constructor(
     private readonly me: MeService,
     private readonly ledger: LedgerService,
+    private readonly categorisation: CategorisationService,
+    private readonly onboarding: OnboardingService,
   ) {}
 
   @Get()
@@ -38,8 +42,12 @@ export class MeController {
 
   @Patch('prefs')
   @ZodSerializerDto(PrefsDto)
-  patchPrefs(@CurrentUser() user: AuthUser, @Body() body: PrefsPatchDto) {
-    return this.ledger.patchPrefs(user.id, body);
+  async patchPrefs(@CurrentUser() user: AuthUser, @Body() body: PrefsPatchDto) {
+    const next = await this.ledger.patchPrefs(user.id, body);
+    // Rent settings decide which credits are housemates' shares, so re-sort when they change.
+    // The settings are saved either way; if re-sorting fails it runs again with the next sync.
+    if ('rent' in body) await this.categorisation.reclassifyShares(user.id).catch(() => undefined);
+    return next;
   }
 
   /** Download all data as JSON or the transactions as CSV. */
@@ -63,6 +71,8 @@ export class MeController {
   @ZodSerializerDto(OkDto)
   async deleteAll(@CurrentUser() user: AuthUser, @Body() _body: DeleteAllDataDto) {
     await this.me.deleteAllData(user.id);
+    // Start again as a brand-new user: with the mock bank, the next request re-links the demo account.
+    this.onboarding.reset(user.id);
     return { ok: true as const };
   }
 }

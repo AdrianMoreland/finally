@@ -27,7 +27,7 @@ export const SEED_CATEGORIES: SeedCategory[] = [
   { slug: 'bars', name: 'Bars & pubs', group: 'LIFESTYLE', askGroup: 'FUN', icon: 'beer', colour: '#B98A1C', parent: 'fun' },
   { slug: 'other', name: 'Everything else', group: 'LIFESTYLE', askGroup: 'OTHER', icon: 'ellipsis', colour: '#8A9790' },
   { slug: 'health', name: 'Health', group: 'ESSENTIALS', askGroup: 'BILLS', icon: 'heart-pulse', colour: '#8A9790', parent: 'other' },
-  { slug: 'travel', name: 'Travel', group: 'LIFESTYLE', askGroup: 'FUN', icon: 'plane', colour: '#8A9790', parent: 'other' },
+  { slug: 'travel', name: 'Travel', group: 'LIFESTYLE', askGroup: 'FUN', icon: 'plane', colour: '#4CB7D9' },
   { slug: 'cash', name: 'Cash', group: 'LIFESTYLE', askGroup: 'OTHER', icon: 'banknote', colour: '#8A9790', parent: 'other' },
   { slug: 'fees', name: 'Bank fees', group: 'ESSENTIALS', askGroup: 'BILLS', icon: 'landmark', colour: '#7A62D6', parent: 'bills' },
   { slug: 'gifts', name: 'Gifts', group: 'LIFESTYLE', askGroup: 'SHOPPING', icon: 'gift', colour: '#D4508A', parent: 'shopping' },
