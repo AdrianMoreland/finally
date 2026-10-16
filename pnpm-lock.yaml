@@ -160,6 +160,9 @@ importers:
       '@finally/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@finally/finance-core':
+        specifier: workspace:*
+        version: link:../../packages/finance-core
       '@finally/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens

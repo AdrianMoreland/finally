@@ -24,6 +24,14 @@ export function CategoryTag({ tx }: { tx: Pick<TransactionDto, 'category' | 'kin
   );
 }
 
+/** Second line of a row: rent and its repayments say what they are; everything else shows the bank's own text. */
+function subLine(tx: TransactionDto): string {
+  if (tx.rentSplit) return `Rent · your share of ${eur(tx.rentSplit.total)}`;
+  if (tx.kind === 'SHARE') return 'Rent share back · not income';
+  if (tx.kind === 'TRANSFER') return 'Between your accounts';
+  return `${shortDate(tx.bookingDate)} · ${tx.rawDescriptor}`;
+}
+
 export function PaymentRow({ tx, onPress, first }: { tx: TransactionDto; onPress?: () => void; first?: boolean }): ReactNode {
   const amount = Number(tx.amountEur);
   return (
@@ -36,8 +44,8 @@ export function PaymentRow({ tx, onPress, first }: { tx: TransactionDto; onPress
         <Text variant="semi" numberOfLines={1}>
           {tx.merchant?.displayName ?? tx.rawDescriptor}
         </Text>
-        <Text variant="mono" numberOfLines={1} className="mt-0.5">
-          {shortDate(tx.bookingDate)} · {tx.rawDescriptor}
+        <Text variant={tx.rentSplit || tx.kind === 'SHARE' || tx.kind === 'TRANSFER' ? 'small' : 'mono'} numberOfLines={1} className="mt-0.5">
+          {subLine(tx)}
         </Text>
       </View>
       <View className="items-end gap-[3px]">

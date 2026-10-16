@@ -94,7 +94,7 @@ function ReadAs({ turn, response }: { turn: AskTurn; response: AskResponse }): R
 function ChipSelect({ label, value, options, onChange }: { label: string; value: string; options: Array<[string, string]>; onChange: (v: string) => void }): ReactNode {
   return (
     <Select value={value || '__none'} onValueChange={(v) => onChange(v === '__none' ? '' : v)}>
-      <SelectTrigger size="sm" aria-label={label} className="h-7 w-auto gap-1.5 rounded-[3px] border-rule bg-raised px-2.5 text-[12.5px] font-semibold">
+      <SelectTrigger size="sm" aria-label={label} className="h-7 w-auto gap-1.5 rounded-control border-rule bg-raised px-2.5 text-[12.5px] font-semibold">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -207,7 +207,7 @@ function Answer({ turn }: { turn: AskTurn }): ReactNode {
 function SuggestionChip({ text }: { text: string }): ReactNode {
   const { submit } = useAskPanel();
   return (
-    <button type="button" onClick={() => submit(text)} className="rounded-[3px] border border-rule bg-raised px-3 py-1 text-[12.5px] font-medium text-ink-2 hover:border-brand hover:text-brand">
+    <button type="button" onClick={() => submit(text)} className="rounded-control border border-rule bg-raised px-3 py-1 text-[12.5px] font-medium text-ink-2 hover:border-brand hover:text-brand">
       {text}
     </button>
   );

@@ -10,12 +10,17 @@ import { cn } from '@/lib/cn';
 
 const FILTERS = [
   { key: 'all', label: 'All' },
+  { key: 'pending', label: 'Pending' },
   { key: 'sort', label: 'To sort' },
-  { key: 'SPEND', label: 'Spending' },
-  { key: 'INCOME', label: 'Income' },
+  { key: 'excluded', label: 'Left out' },
 ] as const;
 
 export default function Activity(): ReactNode {
+  return <ActivityList />;
+}
+
+/** Every payment, grouped by day. `top` replaces the title block (Money puts its chips there). */
+export function ActivityList({ top }: { top?: ReactNode }): ReactNode {
   const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['key']>('all');
   const [q, setQ] = useState('');
@@ -26,7 +31,8 @@ export default function Activity(): ReactNode {
       limit: 40,
       q: q.trim() || undefined,
       needsReview: filter === 'sort' ? ('true' as const) : undefined,
-      kind: filter === 'SPEND' || filter === 'INCOME' ? filter : undefined,
+      status: filter === 'pending' ? ('PENDING' as const) : undefined,
+      excluded: filter === 'excluded' ? ('true' as const) : undefined,
     }),
     [filter, q],
   );
@@ -36,10 +42,21 @@ export default function Activity(): ReactNode {
   return (
     <View className="flex-1 bg-paper" style={{ paddingTop: insets.top + 12 }}>
       <View className="px-[18px]">
-        <Text variant="eyebrow">Every payment</Text>
-        <Text variant="title" className="mb-3 mt-1">
-          Activity
-        </Text>
+        {top ? (
+          <>
+            <Text variant="title" className="mb-3">
+              Money
+            </Text>
+            {top}
+          </>
+        ) : (
+          <>
+            <Text variant="eyebrow">Every payment</Text>
+            <Text variant="title" className="mb-3 mt-1">
+              Activity
+            </Text>
+          </>
+        )}
         <TextInput
           value={q}
           onChangeText={setQ}

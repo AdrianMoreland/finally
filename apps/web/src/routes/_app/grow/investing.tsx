@@ -130,9 +130,9 @@ function Drift({ d }: { d: InvestingPlanDto }): ReactNode {
         <>
           {d.drift.map((x) => (
             <div key={x.key} className="grid grid-cols-[130px_minmax(0,1fr)_72px] items-center gap-3 py-1.5 text-[13px]">
-              <span className="flex items-center gap-2"><i className="size-2.5 rounded-[3px]" style={{ background: `var(${MIX[x.key]?.colour ?? '--ink-3'})` }} />{x.label}</span>
-              <span className="relative h-2.5 rounded-[3px] bg-raised">
-                <i className="absolute inset-y-0 left-0 rounded-[3px]" style={{ width: `${Math.min(100, x.actual)}%`, background: `var(${MIX[x.key]?.colour ?? '--ink-3'})` }} />
+              <span className="flex items-center gap-2"><i className="size-2.5 rounded-[2px]" style={{ background: `var(${MIX[x.key]?.colour ?? '--ink-3'})` }} />{x.label}</span>
+              <span className="relative h-2.5 rounded-full bg-raised">
+                <i className="absolute inset-y-0 left-0 rounded-control" style={{ width: `${Math.min(100, x.actual)}%`, background: `var(${MIX[x.key]?.colour ?? '--ink-3'})` }} />
                 <b className="absolute -bottom-[3px] -top-[3px] w-0.5 bg-ink opacity-70" style={{ left: `${x.target}%` }} />
               </span>
               <span className={cn('num text-right', Math.abs(x.diff) >= 5 ? 'font-semibold text-warn' : 'text-ink-3')}>{x.diff >= 0 ? '+' : '−'}{Math.abs(x.diff).toFixed(0)} pts</span>
@@ -174,7 +174,7 @@ function Wrapper({ d }: { d: InvestingPlanDto }): ReactNode {
           {sims.map((s) => (
             <div key={s.name}>
               <div className="flex items-baseline justify-between"><b>{s.name}</b><b className="num">{eur0(s.value)}</b></div>
-              <div className="my-1.5 h-2.5 overflow-hidden rounded-[3px] bg-raised"><i className="block h-full rounded-[3px]" style={{ width: `${(s.value / best) * 100}%`, background: `var(${s.colour})` }} /></div>
+              <div className="my-1.5 h-2.5 overflow-hidden rounded-full bg-raised"><i className="block h-full rounded-full" style={{ width: `${(s.value / best) * 100}%`, background: `var(${s.colour})` }} /></div>
               <div className="text-[12px] text-ink-3">{s.note}</div>
             </div>
           ))}

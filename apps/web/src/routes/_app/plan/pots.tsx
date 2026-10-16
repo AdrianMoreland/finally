@@ -1,4 +1,5 @@
 import { eur, eur0, shortDate, usePotMutations, usePots } from '@finally/api-client';
+import { runwayMonths } from '@finally/finance-core';
 import type { PotDto, PotsDto } from '@finally/contracts';
 import { createFileRoute } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
@@ -53,8 +54,11 @@ function PotCard({ pot, onEdit, onMonthly }: { pot: PotDto; onEdit: () => void; 
     <Panel className={SPAN[6]}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2"><i className="size-2.5 rounded-[3px]" style={{ background: `var(${t.colour})` }} /><h3 className="text-[16px] font-semibold">{pot.name}</h3></div>
-          <div className="mt-0.5 text-[12px] text-ink-3">{t.label}{pot.linkedAccountName ? ` · linked to ${pot.linkedAccountName}` : ''}</div>
+          <div className="flex items-center gap-2"><i className="size-2.5 rounded-[2px]" style={{ background: `var(${t.colour})` }} /><h3 className="text-[16px] font-semibold">{pot.name}</h3></div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-ink-3">
+            <Chip>{t.label}</Chip>
+            {pot.linkedAccountName ? <Chip>Revolut vault · {pot.linkedAccountName}</Chip> : <Chip>Revolut vault</Chip>}
+          </div>
         </div>
         <Button variant="ghost" size="sm" onClick={onEdit}>Edit</Button>
       </div>
@@ -199,6 +203,91 @@ function Wishlist({ data }: { data: PotsDto }): ReactNode {
   );
 }
 
+/** "If your pay stopped tomorrow" and the checks before dipping into the rainy-day pot. */
+function RainyExtras({ data }: { data: PotsDto }): ReactNode {
+  const r = data.runway;
+  const { refill, undoRefill } = usePotMutations();
+  const [cut, setCut] = useState(30);
+  if (!r.rainyId) return null;
+  const pool = Number(r.rainyBalance) + Number(r.accounts);
+  const { months, need } = runwayMonths({ pool: pool.toFixed(2), fixedBudget: r.fixedBudget, flexBudget: r.flexBudget, cutPct: cut });
+  const pending = r.refills.find((x) => x.potId === r.rainyId);
+  const take = 150;
+  const rainyId = r.rainyId;
+  return (
+    <>
+      <Panel className={SPAN[7]}>
+        <PanelTitle>If your pay stopped tomorrow</PanelTitle>
+        <label className="grid gap-1.5 text-[13px]">
+          <span className="flex justify-between"><span>Cut flexible spending by</span><b className="num">{cut}%</b></span>
+          <input
+            type="range"
+            min={0}
+            max={80}
+            step={5}
+            value={cut}
+            onChange={(e) => setCut(Number(e.target.value))}
+            style={{ '--p': `${(cut / 80) * 100}%`, '--tone': 'var(--pink)' } as React.CSSProperties}
+            aria-label="Cut flexible spending by"
+          />
+        </label>
+        <div className="num mt-3.5 font-display text-[36px] font-medium leading-none">
+          {months}
+          <small className="ml-1.5 text-[16px] font-medium text-ink-2">months</small>
+        </div>
+        <p className="mt-1.5 text-[13px] text-ink-2">
+          Rainy day plus your accounts ({eur(pool)}) at {eur0(need)} a month, with flexible spending cut by {cut}%.
+          {r.rentOwn ? ` Rent stays at your share, ${eur0(r.rentOwn)}, while the people you live with keep paying theirs.` : ''} Jobseeker&apos;s Benefit would come on top.
+        </p>
+      </Panel>
+      <Panel className={SPAN[5]}>
+        <PanelTitle>Before you take money out of Rainy day</PanelTitle>
+        <ol className="grid gap-2.5">
+          {(
+            [
+              ['Is it unexpected?', 'Christmas and trips home belong in their own pots.'],
+              ['Is it necessary?', 'Rent, health, getting to work, a phone you need.'],
+              ['Is it urgent?', `Could it wait until payday on ${shortDate(r.nextPayday)}?`],
+            ] as const
+          ).map(([q, a], i) => (
+            <li key={q} className="grid grid-cols-[24px_minmax(0,1fr)] items-start gap-2.5 text-[13.5px]">
+              <span className="grid size-6 place-items-center rounded-full border border-ink-3 text-[11px] font-bold text-ink-2">{i + 1}</span>
+              <span>
+                {q}
+                <small className="block text-[12px] text-ink-3">{a}</small>
+              </span>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-3">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={Number(r.rainyBalance) < take || refill.isPending}
+            onClick={() =>
+              refill.mutate(
+                { id: rainyId, amount: take.toFixed(2) },
+                {
+                  onSuccess: () =>
+                    toast(`Took ${eur0(take)} from Rainy day. A ${eur0(take)} refill is added to your next payday.`, {
+                      description: 'Finally cannot move money: take it out in Revolut yourself.',
+                      action: { label: 'Undo', onClick: () => undoRefill.mutate(rainyId) },
+                    }),
+                },
+              )
+            }
+          >
+            Take out {eur0(take)} for an emergency
+          </Button>
+        </div>
+        <p className="mt-2 border-t border-dashed border-rule pt-2 text-[12px] text-ink-3">
+          {pending ? `${eur0(pending.amount)} taken out. A refill of the same is added to your next payday.` : 'After a withdrawal, Finally adds a refill to your next payday.'}
+        </p>
+      </Panel>
+    </>
+  );
+}
+
 function PotsPage() {
   const { data, error, refetch } = usePots();
   const { update } = usePotMutations();
@@ -218,6 +307,7 @@ function PotsPage() {
         {data.pots.map((p) => (
           <PotCard key={p.id} pot={p} onEdit={() => setEditing(p)} onMonthly={(v) => update.mutate({ id: p.id, monthly: v.toFixed(2) })} />
         ))}
+        <RainyExtras data={data} />
         <Wishlist data={data} />
       </div>
       {editing ? <PotForm initial={editing === 'new' ? null : editing} vaults={data.linkableAccounts} onClose={() => setEditing(null)} /> : null}

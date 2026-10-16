@@ -35,7 +35,7 @@ export default function TabsLayout(): ReactNode {
             title: t.title,
             tabBarIcon: ({ color }) => <Icon name={t.icon} color={String(color)} />,
             ...(t.name === 'money' && waiting > 0
-              ? { tabBarBadge: waiting, tabBarBadgeStyle: { backgroundColor: '#FF6EAA', color: '#240610', fontFamily: 'Figtree_600SemiBold', fontSize: 10 } }
+              ? { tabBarBadge: waiting, tabBarBadgeStyle: { backgroundColor: p.marker, color: p.markerInk, fontFamily: 'Figtree_600SemiBold', fontSize: 10 } }
               : {}),
           }}
         />

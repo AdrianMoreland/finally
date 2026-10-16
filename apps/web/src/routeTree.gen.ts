@@ -22,6 +22,7 @@ import { Route as AppGrowToolsRouteImport } from './routes/_app/grow/tools'
 import { Route as AppMoneyIndexRouteImport } from './routes/_app/money/index'
 import { Route as AppMoneyBillsRouteImport } from './routes/_app/money/bills'
 import { Route as AppMoneyBudgetsRouteImport } from './routes/_app/money/budgets'
+import { Route as AppMoneyCashflowRouteImport } from './routes/_app/money/cashflow'
 import { Route as AppMoneyMonthRouteImport } from './routes/_app/money/month'
 import { Route as AppMoneyPaymentsRouteImport } from './routes/_app/money/payments'
 import { Route as AppMoneyReviewRouteImport } from './routes/_app/money/review'
@@ -97,6 +98,11 @@ const AppMoneyBudgetsRoute = AppMoneyBudgetsRouteImport.update({
   path: '/money/budgets',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMoneyCashflowRoute = AppMoneyCashflowRouteImport.update({
+  id: '/money/cashflow',
+  path: '/money/cashflow',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMoneyMonthRoute = AppMoneyMonthRouteImport.update({
   id: '/money/month',
   path: '/money/month',
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/grow/tools': typeof AppGrowToolsRoute
   '/money/bills': typeof AppMoneyBillsRoute
   '/money/budgets': typeof AppMoneyBudgetsRoute
+  '/money/cashflow': typeof AppMoneyCashflowRoute
   '/money/month': typeof AppMoneyMonthRoute
   '/money/payments': typeof AppMoneyPaymentsRoute
   '/money/review': typeof AppMoneyReviewRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/grow/tools': typeof AppGrowToolsRoute
   '/money/bills': typeof AppMoneyBillsRoute
   '/money/budgets': typeof AppMoneyBudgetsRoute
+  '/money/cashflow': typeof AppMoneyCashflowRoute
   '/money/month': typeof AppMoneyMonthRoute
   '/money/payments': typeof AppMoneyPaymentsRoute
   '/money/review': typeof AppMoneyReviewRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/_app/grow/tools': typeof AppGrowToolsRoute
   '/_app/money/bills': typeof AppMoneyBillsRoute
   '/_app/money/budgets': typeof AppMoneyBudgetsRoute
+  '/_app/money/cashflow': typeof AppMoneyCashflowRoute
   '/_app/money/month': typeof AppMoneyMonthRoute
   '/_app/money/payments': typeof AppMoneyPaymentsRoute
   '/_app/money/review': typeof AppMoneyReviewRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/grow/tools'
     | '/money/bills'
     | '/money/budgets'
+    | '/money/cashflow'
     | '/money/month'
     | '/money/payments'
     | '/money/review'
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/grow/tools'
     | '/money/bills'
     | '/money/budgets'
+    | '/money/cashflow'
     | '/money/month'
     | '/money/payments'
     | '/money/review'
@@ -284,6 +295,7 @@ export interface FileRouteTypes {
     | '/_app/grow/tools'
     | '/_app/money/bills'
     | '/_app/money/budgets'
+    | '/_app/money/cashflow'
     | '/_app/money/month'
     | '/_app/money/payments'
     | '/_app/money/review'
@@ -397,6 +409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMoneyBudgetsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/money/cashflow': {
+      id: '/_app/money/cashflow'
+      path: '/money/cashflow'
+      fullPath: '/money/cashflow'
+      preLoaderRoute: typeof AppMoneyCashflowRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/money/month': {
       id: '/_app/money/month'
       path: '/money/month'
@@ -479,6 +498,7 @@ interface AppRouteChildren {
   AppGrowToolsRoute: typeof AppGrowToolsRoute
   AppMoneyBillsRoute: typeof AppMoneyBillsRoute
   AppMoneyBudgetsRoute: typeof AppMoneyBudgetsRoute
+  AppMoneyCashflowRoute: typeof AppMoneyCashflowRoute
   AppMoneyMonthRoute: typeof AppMoneyMonthRoute
   AppMoneyPaymentsRoute: typeof AppMoneyPaymentsRoute
   AppMoneyReviewRoute: typeof AppMoneyReviewRoute
@@ -502,6 +522,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGrowToolsRoute: AppGrowToolsRoute,
   AppMoneyBillsRoute: AppMoneyBillsRoute,
   AppMoneyBudgetsRoute: AppMoneyBudgetsRoute,
+  AppMoneyCashflowRoute: AppMoneyCashflowRoute,
   AppMoneyMonthRoute: AppMoneyMonthRoute,
   AppMoneyPaymentsRoute: AppMoneyPaymentsRoute,
   AppMoneyReviewRoute: AppMoneyReviewRoute,

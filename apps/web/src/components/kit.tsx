@@ -28,7 +28,7 @@ export function Seg<T extends string>({
           aria-pressed={value === v}
           onClick={() => onChange(v)}
           className={cn(
-            'rounded-[3px] border-[1.5px] px-3 py-1.5 text-[13px] font-semibold transition-colors',
+            'rounded-control border px-3 py-1.5 text-[13px] font-semibold transition-colors',
             value === v ? 'border-ink bg-ink text-paper' : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink',
           )}
         >
@@ -46,7 +46,7 @@ const CALLOUT = {
 } as const;
 
 export function Callout({ tone = 'info', children, className }: { tone?: keyof typeof CALLOUT; children: ReactNode; className?: string }): ReactNode {
-  return <div className={cn('rounded-[4px] border px-3 py-2.5 text-[13px]', CALLOUT[tone], className)}>{children}</div>;
+  return <div className={cn('rounded-chip border px-3 py-2.5 text-[13px]', CALLOUT[tone], className)}>{children}</div>;
 }
 
 const CHIP = {
@@ -59,7 +59,7 @@ const CHIP = {
 
 export function Chip({ tone = 'plain', children, className }: { tone?: keyof typeof CHIP; children: ReactNode; className?: string }): ReactNode {
   return (
-    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-[3px] border px-2 py-[2px] text-[11.5px] font-semibold', CHIP[tone], className)}>
+    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-chip border px-2 py-[2px] text-[11.5px] font-semibold', CHIP[tone], className)}>
       {children}
     </span>
   );
@@ -84,10 +84,10 @@ export function Stepper({
   const clamp = (v: number): number => Math.min(max ?? Infinity, Math.max(min, v));
   return (
     <span className="inline-flex items-center gap-1">
-      <button type="button" aria-label={`Less ${label}`} onClick={() => onChange(clamp(value - step))} className="grid size-7 place-items-center rounded-[3px] border-[1.5px] border-rule text-ink-2 hover:border-brand hover:text-brand">
+      <button type="button" aria-label={`Less ${label}`} onClick={() => onChange(clamp(value - step))} className="grid size-7 place-items-center rounded-control border border-rule text-ink-2 hover:border-brand hover:text-brand">
         <Minus className="size-3.5" aria-hidden="true" />
       </button>
-      <button type="button" aria-label={`More ${label}`} onClick={() => onChange(clamp(value + step))} className="grid size-7 place-items-center rounded-[3px] border-[1.5px] border-rule text-ink-2 hover:border-brand hover:text-brand">
+      <button type="button" aria-label={`More ${label}`} onClick={() => onChange(clamp(value + step))} className="grid size-7 place-items-center rounded-control border border-rule text-ink-2 hover:border-brand hover:text-brand">
         <Plus className="size-3.5" aria-hidden="true" />
       </button>
     </span>
@@ -142,7 +142,7 @@ export function AmountField({
     <div className="grid gap-1.5">
       <div className="flex items-center justify-between gap-3">
         <label htmlFor={id} className="min-w-0 text-[13.5px] font-medium">
-          {colour ? <i className="mr-2 inline-block size-2.5 rounded-[3px] align-middle" style={{ background: `var(${colour})` }} /> : null}
+          {colour ? <i className="mr-2 inline-block size-2.5 rounded-[2px] align-middle" style={{ background: `var(${colour})` }} /> : null}
           {label}
           {sub ? <small className="block text-[12px] font-normal text-ink-3">{sub}</small> : null}
         </label>
@@ -227,7 +227,7 @@ export function Tri({
             aria-pressed={state === s}
             onClick={() => state !== s && onChange(s)}
             className={cn(
-              'rounded-[3px] border-[1.5px] px-2.5 py-[3px] text-[12px] font-semibold transition-colors',
+              'rounded-control border px-2.5 py-[3px] text-[12px] font-semibold transition-colors',
               state === s ? (s === 'DONE' ? 'border-fill bg-fill text-on-fill' : 'border-ink bg-ink text-paper') : 'border-rule text-ink-2 hover:border-ink-3 hover:text-ink',
             )}
           >
@@ -243,7 +243,7 @@ export function Tri({
 export function StackBar({ parts, label }: { parts: Array<{ name: string; value: number; colour: string }>; label: string }): ReactNode {
   const total = parts.reduce((a, p) => a + Math.max(0, p.value), 0) || 1;
   return (
-    <div role="img" aria-label={label} className="flex h-[22px] gap-0.5 overflow-hidden rounded-[3px] bg-track">
+    <div role="img" aria-label={label} className="flex h-[22px] gap-0.5 overflow-hidden rounded-full bg-track">
       {parts.map((p) =>
         p.value > 0 ? <span key={p.name} title={p.name} style={{ width: `${(p.value / total) * 100}%`, background: `var(${p.colour})` }} /> : null,
       )}
@@ -256,7 +256,7 @@ export function Key({ items }: { items: Array<{ name: string; colour: string; te
     <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-2">
       {items.map((i) => (
         <span key={i.name} className="inline-flex items-center gap-1.5">
-          <i className="size-2.5 rounded-[3px]" style={{ background: i.colour.startsWith('--') ? `var(${i.colour})` : i.colour }} />
+          <i className="size-2.5 rounded-[2px]" style={{ background: i.colour.startsWith('--') ? `var(${i.colour})` : i.colour }} />
           {i.text ?? i.name}
         </span>
       ))}

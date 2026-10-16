@@ -54,7 +54,7 @@ export function useTheme(): ThemeCtx {
 }
 
 /** Raw hex for places that cannot use class names (chart libraries, tab bar). */
-export function usePalette(): { paper: string; well: string; surface: string; ink: string; ink2: string; ink3: string; rule: string; brand: string; fill: string; onFill: string } {
+export function usePalette(): { paper: string; well: string; surface: string; ink: string; ink2: string; ink3: string; rule: string; brand: string; fill: string; onFill: string; marker: string; markerInk: string; pink: string } {
   const { scheme } = useTheme();
   const toHex = (rgb: string): string => `rgb(${rgb.split(' ').join(',')})`;
   const t = nativeThemes[scheme];
@@ -69,5 +69,18 @@ export function usePalette(): { paper: string; well: string; surface: string; in
     brand: toHex(t['--m-brand']!),
     fill: toHex(t['--m-fill']!),
     onFill: toHex(t['--m-on-fill']!),
+    marker: toHex(t['--m-marker']!),
+    markerInk: toHex(t['--m-marker-ink']!),
+    pink: toHex(t['--m-pink']!),
+  };
+}
+
+/** Turn a design variable name such as `--brand` or `--c-food` into the colour it has in the current scheme. */
+export function useColourOf(): (cssVar: string) => string {
+  const { scheme } = useTheme();
+  const t = nativeThemes[scheme];
+  return (name) => {
+    const v = t[`--m-${name.replace(/^--/, '')}`] ?? t['--m-c-other']!;
+    return `rgb(${v.split(' ').join(',')})`;
   };
 }

@@ -107,7 +107,7 @@ function PaydayPage() {
               <div className="grid gap-3">
                 {p.orders.map((o) => (
                   <div key={o.key} className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 border-t border-rule pt-3 first:border-t-0 first:pt-0">
-                    <i className="mt-1.5 size-2.5 rounded-[3px]" style={{ background: `var(${o.color})` }} />
+                    <i className="mt-1.5 size-2.5 rounded-[2px]" style={{ background: `var(${o.color})` }} />
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-baseline justify-between gap-2">
                         <b className="text-[13.5px]">{o.name} <span className="num font-semibold">{eur0(o.amount)}</span></b>

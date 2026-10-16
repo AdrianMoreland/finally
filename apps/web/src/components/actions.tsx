@@ -17,7 +17,7 @@ export function useRunCta(): (a: ActionItemDto) => void {
     if (cta.kind === 'go') void navigate({ to: cta.to as never });
     else if (cta.kind === 'check') tax.setCheck.mutate({ itemId: cta.itemId, state: cta.state }, { onSuccess: () => toast.success('Marked as claimed') });
     else {
-      const text = people.data?.owed.find((p) => p.id === cta.personId)?.remindText;
+      const text = cta.kind === 'copy' ? cta.text : people.data?.owed.find((p) => p.id === cta.personId)?.remindText;
       if (!text) return void toast.error('Could not find that reminder');
       void navigator.clipboard.writeText(text).then(
         () => toast.success('Reminder copied. Paste it into a message.'),

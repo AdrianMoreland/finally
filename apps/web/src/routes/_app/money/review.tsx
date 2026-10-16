@@ -178,7 +178,7 @@ function MonthCloseView({ c }: { c: MonthCloseDto }): ReactNode {
                 const d = Number(r.difference);
                 return (
                   <tr key={r.category.id} className="border-t border-rule">
-                    <td className="py-1.5 pr-3"><span className="inline-flex items-center gap-2"><i className="size-2.5 rounded-[3px]" style={{ background: categoryVar(r.category) }} />{r.category.name}</span></td>
+                    <td className="py-1.5 pr-3"><span className="inline-flex items-center gap-2"><i className="size-2.5 rounded-[2px]" style={{ background: categoryVar(r.category) }} />{r.category.name}</span></td>
                     <td className="num py-1.5 text-right">{eur0(r.planned)}</td>
                     <td className="num py-1.5 text-right">{eur0(r.spent)}</td>
                     <td className={cn('num py-1.5 text-right', d > 0.5 ? 'font-semibold text-warn' : 'text-good')}>{Math.abs(d) < 0.5 ? '—' : `${d > 0 ? '+' : '−'}${eur0(Math.abs(d))}`}</td>

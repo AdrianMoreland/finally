@@ -8,6 +8,8 @@ export interface AuthState {
   ready: boolean;
   email: string | null;
   sendMagicLink: (email: string) => Promise<{ error: string | null }>;
+  /** Test-only sign-in that sends no email. The login page shows it when `VITE_TEST_LOGIN=true`. */
+  signInWithPassword: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -44,6 +46,10 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
           email,
           options: { emailRedirectTo: window.location.origin },
         });
+        return { error: error?.message ?? null };
+      },
+      signInWithPassword: async (email, password) => {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         return { error: error?.message ?? null };
       },
       signOut: async () => {

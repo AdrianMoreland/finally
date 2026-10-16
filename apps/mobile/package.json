@@ -20,6 +20,7 @@
     "@expo-google-fonts/ibm-plex-mono": "^0.4.1",
     "@finally/api-client": "workspace:*",
     "@finally/contracts": "workspace:*",
+    "@finally/finance-core": "workspace:*",
     "@finally/tokens": "workspace:*",
     "@shopify/react-native-skia": "2.6.2",
     "@supabase/supabase-js": "^2.100.0",

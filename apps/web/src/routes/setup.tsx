@@ -20,6 +20,7 @@ import { Check, ChevronLeft } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Callout, Chip, AmountField, Line } from '@/components/kit';
+import { RentSettings } from '@/components/rent-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -41,7 +42,7 @@ function Stepper({ step }: { step: number }): ReactNode {
   return (
     <div className="flex items-center gap-1.5" role="progressbar" aria-valuemin={1} aria-valuemax={TITLES.length} aria-valuenow={step + 1} aria-label={`Step ${step + 1} of ${TITLES.length}: ${TITLES[step]}`}>
       {TITLES.map((t, i) => (
-        <i key={t} className={cn('h-1.5 flex-1 rounded-[3px] bg-rule', i <= step && 'bg-fill')} />
+        <i key={t} className={cn('h-1.5 flex-1 rounded-full bg-rule', i <= step && 'bg-fill')} />
       ))}
     </div>
   );
@@ -50,6 +51,7 @@ function Stepper({ step }: { step: number }): ReactNode {
 function SetupPage() {
   const navigate = useNavigate();
   const found = useFound();
+  const refetchFound = found.refetch;
   const connections = useConnections();
   const startConn = useStartConnection();
   const bills = useBillMutations();
@@ -134,7 +136,7 @@ function SetupPage() {
       case 2:
         return (
           <div className="grid gap-4">
-            <div className="h-2.5 overflow-hidden rounded-[3px] bg-raised"><i className="block h-full rounded-[3px] bg-fill transition-[width]" style={{ width: `${read}%` }} /></div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-raised"><i className="block h-full rounded-full bg-fill transition-[width]" style={{ width: `${read}%` }} /></div>
             {read < 100 ? <p className="text-[14px] text-ink-2">Reading your payment history…</p> : (
               <p className="text-[15px]">Read <b className="num">{f?.payments.toLocaleString('en-IE')}</b> payments across <b>{f?.months}</b> months. Transfers between your own accounts are kept out of spending, and refunds are netted against what they came from.</p>
             )}
@@ -143,9 +145,18 @@ function SetupPage() {
       case 3:
         return f ? (
           <div className="grid gap-3.5">
-            {f.salary ? <FoundRow title="Salary" detail={`${eur(f.salary.amount)} around the ${f.salary.day}th, seen ${f.salary.count} times`} /> : null}
-            {f.rent ? <FoundRow title="Rent" detail={`${eur(f.rent.amount)} out around the ${f.rent.day}th, about ${eur0(f.rent.netAmount)} your share after ${f.rent.shareCount} housemate payments`} /> : null}
-            {f.housemates.length ? <FoundRow title="Housemates paying you" detail={f.housemates.map((h) => `${h.name} ${eur0(h.total)}`).join(', ')} /> : null}
+            {f.salary ? <FoundRow title={`Salary ${eur0(f.salary.amount)} around the ${f.salary.day}th`} detail={`${f.salary.count} salary payments seen · used as your payday`} /> : null}
+            {f.rent ? (
+              <FoundRow
+                title={`Rent ${eur0(f.rent.amount)} to your landlord on the ${f.rent.day}th`}
+                detail={f.rent.household >= 2 ? `Split ${f.rent.household} ways: your rent is your share, ${eur0(f.rent.own)} a month` : 'Add who shares it under Settings, Rent you front, and only your share counts'}
+              />
+            ) : null}
+            {f.rent && f.rent.household >= 2 && f.housemates.length ? (
+              <FoundRow title={`${f.housemates.map((h) => h.name).join(', ').replace(/, ([^,]*)$/, ' and $1')} send you their share`} detail="Matched to the rent you fronted, never counted as income" />
+            ) : null}
+            {f.bills.length ? <FoundRow title={`${f.bills.length} repeating bills and subscriptions`} detail="Found from your history" /> : null}
+            <RentSettings suggest={f.rent ? { total: f.rent.amount, day: f.rent.day } : null} onSaved={() => void refetchFound()} />
             {f.ownTransfers ? <FoundRow title="Your own transfers" detail={`${f.ownTransfers} moves between your accounts, kept out of spending`} /> : null}
             <div className="rounded-lg border border-rule bg-surface p-3.5">
               <b>Repeating payments</b>
@@ -239,7 +250,7 @@ function SetupPage() {
           </div>
         );
     }
-  }, [step, f, connections.data, startConn, read, myPayday, buffer, myBudgets, fixed, flex, netPay, people.data, extra, draft, surplus, pots.data, potM, planned, queue.data, answer, ignored, myNotif, patchPrefs, bills]);
+  }, [step, f, connections.data, startConn, read, myPayday, buffer, myBudgets, fixed, flex, netPay, people.data, extra, draft, surplus, pots.data, potM, planned, queue.data, answer, ignored, myNotif, patchPrefs, bills, refetchFound]);
 
   return (
     <main className="mx-auto grid min-h-svh max-w-[640px] content-start gap-5 px-5 py-6">

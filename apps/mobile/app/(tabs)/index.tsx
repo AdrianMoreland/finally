@@ -1,8 +1,9 @@
-import { eur, eur0, longDate, maskText, shortDate, usePeople, useSnooze, useTaxMutations, useToday } from '@finally/api-client';
+import { clockTime, eur, eur0, maskText, shortDate, useCashflow, useMe, usePeople, useSnooze, useTaxMutations, useToday } from '@finally/api-client';
 import type { ActionItemDto } from '@finally/contracts';
 import { router } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Alert, Pressable, Share, View } from 'react-native';
+import { Sankey } from '@/components/charts/sankey';
 import { Callout, Line, mobileHref } from '@/components/kit';
 import { ErrorCard, LoadingCard, Screen } from '@/components/screen';
 import { Button, Card, MarkerChip, SeverityTag, Text, Track } from '@/components/ui/primitives';
@@ -17,7 +18,7 @@ function Action({ a }: { a: ActionItemDto }): ReactNode {
     if (cta.kind === 'go') router.push(mobileHref(cta.to));
     else if (cta.kind === 'check') tax.setCheck.mutate({ itemId: cta.itemId, state: cta.state });
     else {
-      const text = people.data?.owed.find((p) => p.id === cta.personId)?.remindText;
+      const text = cta.kind === 'copy' ? cta.text : people.data?.owed.find((p) => p.id === cta.personId)?.remindText;
       if (text) void Share.share({ message: text });
     }
   };
@@ -41,8 +42,34 @@ function Action({ a }: { a: ActionItemDto }): ReactNode {
   );
 }
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/** "Fri 16 Oct · Hi Sam" */
+function eyebrowFor(today: string, first: string | null): string {
+  const [y, m, d] = today.split('-').map(Number);
+  const wd = WEEKDAYS[new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1)).getUTCDay()];
+  return `${wd} ${d} ${MONTHS[(m ?? 1) - 1]}${first ? ` · Hi ${first}` : ''}`;
+}
+
+function CashflowCard(): ReactNode {
+  const q = useCashflow('sincepay', false);
+  const cf = q.data;
+  if (!cf) return null;
+  return (
+    <Pressable onPress={() => router.push({ pathname: '/(tabs)/money', params: { sub: 'flow' } })} accessibilityRole="button" accessibilityLabel="Open cash flow">
+      <Card>
+        <Text variant="eyebrow" className="mb-1">Cash flow since payday</Text>
+        <Text variant="small" className="mb-2">{eur0(cf.income)} came in · {eur0(cf.spent)} spent · {eur0(Number(cf.saved) + Number(cf.paidBack))} set aside</Text>
+        <Sankey cf={cf} width={330} height={190} mini nodeWidth={8} merge={0.05} label={`Cash flow since payday: ${eur0(cf.income)} came in, ${eur0(cf.spent)} spent`} />
+      </Card>
+    </Pressable>
+  );
+}
+
 export default function Today(): ReactNode {
   const { data: t, error, refetch } = useToday();
+  const me = useMe();
+  const first = me.data?.displayName.trim().split(/\s+/)[0] ?? null;
   const { on, toggle } = usePrivacy();
   const [maths, setMaths] = useState(false);
 
@@ -68,7 +95,7 @@ export default function Today(): ReactNode {
   const rung = t.ladder.rungs[t.ladder.current]!;
   const s = t.safe;
   return (
-    <Screen eyebrow={longDate(t.today)} title="Today" right={header}>
+    <Screen eyebrow={eyebrowFor(t.today, first)} title="Today" right={header}>
       {!t.setupDone ? (
         <MarkerChip onPress={() => Alert.alert('Set up', 'Finish setting up on the web app: payday, budgets, people and your first plan.')}>Finish setting up →</MarkerChip>
       ) : null}
@@ -102,7 +129,7 @@ export default function Today(): ReactNode {
       <Card>
         <Text variant="eyebrow" className="mb-2">Needs you</Text>
         {t.actions.length ? t.actions.slice(0, 3).map((a) => <Action key={a.id} a={a} />) : <Text variant="muted">Nothing needs you right now.</Text>}
-        {t.actions.length > 3 ? <Text variant="small" className="mt-2">{t.actions.length - 3} more, on the web app or after you deal with these.</Text> : null}
+        {t.actions.length > 3 ? <Text variant="small" className="mt-2">See all {t.actions.length} on the web app, or deal with these first.</Text> : null}
       </Card>
 
       <Card>
@@ -111,7 +138,13 @@ export default function Today(): ReactNode {
           {t.since.count ? `${t.since.count} payment${t.since.count === 1 ? '' : 's'} today, ${eur(t.since.out)} out.` : 'No new payments today.'}
           {t.pending.count ? ` ${t.pending.count} pending (${eur(t.pending.total)}), already counted.` : ''}
         </Text>
+        {t.since.items.filter((x) => x.kind !== 'TRANSFER').slice(0, 5).map((x) => (
+          <Line key={x.id} label={`${x.merchant?.displayName ?? x.rawDescriptor}${x.kind === 'SHARE' ? ' · rent share back' : x.status === 'PENDING' ? ' · pending' : ''}`} value={eur(x.amountEur, { signed: true })} />
+        ))}
+        {t.lastSyncAt ? <Text variant="small" className="mt-1">Synced at {clockTime(t.lastSyncAt)}.</Text> : null}
       </Card>
+
+      <CashflowCard />
 
       {t.pins.length ? (
         <Card>
@@ -123,7 +156,7 @@ export default function Today(): ReactNode {
       ) : null}
 
       <Card>
-        <Text variant="eyebrow" className="mb-1">Your next rung</Text>
+        <Text variant="eyebrow" className="mb-1">Next on your money ladder</Text>
         <Text variant="heading">{rung.title}</Text>
         <Text variant="small" className="mt-0.5">{rung.when}{rung.left && Number(rung.left) > 0 ? ` · ${eur0(rung.left)} to go` : ''}</Text>
       </Card>
