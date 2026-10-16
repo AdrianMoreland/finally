@@ -1,0 +1,1876 @@
+{
+  "today": "2026-10-16",
+  "note": "Numbers computed by the v4 prototype itself (window.__finally). Names are neutral samples. Use as worked examples in tests.",
+  "rentRounds": [
+    {
+      "rentDate": "2026-10-08",
+      "month": "2026-10",
+      "matchFrom": "2026-09-28",
+      "matchTo": "2026-10-28",
+      "fronted": 1875,
+      "backFromFlatmates": 1550,
+      "flatmates": [
+        {
+          "name": "Robin",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-10-07"
+          ],
+          "onOrAfterRentDay": false
+        },
+        {
+          "name": "Marta",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-10-10"
+          ],
+          "onOrAfterRentDay": true
+        },
+        {
+          "name": "Jules",
+          "got": 300,
+          "left": 325,
+          "paidOn": [
+            "2026-10-10"
+          ],
+          "onOrAfterRentDay": true
+        }
+      ]
+    },
+    {
+      "rentDate": "2026-09-08",
+      "month": "2026-09",
+      "matchFrom": "2026-08-29",
+      "matchTo": "2026-09-27",
+      "fronted": 1875,
+      "backFromFlatmates": 1875,
+      "flatmates": [
+        {
+          "name": "Robin",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-09-07"
+          ],
+          "onOrAfterRentDay": false
+        },
+        {
+          "name": "Marta",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-09-10"
+          ],
+          "onOrAfterRentDay": true
+        },
+        {
+          "name": "Jules",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-09-19"
+          ],
+          "onOrAfterRentDay": true
+        }
+      ]
+    },
+    {
+      "rentDate": "2026-08-08",
+      "month": "2026-08",
+      "matchFrom": "2026-07-29",
+      "matchTo": "2026-08-28",
+      "fronted": 1875,
+      "backFromFlatmates": 1875,
+      "flatmates": [
+        {
+          "name": "Robin",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-08-07"
+          ],
+          "onOrAfterRentDay": false
+        },
+        {
+          "name": "Marta",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-08-09"
+          ],
+          "onOrAfterRentDay": true
+        },
+        {
+          "name": "Jules",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-08-12",
+            "2026-08-20"
+          ],
+          "onOrAfterRentDay": true
+        }
+      ]
+    },
+    {
+      "rentDate": "2026-07-08",
+      "month": "2026-07",
+      "matchFrom": "2026-06-28",
+      "matchTo": "2026-07-28",
+      "fronted": 1875,
+      "backFromFlatmates": 1875,
+      "flatmates": [
+        {
+          "name": "Robin",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-07-07"
+          ],
+          "onOrAfterRentDay": false
+        },
+        {
+          "name": "Marta",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-07-10"
+          ],
+          "onOrAfterRentDay": true
+        },
+        {
+          "name": "Jules",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-07-14"
+          ],
+          "onOrAfterRentDay": true
+        }
+      ]
+    },
+    {
+      "rentDate": "2026-06-08",
+      "month": "2026-06",
+      "matchFrom": "2026-05-29",
+      "matchTo": "2026-06-27",
+      "fronted": 1875,
+      "backFromFlatmates": 1875,
+      "flatmates": [
+        {
+          "name": "Robin",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-06-05"
+          ],
+          "onOrAfterRentDay": false
+        },
+        {
+          "name": "Marta",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-06-09"
+          ],
+          "onOrAfterRentDay": true
+        },
+        {
+          "name": "Jules",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-06-09",
+            "2026-06-17"
+          ],
+          "onOrAfterRentDay": true
+        }
+      ]
+    },
+    {
+      "rentDate": "2026-05-08",
+      "month": "2026-05",
+      "matchFrom": "2026-04-28",
+      "matchTo": "2026-05-28",
+      "fronted": 1875,
+      "backFromFlatmates": 1875,
+      "flatmates": [
+        {
+          "name": "Robin",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-05-07"
+          ],
+          "onOrAfterRentDay": false
+        },
+        {
+          "name": "Marta",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-05-08"
+          ],
+          "onOrAfterRentDay": true
+        },
+        {
+          "name": "Jules",
+          "got": 625,
+          "left": 0,
+          "paidOn": [
+            "2026-05-11"
+          ],
+          "onOrAfterRentDay": true
+        }
+      ]
+    }
+  ],
+  "cashflow": {
+    "sincepay": {
+      "from": "2026-09-25",
+      "to": "2026-10-16",
+      "income": 2419.77,
+      "spent": 1988.3,
+      "saved": 240,
+      "paidBack": 100,
+      "fromPots": 138,
+      "fronted": 1875,
+      "back": 1550,
+      "out": 2328.3,
+      "inn": 2557.77,
+      "sources": [
+        {
+          "id": "inc:salary",
+          "name": "Salary",
+          "value": 2419.77
+        },
+        {
+          "id": "frompots",
+          "name": "From your pots",
+          "value": 138
+        }
+      ],
+      "groups": [
+        {
+          "id": "food",
+          "name": "Food & drink",
+          "value": 816,
+          "cats": [
+            {
+              "id": "eating",
+              "name": "Eating out",
+              "value": 390
+            },
+            {
+              "id": "groceries",
+              "name": "Groceries",
+              "value": 324.37
+            },
+            {
+              "id": "bars",
+              "name": "Bars & pubs",
+              "value": 55.2
+            },
+            {
+              "id": "coffee",
+              "name": "Coffee",
+              "value": 46.43
+            }
+          ]
+        },
+        {
+          "id": "home",
+          "name": "Home",
+          "value": 625,
+          "cats": [
+            {
+              "id": "rent",
+              "name": "Rent",
+              "value": 625
+            }
+          ]
+        },
+        {
+          "id": "fun",
+          "name": "Fun & travel",
+          "value": 238,
+          "cats": [
+            {
+              "id": "travel",
+              "name": "Travel",
+              "value": 238
+            }
+          ]
+        },
+        {
+          "id": "move",
+          "name": "Getting around",
+          "value": 95.25,
+          "cats": [
+            {
+              "id": "taxi",
+              "name": "Taxi",
+              "value": 69.46
+            },
+            {
+              "id": "transport",
+              "name": "Transport",
+              "value": 25.79
+            }
+          ]
+        },
+        {
+          "id": "bills",
+          "name": "Bills & subscriptions",
+          "value": 76.41,
+          "cats": [
+            {
+              "id": "subs",
+              "name": "Subscriptions",
+              "value": 45.09
+            },
+            {
+              "id": "bills",
+              "name": "Bills",
+              "value": 20
+            },
+            {
+              "id": "fees",
+              "name": "Bank fees",
+              "value": 11.32
+            }
+          ]
+        },
+        {
+          "id": "shop",
+          "name": "Shopping & gifts",
+          "value": 9.24,
+          "cats": [
+            {
+              "id": "shopping",
+              "name": "Shopping",
+              "value": 9.24
+            }
+          ]
+        },
+        {
+          "id": "unsorted",
+          "name": "Not sorted yet",
+          "value": 128.4,
+          "cats": [
+            {
+              "id": "unsorted",
+              "name": "Not sorted yet",
+              "value": 128.4
+            }
+          ]
+        },
+        {
+          "id": "saved",
+          "name": "Set aside in pots",
+          "value": 240,
+          "cats": [
+            {
+              "id": "pot:rainy",
+              "name": "Rainy day",
+              "value": 150
+            },
+            {
+              "id": "pot:invest",
+              "name": "Investment Account launch",
+              "value": 50
+            },
+            {
+              "id": "pot:treats",
+              "name": "Treats",
+              "value": 40
+            }
+          ]
+        },
+        {
+          "id": "payback",
+          "name": "Paid back to people",
+          "value": 100,
+          "cats": [
+            {
+              "id": "who:Mum",
+              "name": "Mum",
+              "value": 100
+            }
+          ]
+        },
+        {
+          "id": "left",
+          "name": "Kept in your accounts",
+          "value": 229.47,
+          "cats": []
+        }
+      ]
+    },
+    "thismonth": {
+      "from": "2026-10-01",
+      "to": "2026-10-16",
+      "income": 0,
+      "spent": 1596,
+      "saved": 0,
+      "paidBack": 0,
+      "fromPots": 238,
+      "fronted": 1875,
+      "back": 1550,
+      "out": 1596,
+      "inn": 238,
+      "sources": [
+        {
+          "id": "frompots",
+          "name": "From your pots",
+          "value": 238
+        },
+        {
+          "id": "balance",
+          "name": "From your balance",
+          "value": 1358
+        }
+      ],
+      "groups": [
+        {
+          "id": "home",
+          "name": "Home",
+          "value": 625,
+          "cats": [
+            {
+              "id": "rent",
+              "name": "Rent",
+              "value": 625
+            }
+          ]
+        },
+        {
+          "id": "food",
+          "name": "Food & drink",
+          "value": 505.21,
+          "cats": [
+            {
+              "id": "eating",
+              "name": "Eating out",
+              "value": 225.33
+            },
+            {
+              "id": "groceries",
+              "name": "Groceries",
+              "value": 193.13
+            },
+            {
+              "id": "bars",
+              "name": "Bars & pubs",
+              "value": 55.2
+            },
+            {
+              "id": "coffee",
+              "name": "Coffee",
+              "value": 31.55
+            }
+          ]
+        },
+        {
+          "id": "fun",
+          "name": "Fun & travel",
+          "value": 238,
+          "cats": [
+            {
+              "id": "travel",
+              "name": "Travel",
+              "value": 238
+            }
+          ]
+        },
+        {
+          "id": "move",
+          "name": "Getting around",
+          "value": 61.19,
+          "cats": [
+            {
+              "id": "taxi",
+              "name": "Taxi",
+              "value": 61.19
+            }
+          ]
+        },
+        {
+          "id": "bills",
+          "name": "Bills & subscriptions",
+          "value": 49.89,
+          "cats": [
+            {
+              "id": "subs",
+              "name": "Subscriptions",
+              "value": 38.57
+            },
+            {
+              "id": "fees",
+              "name": "Bank fees",
+              "value": 11.32
+            }
+          ]
+        },
+        {
+          "id": "shop",
+          "name": "Shopping & gifts",
+          "value": 9.24,
+          "cats": [
+            {
+              "id": "shopping",
+              "name": "Shopping",
+              "value": 9.24
+            }
+          ]
+        },
+        {
+          "id": "unsorted",
+          "name": "Not sorted yet",
+          "value": 107.47,
+          "cats": [
+            {
+              "id": "unsorted",
+              "name": "Not sorted yet",
+              "value": 107.47
+            }
+          ]
+        }
+      ]
+    },
+    "lastmonth": {
+      "from": "2026-09-01",
+      "to": "2026-09-30",
+      "income": 2419.77,
+      "spent": 2116.05,
+      "saved": 340,
+      "paidBack": 100,
+      "fromPots": 0,
+      "fronted": 1875,
+      "back": 1875,
+      "out": 2556.05,
+      "inn": 2419.77,
+      "sources": [
+        {
+          "id": "inc:salary",
+          "name": "Salary",
+          "value": 2419.77
+        },
+        {
+          "id": "balance",
+          "name": "From your balance",
+          "value": 136.28
+        }
+      ],
+      "groups": [
+        {
+          "id": "food",
+          "name": "Food & drink",
+          "value": 897.49,
+          "cats": [
+            {
+              "id": "groceries",
+              "name": "Groceries",
+              "value": 403.03
+            },
+            {
+              "id": "eating",
+              "name": "Eating out",
+              "value": 390.01
+            },
+            {
+              "id": "bars",
+              "name": "Bars & pubs",
+              "value": 69.31
+            },
+            {
+              "id": "coffee",
+              "name": "Coffee",
+              "value": 35.14
+            }
+          ]
+        },
+        {
+          "id": "home",
+          "name": "Home",
+          "value": 714,
+          "cats": [
+            {
+              "id": "rent",
+              "name": "Rent",
+              "value": 625
+            },
+            {
+              "id": "household",
+              "name": "Household",
+              "value": 89
+            }
+          ]
+        },
+        {
+          "id": "bills",
+          "name": "Bills & subscriptions",
+          "value": 170.56,
+          "cats": [
+            {
+              "id": "bills",
+              "name": "Bills",
+              "value": 92.5
+            },
+            {
+              "id": "subs",
+              "name": "Subscriptions",
+              "value": 78.06
+            }
+          ]
+        },
+        {
+          "id": "move",
+          "name": "Getting around",
+          "value": 158.4,
+          "cats": [
+            {
+              "id": "taxi",
+              "name": "Taxi",
+              "value": 91.72
+            },
+            {
+              "id": "transport",
+              "name": "Transport",
+              "value": 66.68
+            }
+          ]
+        },
+        {
+          "id": "shop",
+          "name": "Shopping & gifts",
+          "value": 110.09,
+          "cats": [
+            {
+              "id": "shopping",
+              "name": "Shopping",
+              "value": 110.09
+            }
+          ]
+        },
+        {
+          "id": "other",
+          "name": "Health & the rest",
+          "value": 22.58,
+          "cats": [
+            {
+              "id": "health",
+              "name": "Health",
+              "value": 22.58
+            }
+          ]
+        },
+        {
+          "id": "fun",
+          "name": "Fun & travel",
+          "value": 18.8,
+          "cats": [
+            {
+              "id": "fun",
+              "name": "Fun",
+              "value": 18.8
+            }
+          ]
+        },
+        {
+          "id": "unsorted",
+          "name": "Not sorted yet",
+          "value": 24.13,
+          "cats": [
+            {
+              "id": "unsorted",
+              "name": "Not sorted yet",
+              "value": 24.13
+            }
+          ]
+        },
+        {
+          "id": "saved",
+          "name": "Set aside in pots",
+          "value": 340,
+          "cats": [
+            {
+              "id": "pot:rainy",
+              "name": "Rainy day",
+              "value": 150
+            },
+            {
+              "id": "pot:xmas",
+              "name": "Christmas in Madrid",
+              "value": 100
+            },
+            {
+              "id": "pot:invest",
+              "name": "Investment Account launch",
+              "value": 50
+            },
+            {
+              "id": "pot:treats",
+              "name": "Treats",
+              "value": 40
+            }
+          ]
+        },
+        {
+          "id": "payback",
+          "name": "Paid back to people",
+          "value": 100,
+          "cats": [
+            {
+              "id": "who:Mum",
+              "name": "Mum",
+              "value": 100
+            }
+          ]
+        }
+      ]
+    },
+    "last3": {
+      "from": "2026-07-01",
+      "to": "2026-09-30",
+      "income": 7259.31,
+      "spent": 6103.59,
+      "saved": 550,
+      "paidBack": 200,
+      "fromPots": 30,
+      "fronted": 5625,
+      "back": 5625,
+      "out": 6853.59,
+      "inn": 7289.31,
+      "sources": [
+        {
+          "id": "inc:salary",
+          "name": "Salary",
+          "value": 7259.31
+        },
+        {
+          "id": "frompots",
+          "name": "From your pots",
+          "value": 30
+        }
+      ],
+      "groups": [
+        {
+          "id": "food",
+          "name": "Food & drink",
+          "value": 2609,
+          "cats": [
+            {
+              "id": "groceries",
+              "name": "Groceries",
+              "value": 1275.43
+            },
+            {
+              "id": "eating",
+              "name": "Eating out",
+              "value": 860.61
+            },
+            {
+              "id": "bars",
+              "name": "Bars & pubs",
+              "value": 382.31
+            },
+            {
+              "id": "coffee",
+              "name": "Coffee",
+              "value": 90.65
+            }
+          ]
+        },
+        {
+          "id": "home",
+          "name": "Home",
+          "value": 1964,
+          "cats": [
+            {
+              "id": "rent",
+              "name": "Rent",
+              "value": 1875
+            },
+            {
+              "id": "household",
+              "name": "Household",
+              "value": 89
+            }
+          ]
+        },
+        {
+          "id": "bills",
+          "name": "Bills & subscriptions",
+          "value": 547.88,
+          "cats": [
+            {
+              "id": "bills",
+              "name": "Bills",
+              "value": 277.5
+            },
+            {
+              "id": "subs",
+              "name": "Subscriptions",
+              "value": 234.15
+            },
+            {
+              "id": "fees",
+              "name": "Bank fees",
+              "value": 36.23
+            }
+          ]
+        },
+        {
+          "id": "move",
+          "name": "Getting around",
+          "value": 326.87,
+          "cats": [
+            {
+              "id": "taxi",
+              "name": "Taxi",
+              "value": 201.27
+            },
+            {
+              "id": "transport",
+              "name": "Transport",
+              "value": 105.78
+            },
+            {
+              "id": "pt",
+              "name": "Public transport",
+              "value": 19.82
+            }
+          ]
+        },
+        {
+          "id": "fun",
+          "name": "Fun & travel",
+          "value": 284.66,
+          "cats": [
+            {
+              "id": "travel",
+              "name": "Travel",
+              "value": 265.86
+            },
+            {
+              "id": "fun",
+              "name": "Fun",
+              "value": 18.8
+            }
+          ]
+        },
+        {
+          "id": "shop",
+          "name": "Shopping & gifts",
+          "value": 231.23,
+          "cats": [
+            {
+              "id": "shopping",
+              "name": "Shopping",
+              "value": 231.23
+            }
+          ]
+        },
+        {
+          "id": "other",
+          "name": "Health & the rest",
+          "value": 115.82,
+          "cats": [
+            {
+              "id": "health",
+              "name": "Health",
+              "value": 53.72
+            },
+            {
+              "id": "cash",
+              "name": "Cash",
+              "value": 50
+            },
+            {
+              "id": "other",
+              "name": "Everything else",
+              "value": 12.1
+            }
+          ]
+        },
+        {
+          "id": "unsorted",
+          "name": "Not sorted yet",
+          "value": 24.13,
+          "cats": [
+            {
+              "id": "unsorted",
+              "name": "Not sorted yet",
+              "value": 24.13
+            }
+          ]
+        },
+        {
+          "id": "saved",
+          "name": "Set aside in pots",
+          "value": 550,
+          "cats": [
+            {
+              "id": "pot:xmas",
+              "name": "Christmas in Madrid",
+              "value": 300
+            },
+            {
+              "id": "pot:invest",
+              "name": "Investment Account launch",
+              "value": 150
+            },
+            {
+              "id": "pot:rainy",
+              "name": "Rainy day",
+              "value": 100
+            }
+          ]
+        },
+        {
+          "id": "payback",
+          "name": "Paid back to people",
+          "value": 200,
+          "cats": [
+            {
+              "id": "who:Mum",
+              "name": "Mum",
+              "value": 200
+            }
+          ]
+        },
+        {
+          "id": "left",
+          "name": "Kept in your accounts",
+          "value": 435.72,
+          "cats": []
+        }
+      ]
+    },
+    "ytd": {
+      "from": "2026-01-01",
+      "to": "2026-10-16",
+      "income": 20963.94,
+      "spent": 19613.93,
+      "saved": 1232,
+      "paidBack": 200,
+      "fromPots": 0,
+      "fronted": 18750,
+      "back": 18425,
+      "out": 21045.93,
+      "inn": 20963.94,
+      "sources": [
+        {
+          "id": "inc:salary",
+          "name": "Salary",
+          "value": 19251.59
+        },
+        {
+          "id": "inc:prevjob",
+          "name": "Salary (previous job)",
+          "value": 1712.35
+        },
+        {
+          "id": "balance",
+          "name": "From your balance",
+          "value": 81.99
+        }
+      ],
+      "groups": [
+        {
+          "id": "food",
+          "name": "Food & drink",
+          "value": 7710.89,
+          "cats": [
+            {
+              "id": "groceries",
+              "name": "Groceries",
+              "value": 4010.21
+            },
+            {
+              "id": "eating",
+              "name": "Eating out",
+              "value": 2460.3
+            },
+            {
+              "id": "bars",
+              "name": "Bars & pubs",
+              "value": 857.39
+            },
+            {
+              "id": "coffee",
+              "name": "Coffee",
+              "value": 382.99
+            }
+          ]
+        },
+        {
+          "id": "home",
+          "name": "Home",
+          "value": 6407.82,
+          "cats": [
+            {
+              "id": "rent",
+              "name": "Rent",
+              "value": 6250
+            },
+            {
+              "id": "household",
+              "name": "Household",
+              "value": 157.82
+            }
+          ]
+        },
+        {
+          "id": "bills",
+          "name": "Bills & subscriptions",
+          "value": 1660.33,
+          "cats": [
+            {
+              "id": "bills",
+              "name": "Bills",
+              "value": 795
+            },
+            {
+              "id": "subs",
+              "name": "Subscriptions",
+              "value": 730.5
+            },
+            {
+              "id": "fees",
+              "name": "Bank fees",
+              "value": 134.83
+            }
+          ]
+        },
+        {
+          "id": "fun",
+          "name": "Fun & travel",
+          "value": 1392.2,
+          "cats": [
+            {
+              "id": "travel",
+              "name": "Travel",
+              "value": 968.91
+            },
+            {
+              "id": "fun",
+              "name": "Fun",
+              "value": 423.29
+            }
+          ]
+        },
+        {
+          "id": "move",
+          "name": "Getting around",
+          "value": 930.53,
+          "cats": [
+            {
+              "id": "taxi",
+              "name": "Taxi",
+              "value": 545.53
+            },
+            {
+              "id": "transport",
+              "name": "Transport",
+              "value": 270.81
+            },
+            {
+              "id": "pt",
+              "name": "Public transport",
+              "value": 114.19
+            }
+          ]
+        },
+        {
+          "id": "shop",
+          "name": "Shopping & gifts",
+          "value": 885.22,
+          "cats": [
+            {
+              "id": "shopping",
+              "name": "Shopping",
+              "value": 885.22
+            }
+          ]
+        },
+        {
+          "id": "other",
+          "name": "Health & the rest",
+          "value": 495.34,
+          "cats": [
+            {
+              "id": "cash",
+              "name": "Cash",
+              "value": 240
+            },
+            {
+              "id": "health",
+              "name": "Health",
+              "value": 224.71
+            },
+            {
+              "id": "other",
+              "name": "Everything else",
+              "value": 30.63
+            }
+          ]
+        },
+        {
+          "id": "unsorted",
+          "name": "Not sorted yet",
+          "value": 131.6,
+          "cats": [
+            {
+              "id": "unsorted",
+              "name": "Not sorted yet",
+              "value": 131.6
+            }
+          ]
+        },
+        {
+          "id": "saved",
+          "name": "Set aside in pots",
+          "value": 1232,
+          "cats": [
+            {
+              "id": "pot:rainy",
+              "name": "Rainy day",
+              "value": 750
+            },
+            {
+              "id": "pot:invest",
+              "name": "Investment Account launch",
+              "value": 200
+            },
+            {
+              "id": "pot:xmas",
+              "name": "Christmas in Madrid",
+              "value": 162
+            },
+            {
+              "id": "pot:treats",
+              "name": "Treats",
+              "value": 120
+            }
+          ]
+        },
+        {
+          "id": "payback",
+          "name": "Paid back to people",
+          "value": 200,
+          "cats": [
+            {
+              "id": "who:Mum",
+              "name": "Mum",
+              "value": 200
+            }
+          ]
+        }
+      ]
+    },
+    "last12": {
+      "from": "2025-10-17",
+      "to": "2026-10-16",
+      "income": 26100.99,
+      "spent": 24474.95,
+      "saved": 1332,
+      "paidBack": 200,
+      "fromPots": 0,
+      "fronted": 22500,
+      "back": 22500,
+      "out": 26006.95,
+      "inn": 26100.99,
+      "sources": [
+        {
+          "id": "inc:salary",
+          "name": "Salary",
+          "value": 19251.59
+        },
+        {
+          "id": "inc:prevjob",
+          "name": "Salary (previous job)",
+          "value": 6849.4
+        }
+      ],
+      "groups": [
+        {
+          "id": "food",
+          "name": "Food & drink",
+          "value": 9790.58,
+          "cats": [
+            {
+              "id": "groceries",
+              "name": "Groceries",
+              "value": 5052.87
+            },
+            {
+              "id": "eating",
+              "name": "Eating out",
+              "value": 3028.22
+            },
+            {
+              "id": "bars",
+              "name": "Bars & pubs",
+              "value": 1211.73
+            },
+            {
+              "id": "coffee",
+              "name": "Coffee",
+              "value": 497.76
+            }
+          ]
+        },
+        {
+          "id": "home",
+          "name": "Home",
+          "value": 7669.65,
+          "cats": [
+            {
+              "id": "rent",
+              "name": "Rent",
+              "value": 7500
+            },
+            {
+              "id": "household",
+              "name": "Household",
+              "value": 169.65
+            }
+          ]
+        },
+        {
+          "id": "bills",
+          "name": "Bills & subscriptions",
+          "value": 2119.59,
+          "cats": [
+            {
+              "id": "bills",
+              "name": "Bills",
+              "value": 1050
+            },
+            {
+              "id": "subs",
+              "name": "Subscriptions",
+              "value": 914.01
+            },
+            {
+              "id": "fees",
+              "name": "Bank fees",
+              "value": 155.58
+            }
+          ]
+        },
+        {
+          "id": "fun",
+          "name": "Fun & travel",
+          "value": 1616.03,
+          "cats": [
+            {
+              "id": "travel",
+              "name": "Travel",
+              "value": 1181.31
+            },
+            {
+              "id": "fun",
+              "name": "Fun",
+              "value": 434.72
+            }
+          ]
+        },
+        {
+          "id": "shop",
+          "name": "Shopping & gifts",
+          "value": 1369.27,
+          "cats": [
+            {
+              "id": "shopping",
+              "name": "Shopping",
+              "value": 1166.37
+            },
+            {
+              "id": "gifts",
+              "name": "Gifts",
+              "value": 202.9
+            }
+          ]
+        },
+        {
+          "id": "move",
+          "name": "Getting around",
+          "value": 1214.83,
+          "cats": [
+            {
+              "id": "taxi",
+              "name": "Taxi",
+              "value": 667.33
+            },
+            {
+              "id": "transport",
+              "name": "Transport",
+              "value": 353.34
+            },
+            {
+              "id": "pt",
+              "name": "Public transport",
+              "value": 194.16
+            }
+          ]
+        },
+        {
+          "id": "other",
+          "name": "Health & the rest",
+          "value": 563.4,
+          "cats": [
+            {
+              "id": "cash",
+              "name": "Cash",
+              "value": 280
+            },
+            {
+              "id": "health",
+              "name": "Health",
+              "value": 248.47
+            },
+            {
+              "id": "other",
+              "name": "Everything else",
+              "value": 34.93
+            }
+          ]
+        },
+        {
+          "id": "unsorted",
+          "name": "Not sorted yet",
+          "value": 131.6,
+          "cats": [
+            {
+              "id": "unsorted",
+              "name": "Not sorted yet",
+              "value": 131.6
+            }
+          ]
+        },
+        {
+          "id": "saved",
+          "name": "Set aside in pots",
+          "value": 1332,
+          "cats": [
+            {
+              "id": "pot:rainy",
+              "name": "Rainy day",
+              "value": 850
+            },
+            {
+              "id": "pot:invest",
+              "name": "Investment Account launch",
+              "value": 200
+            },
+            {
+              "id": "pot:xmas",
+              "name": "Christmas in Madrid",
+              "value": 162
+            },
+            {
+              "id": "pot:treats",
+              "name": "Treats",
+              "value": 120
+            }
+          ]
+        },
+        {
+          "id": "payback",
+          "name": "Paid back to people",
+          "value": 200,
+          "cats": [
+            {
+              "id": "who:Mum",
+              "name": "Mum",
+              "value": 200
+            }
+          ]
+        },
+        {
+          "id": "left",
+          "name": "Kept in your accounts",
+          "value": 94.04,
+          "cats": []
+        }
+      ]
+    }
+  },
+  "cashflowLastMonthWithPassThrough": {
+    "from": "2026-09-01",
+    "to": "2026-09-30",
+    "income": 2419.77,
+    "spent": 2116.05,
+    "saved": 340,
+    "paidBack": 100,
+    "fromPots": 0,
+    "fronted": 1875,
+    "back": 1875,
+    "out": 2556.05,
+    "inn": 2419.77,
+    "sources": [
+      {
+        "id": "inc:salary",
+        "name": "Salary",
+        "value": 2419.77
+      },
+      {
+        "id": "balance",
+        "name": "From your balance",
+        "value": 136.28
+      },
+      {
+        "id": "pass",
+        "name": "Flatmates' rent shares",
+        "value": 1875
+      }
+    ],
+    "groups": [
+      {
+        "id": "food",
+        "name": "Food & drink",
+        "value": 897.49,
+        "cats": [
+          {
+            "id": "groceries",
+            "name": "Groceries",
+            "value": 403.03
+          },
+          {
+            "id": "eating",
+            "name": "Eating out",
+            "value": 390.01
+          },
+          {
+            "id": "bars",
+            "name": "Bars & pubs",
+            "value": 69.31
+          },
+          {
+            "id": "coffee",
+            "name": "Coffee",
+            "value": 35.14
+          }
+        ]
+      },
+      {
+        "id": "home",
+        "name": "Home",
+        "value": 714,
+        "cats": [
+          {
+            "id": "rent",
+            "name": "Rent",
+            "value": 625
+          },
+          {
+            "id": "household",
+            "name": "Household",
+            "value": 89
+          }
+        ]
+      },
+      {
+        "id": "bills",
+        "name": "Bills & subscriptions",
+        "value": 170.56,
+        "cats": [
+          {
+            "id": "bills",
+            "name": "Bills",
+            "value": 92.5
+          },
+          {
+            "id": "subs",
+            "name": "Subscriptions",
+            "value": 78.06
+          }
+        ]
+      },
+      {
+        "id": "move",
+        "name": "Getting around",
+        "value": 158.4,
+        "cats": [
+          {
+            "id": "taxi",
+            "name": "Taxi",
+            "value": 91.72
+          },
+          {
+            "id": "transport",
+            "name": "Transport",
+            "value": 66.68
+          }
+        ]
+      },
+      {
+        "id": "shop",
+        "name": "Shopping & gifts",
+        "value": 110.09,
+        "cats": [
+          {
+            "id": "shopping",
+            "name": "Shopping",
+            "value": 110.09
+          }
+        ]
+      },
+      {
+        "id": "other",
+        "name": "Health & the rest",
+        "value": 22.58,
+        "cats": [
+          {
+            "id": "health",
+            "name": "Health",
+            "value": 22.58
+          }
+        ]
+      },
+      {
+        "id": "fun",
+        "name": "Fun & travel",
+        "value": 18.8,
+        "cats": [
+          {
+            "id": "fun",
+            "name": "Fun",
+            "value": 18.8
+          }
+        ]
+      },
+      {
+        "id": "unsorted",
+        "name": "Not sorted yet",
+        "value": 24.13,
+        "cats": [
+          {
+            "id": "unsorted",
+            "name": "Not sorted yet",
+            "value": 24.13
+          }
+        ]
+      },
+      {
+        "id": "saved",
+        "name": "Set aside in pots",
+        "value": 340,
+        "cats": [
+          {
+            "id": "pot:rainy",
+            "name": "Rainy day",
+            "value": 150
+          },
+          {
+            "id": "pot:xmas",
+            "name": "Christmas in Madrid",
+            "value": 100
+          },
+          {
+            "id": "pot:invest",
+            "name": "Investment Account launch",
+            "value": 50
+          },
+          {
+            "id": "pot:treats",
+            "name": "Treats",
+            "value": 40
+          }
+        ]
+      },
+      {
+        "id": "payback",
+        "name": "Paid back to people",
+        "value": 100,
+        "cats": [
+          {
+            "id": "who:Mum",
+            "name": "Mum",
+            "value": 100
+          }
+        ]
+      },
+      {
+        "id": "front",
+        "name": "Rent you fronted",
+        "value": 1875,
+        "cats": []
+      }
+    ]
+  },
+  "safeToSpendToday": {
+    "daysLeft": 7,
+    "flexB": 1160,
+    "spentFlex": 575.64,
+    "over": 0,
+    "uns": 107.47,
+    "budLeft": 476.89,
+    "bal": 874.65,
+    "billsDue": 105.47,
+    "buffer": 150,
+    "balLeft": 619.18,
+    "pool": 476.89,
+    "binds": "budget",
+    "day": 68.13
+  },
+  "safeToSpendYesterday": {
+    "daysLeft": 8,
+    "flexB": 1160,
+    "spentFlex": 524.46,
+    "over": 0,
+    "uns": 103.42,
+    "budLeft": 532.12,
+    "bal": 929.88,
+    "billsDue": 105.47,
+    "buffer": 150,
+    "balLeft": 674.41,
+    "pool": 532.12,
+    "binds": "budget",
+    "day": 66.52
+  },
+  "aibLowestThisMonth": {
+    "lo": -255.38,
+    "day": "2026-10-09"
+  },
+  "netWorth": 2176.15,
+  "actions": [
+    {
+      "id": "sort",
+      "severity": "you",
+      "title": "4 merchants to sort",
+      "body": "One answer each sorts every payment from them, past and future. Until then they count against safe to spend as unsorted.",
+      "money": 131.6,
+      "button": "Sort now",
+      "pinned": true
+    },
+    {
+      "id": "front",
+      "severity": "act",
+      "title": "AIB went €255 overdrawn on 9 Oct while you fronted the rent",
+      "body": "The landlord gets €2,500 on the 8th and the shares arrive after it. Overdraft interest and fees cost you €68.33 in the last 12 months. Ask the house to pay by the 6th.",
+      "money": 68.33,
+      "button": "Copy message",
+      "pinned": true
+    },
+    {
+      "id": "rentprev",
+      "severity": "act",
+      "title": "Claim earlier years of rent credit: €2,000",
+      "body": "For the years you rented since Sep 2024.",
+      "money": 2000,
+      "button": "Open Tax & pay",
+      "pinned": false
+    },
+    {
+      "id": "rentcredit",
+      "severity": "act",
+      "title": "Claim your Rent Tax Credit for 2026",
+      "body": "€1,000 if your tenancy qualifies. You claim it in Revenue myAccount, then mark it here.",
+      "money": 1000,
+      "button": "Mark as claimed",
+      "pinned": false
+    },
+    {
+      "id": "share-fm_jules",
+      "severity": "watch",
+      "title": "Jules has sent €300 of €625 for October",
+      "body": "You paid the full €2,500 on 8 Oct. €325 is still to come. It counts as owed to you, not as your rent.",
+      "money": 325,
+      "button": "Copy reminder",
+      "pinned": false
+    },
+    {
+      "id": "pace-eating",
+      "severity": "watch",
+      "title": "Eating out is heading for €429 of €260",
+      "body": "€225.33 so far, ahead of your usual pace for day 16.",
+      "money": 169.42,
+      "button": "Adjust budget",
+      "pinned": false
+    },
+    {
+      "id": "rise-virgin",
+      "severity": "watch",
+      "title": "Virgin Media went up to €72.50",
+      "body": "From €65.00 since 21 Jun: €90.00 more a year.",
+      "money": 90,
+      "button": "Review",
+      "pinned": false
+    },
+    {
+      "id": "pot-xmas",
+      "severity": "watch",
+      "title": "Christmas in Madrid lands 25 Dec 2026, after your 18 Dec 2026 date",
+      "body": "€144 a month makes it in time. You put in €100.",
+      "money": 88,
+      "button": "Fix in Pots",
+      "pinned": false
+    },
+    {
+      "id": "owed-ikea",
+      "severity": "act",
+      "title": "Marta owes you €45 since 20 Sep",
+      "body": "Her half of the IKEA shelves. Copy a friendly reminder to send.",
+      "money": 44.5,
+      "button": "Copy reminder",
+      "pinned": false
+    },
+    {
+      "id": "pace-coffee",
+      "severity": "watch",
+      "title": "Coffee is heading for €70 of €55",
+      "body": "€31.55 so far, ahead of your usual pace for day 16.",
+      "money": 14.77,
+      "button": "Adjust budget",
+      "pinned": false
+    },
+    {
+      "id": "dbl-freenow~2026-10-03~-14.2",
+      "severity": "watch",
+      "title": "FreeNow €14.20 twice on 3 Oct",
+      "body": "Same amount, same day. Check it's not a double charge.",
+      "money": 14.2,
+      "button": "Review",
+      "pinned": false
+    },
+    {
+      "id": "rise-spotify",
+      "severity": "watch",
+      "title": "Spotify (via PayPal) went up to €12.99",
+      "body": "From €11.99 since 3 Jul: €12.00 more a year.",
+      "money": 12,
+      "button": "Review",
+      "pinned": false
+    }
+  ],
+  "ladder": [
+    {
+      "key": "plan",
+      "title": "Paying-back plan running",
+      "done": true,
+      "when": "€100 each payday"
+    },
+    {
+      "key": "starter",
+      "title": "€1,000 starter fund",
+      "done": false,
+      "when": "23 Oct 2026"
+    },
+    {
+      "key": "paid",
+      "title": "Everyone paid back",
+      "done": false,
+      "when": "23 Jan 2027"
+    },
+    {
+      "key": "three",
+      "title": "3 months saved",
+      "done": false,
+      "when": "25 May 2028"
+    },
+    {
+      "key": "invest",
+      "title": "Investing every month",
+      "done": false,
+      "when": "1 Jul 2027, when the Investment Account opens"
+    },
+    {
+      "key": "six",
+      "title": "6 months saved",
+      "done": false,
+      "when": "25 Jul 2030"
+    },
+    {
+      "key": "enough",
+      "title": "Your \"enough\" number",
+      "done": false,
+      "when": "around age 65"
+    }
+  ],
+  "recurring": [
+    {
+      "name": "Rent · landlord",
+      "cadence": "monthly",
+      "amount": 625,
+      "next": "2026-11-08"
+    },
+    {
+      "name": "Virgin Media",
+      "cadence": "monthly",
+      "amount": 72.5,
+      "next": "2026-10-21"
+    },
+    {
+      "name": "AIB quarterly fees",
+      "cadence": "quarterly",
+      "amount": 22.05,
+      "next": "2026-11-28"
+    },
+    {
+      "name": "Mobile top-up",
+      "cadence": "monthly",
+      "amount": 20,
+      "next": "2026-10-26"
+    },
+    {
+      "name": "Adobe Photoshop & Lightroom",
+      "cadence": "monthly",
+      "amount": 18.6,
+      "next": "2026-11-02"
+    },
+    {
+      "name": "Netflix",
+      "cadence": "monthly",
+      "amount": 13.99,
+      "next": "2026-10-22"
+    },
+    {
+      "name": "Spotify (via PayPal)",
+      "cadence": "monthly",
+      "amount": 12.99,
+      "next": "2026-11-03"
+    },
+    {
+      "name": "AIB overdraft interest",
+      "cadence": "quarterly",
+      "amount": 11.32,
+      "next": "2027-01-02"
+    },
+    {
+      "name": "Apple · €9.99",
+      "cadence": "monthly",
+      "amount": 9.99,
+      "next": "2026-10-18"
+    },
+    {
+      "name": "Lexicon DJ",
+      "cadence": "monthly",
+      "amount": 8.99,
+      "next": "2026-10-21"
+    },
+    {
+      "name": "MetalpriceAPI",
+      "cadence": "monthly",
+      "amount": 6.52,
+      "next": "2026-10-28"
+    },
+    {
+      "name": "Apple · €4.99",
+      "cadence": "monthly",
+      "amount": 4.99,
+      "next": "2026-11-12"
+    },
+    {
+      "name": "Google One",
+      "cadence": "monthly",
+      "amount": 1.99,
+      "next": "2026-11-07"
+    }
+  ]
+}
