@@ -87,7 +87,9 @@ export interface ApiClientOptions {
   baseUrl: string;
   /** Returns the current Supabase access token, or null when signed out. */
   getToken: () => Promise<string | null>;
-  /** Called on 401 so the app can sign the user out. */
+  /** Called once on 401 to get a fresh access token (null when it cannot); the request is retried with it. */
+  refreshToken?: () => Promise<string | null>;
+  /** Called on 401 (after a failed refresh) so the app can sign the user out. */
   onUnauthorized?: () => void;
   fetchImpl?: typeof fetch;
 }
@@ -107,17 +109,22 @@ export class FinallyApi {
   constructor(private readonly opts: ApiClientOptions) {}
 
   private async raw(method: string, path: string, init: { query?: Query; body?: unknown } = {}): Promise<Response> {
-    const token = await this.opts.getToken();
     const f = this.opts.fetchImpl ?? fetch;
-    const res = await f(`${this.opts.baseUrl.replace(/\/$/, '')}${path}${qs(init.query)}`, {
-      method,
-      headers: {
-        ...(init.body !== undefined ? { 'content-type': 'application/json' } : {}),
-        accept: 'application/json',
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-      ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
-    });
+    const send = (token: string | null) =>
+      f(`${this.opts.baseUrl.replace(/\/$/, '')}${path}${qs(init.query)}`, {
+        method,
+        headers: {
+          ...(init.body !== undefined ? { 'content-type': 'application/json' } : {}),
+          accept: 'application/json',
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+        ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
+      });
+    let res = await send(await this.opts.getToken());
+    if (res.status === 401 && this.opts.refreshToken) {
+      const fresh = await this.opts.refreshToken();
+      if (fresh) res = await send(fresh);
+    }
     if (res.status === 401) this.opts.onUnauthorized?.();
     if (!res.ok) {
       let body: unknown;
