@@ -4,7 +4,8 @@ export const tsupBase = {
   format: ['esm', 'cjs'],
   dts: true,
   sourcemap: true,
-  clean: true,
+  // Not cleaned: a running dev server must never see dist half-built (a watch rebuild would otherwise delete the .d.ts first).
+  clean: false,
   target: 'es2023',
   outDir: 'dist',
 };

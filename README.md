@@ -19,7 +19,7 @@ switch on with environment variables.
 | `packages/finance-core` | All finance maths as pure functions with Vitest tests (money is `decimal.js`, never floats) |
 | `packages/api-client` | Typed fetch client and TanStack Query hooks shared by web and mobile |
 | `packages/db` | Prisma schema, migrations, seed data |
-| `packages/tokens` | Design tokens from one TypeScript source: CSS variables + shadcn theme (web) and a NativeWind preset (mobile) |
+| `packages/tokens` | Design tokens from one TypeScript source: CSS variables + shadcn theme (web), a NativeWind preset (mobile) and a Tokens Studio JSON export |
 | `packages/config` | tsconfig, ESLint flat config and tsup presets |
 | `supabase/` | Supabase CLI config |
 
