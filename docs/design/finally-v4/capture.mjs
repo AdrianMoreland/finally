@@ -17,16 +17,14 @@ const require = createRequire((process.env.PLAYWRIGHT_PATH ?? '/opt/node22/lib/n
 const { chromium } = require('playwright');
 
 const SWAPS = [
-  [/const USER = 'Adrian'/, "const USER = 'Alex'"],
-  [/adrian@example\.com/g, 'alex@example.com'],
-  [/'CIARA BYRNE RENT'/g, "'ROBIN LEE RENT'"], [/n:'Ciara'/g, "n:'Robin'"], [/raw:'CIARA BYRNE RENT'/g, "raw:'ROBIN LEE RENT'"],
-  [/n:'Tomás', raw:'TOMAS REYES'/g, "n:'Marta', raw:'MARTA KOWAL'"], [/Payment from TOMAS REYES/g, 'Payment from MARTA KOWAL'],
-  [/'JULES MARTIN( [A-Z]+)?'/g, (_m, s) => `'SAM FOX${s ?? ''}'`],
-  [/Tomás owes half|Tomás pays it/g, (m) => m.replace('Tomás', 'Marta')], [/name:'Tomás'/g, "name:'Marta'"], [/His half of the IKEA/g, 'Her half of the IKEA'],
-  [/CCX SERVICES/g, 'ACME PAYROLL'], [/Merrion Gold/g, 'Acme'],
+  ['Adrian', 'Alex'], ['ADRIAN', 'ALEX'], ['adrian', 'alex'],
+  ['Ciara', 'Robin'], ['CIARA', 'ROBIN'], ['ciara', 'robin'], ['BYRNE', 'LEE'],
+  ['Tomás', 'Marta'], ['Tomas', 'Marta'], ['TOMAS', 'MARTA'], ['tomas', 'marta'], ['REYES', 'KOWAL'],
+  ['Jules', 'Sam'], ['JULES', 'SAM'], ['jules', 'sam'], ['MARTIN', 'FOX'],
+  ['CCX SERVICES', 'ACME PAYROLL'],
 ];
 let html = readFileSync(src, 'utf8');
-for (const [re, to] of SWAPS) html = html.replace(re, to);
+for (const [from, to] of SWAPS) html = html.split(from).join(to);
 const tmp = join(out, '.proto.tmp.html');
 mkdirSync(out, { recursive: true });
 writeFileSync(tmp, html);

@@ -29,7 +29,7 @@
           "onOrAfterRentDay": true
         },
         {
-          "name": "Jules",
+          "name": "Sam",
           "got": 300,
           "left": 325,
           "paidOn": [
@@ -66,7 +66,7 @@
           "onOrAfterRentDay": true
         },
         {
-          "name": "Jules",
+          "name": "Sam",
           "got": 625,
           "left": 0,
           "paidOn": [
@@ -103,7 +103,7 @@
           "onOrAfterRentDay": true
         },
         {
-          "name": "Jules",
+          "name": "Sam",
           "got": 625,
           "left": 0,
           "paidOn": [
@@ -141,7 +141,7 @@
           "onOrAfterRentDay": true
         },
         {
-          "name": "Jules",
+          "name": "Sam",
           "got": 625,
           "left": 0,
           "paidOn": [
@@ -178,7 +178,7 @@
           "onOrAfterRentDay": true
         },
         {
-          "name": "Jules",
+          "name": "Sam",
           "got": 625,
           "left": 0,
           "paidOn": [
@@ -216,7 +216,7 @@
           "onOrAfterRentDay": true
         },
         {
-          "name": "Jules",
+          "name": "Sam",
           "got": 625,
           "left": 0,
           "paidOn": [
@@ -1677,9 +1677,9 @@
       "pinned": false
     },
     {
-      "id": "share-fm_jules",
+      "id": "share-fm_sam",
       "severity": "watch",
-      "title": "Jules has sent €300 of €625 for October",
+      "title": "Sam has sent €300 of €625 for October",
       "body": "You paid the full €2,500 on 8 Oct. €325 is still to come. It counts as owed to you, not as your rent.",
       "money": 325,
       "button": "Copy reminder",
@@ -1716,7 +1716,7 @@
       "id": "owed-ikea",
       "severity": "act",
       "title": "Marta owes you €45 since 20 Sep",
-      "body": "Her half of the IKEA shelves. Copy a friendly reminder to send.",
+      "body": "His half of the IKEA shelves. Copy a friendly reminder to send.",
       "money": 44.5,
       "button": "Copy reminder",
       "pinned": false
