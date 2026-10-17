@@ -33,6 +33,8 @@ import {
   okResponse,
   priceSeriesQuery,
   priceSeriesSchema,
+  markShareBody,
+  splitBody,
   recategoriseTransactionBody,
   recurringSchema,
   registerDeviceBody,
@@ -93,6 +95,8 @@ export class TransactionPageDto extends createZodDto(transactionPage) {}
 export class TransactionDto extends createZodDto(transactionSchema) {}
 export class UpdateTransactionDto extends createZodDto(updateTransactionBody) {}
 export class RecategoriseTransactionDto extends createZodDto(recategoriseTransactionBody) {}
+export class SplitDto extends createZodDto(splitBody) {}
+export class MarkShareDto extends createZodDto(markShareBody) {}
 export class UpdatedCountDto extends createZodDto(updatedCountResponse) {}
 
 export class CategoriseQueueDto extends createZodDto(categoriseQueueResponse) {}

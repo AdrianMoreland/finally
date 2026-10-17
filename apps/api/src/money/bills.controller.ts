@@ -2,12 +2,13 @@ import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { budgetSuggestions } from '@finally/finance-core';
 import { ZodSerializerDto } from 'nestjs-zod';
-import { BillsDto, CancelRepeatingDto, CashflowDto, CashflowQueryDto, DismissDto, MonthDto } from '../common/app-dto';
+import { BillsDto, CancelRepeatingDto, CashflowDto, CashflowQueryDto, DismissDto, MonthDto, SpendingDto, SpendingQueryDto } from '../common/app-dto';
 import { CurrentUser, type AuthUser } from '../common/tokens';
 import { SnapshotService } from '../snapshot/snapshot.service';
 import { BillsService } from './bills.service';
 import { CashflowService } from './cashflow.service';
 import { MonthService } from './month.service';
+import { SpendingService } from './spending.service';
 
 @ApiTags('money')
 @ApiBearerAuth()
@@ -17,6 +18,7 @@ export class MoneyController {
     private readonly bills: BillsService,
     private readonly month: MonthService,
     private readonly cashflow: CashflowService,
+    private readonly spending: SpendingService,
     private readonly snapshot: SnapshotService,
   ) {}
 
@@ -37,6 +39,13 @@ export class MoneyController {
   @ZodSerializerDto(BillsDto)
   dismiss(@CurrentUser() user: AuthUser, @Body() body: DismissDto) {
     return this.bills.dismiss(user.id, body.id);
+  }
+
+  /** How much was spent, by category, over any period (and for one category when asked). */
+  @Get('money/spending')
+  @ZodSerializerDto(SpendingDto)
+  getSpending(@CurrentUser() user: AuthUser, @Query() q: SpendingQueryDto) {
+    return this.spending.get(user.id, q);
   }
 
   /** What came in and where it went over a period, for the Cash flow chart. Housemates' rent only passes through. */

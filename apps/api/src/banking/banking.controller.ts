@@ -42,7 +42,7 @@ export class BankingController {
   @Patch('accounts/:id')
   @ZodSerializerDto(AccountDto)
   updateAccount(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: UpdateAccountDto) {
-    return this.banking.updateAccount(user.id, id, body.includeInNetWorth);
+    return this.banking.updateAccount(user.id, id, body);
   }
 
   @Get('banking/connections')
