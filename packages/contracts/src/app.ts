@@ -60,6 +60,8 @@ export const rentFlatmate = z.object({
   matchers: z.array(z.object({ kind: z.literal('text'), value: z.string().min(1).max(80) })).max(8).catch([]),
   /** Only credits on this account count. */
   account: z.string().nullable().catch(null).optional(),
+  /** What this person owes each month, by the month it starts. Empty means an equal share. */
+  amounts: z.array(z.object({ from: z.string().regex(/^\d{4}-\d{2}$/), amount: z.string().regex(/^\d+(\.\d{1,2})?$/) })).max(24).catch([]),
 });
 const rentPrefs = z.object({
   total: z.string().catch('0'),
@@ -68,6 +70,8 @@ const rentPrefs = z.object({
   flatmates: z.array(rentFlatmate).max(11).catch([]),
   overdraftPatterns: z.array(z.string()).catch(['INTEREST CHARGED', 'OVERDRAFT']),
 });
+/** The arranged overdraft is per account; this is how much of it safe to spend must leave alone. */
+const overdraftPrefs = z.object({ keepFree: z.string().regex(/^\d{1,9}(\.\d{1,2})?$/).catch('0') });
 const tripRange = z.object({ from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) });
 
 function emptyIfMissing(v: unknown): unknown {
@@ -89,6 +93,7 @@ export const userPrefs = z.object({
   dismissed: z.array(z.string()).catch([]),
   contractRemind: bool(false),
   rent: sec(rentPrefs),
+  overdraft: sec(overdraftPrefs),
   /** Away months, left out of "your usual pace". */
   trips: z.array(tripRange).catch([]),
   /** Money you took out of a pot in Revolut: a one-off extra amount to put back on a payday. */
@@ -119,6 +124,8 @@ export const safeBreakdown = z.object({
   unsorted: money,
   budgetLeft: money,
   balance: money,
+  /** Overdraft room counted on top of the balance. */
+  overdraft: money,
   billsDue: money,
   buffer: money,
   balanceLeft: money,
