@@ -4,11 +4,13 @@ import type { ActionItemDto } from '@finally/contracts';
 import {
   addDays,
   buildActions,
+  creditAsks,
   D,
   doubleCharges,
   frontOverdraftInput,
   overdraftFees,
   rentRounds,
+  shortCredits,
   rentShareDebts,
   shareReminderInputs,
   FLEX_BUDGET_SLUGS,
@@ -23,6 +25,7 @@ import {
   spent,
   sum,
   dayOfMonth,
+  overdraftState,
 } from '@finally/finance-core';
 import { InjectDb } from '../common/tokens';
 import { toRentConfig } from '../data/rent-config';
@@ -34,6 +37,13 @@ import { SnapshotService, type Snapshot } from '../snapshot/snapshot.service';
 import { TaxService } from '../tax/tax.service';
 
 const SNOOZE_DAYS = 7;
+
+/** The overdraft figures for the Today note, only when an overdraft is arranged. */
+const overdraftNote = (balance: string, limit: string): { limit?: string; room?: string } => {
+  if (!D(limit).gt(0)) return {};
+  const o = overdraftState(balance, limit);
+  return { limit: o.limit, room: o.room };
+};
 
 /** Everything that needs the user, ranked by money involved. Shown on Today and used by the weekly review. */
 @Injectable()
@@ -110,9 +120,11 @@ export class ActionsService {
       owed: [...owed, ...shareOwed],
       pots: potsWithStatus,
       pace,
-      overdrawn: D(s.balance).lt(0) ? { balance: s.balance, fees12m, rentOn: frontOverdraft ? rentOn : undefined } : null,
+      overdrawn: D(s.balance).lt(0) ? { balance: s.balance, fees12m, rentOn: frontOverdraft ? rentOn : undefined, ...overdraftNote(s.balance, s.overdraftLimit) } : null,
       frontOverdraft,
       shareReminders: shareReminderInputs(s.txs, cfg, s.today),
+      shortCredits: shortCredits(s.txs, cfg, s.today, []),
+      creditAsks: creditAsks(s.txs, cfg, s.today, s.prefs.dismissed.filter((d) => d.startsWith('credit-')).map((d) => d.slice(7))),
       doubles: doubleCharges(s.txs, s.today).filter((d) => !dismissed.has(d.id)),
       rises: s.repeating
         .filter((r) => r.rise && !s.cancelled.has(r.id))

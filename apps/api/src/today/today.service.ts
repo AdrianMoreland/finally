@@ -5,7 +5,7 @@ import { addDays, D, FLEX_BUDGET_SLUGS, m2, spent, sum, weekLeft, weekStart, wee
 import { BillsService } from '../money/bills.service';
 import { MonthService } from '../money/month.service';
 import { PeopleService } from '../people/people.service';
-import { TransactionsService } from '../transactions/transactions.service';
+import { TransactionsService, txInclude } from '../transactions/transactions.service';
 import { ActionsService } from '../actions/actions.service';
 import { AskService } from '../ask/ask.service';
 import { BankingService } from '../banking/banking.service';
@@ -55,7 +55,7 @@ export class TodayService {
     const [recentRows, billsData] = await Promise.all([
       this.db.transaction.findMany({
         where: { userId, kind: { not: 'TRANSFER' }, bookingDate: { gte: new Date(`${addDays(s.today, -3)}T00:00:00Z`) } },
-        include: { account: { include: { connection: { select: { institution: true } } } }, merchant: true, category: true },
+        include: txInclude,
         orderBy: [{ bookingDate: 'desc' }, { id: 'desc' }],
         take: 30,
       }),

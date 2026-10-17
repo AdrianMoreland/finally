@@ -7,6 +7,8 @@ import {
   askResponse,
   billsSchema,
   cashflowQuery,
+  spendingQuery,
+  spendingSchema,
   refillBody,
   cashflowSchema,
   bonusSchema,
@@ -110,5 +112,7 @@ export class PrefsDto extends createZodDto(userPrefs) {}
 export class PrefsPatchDto extends createZodDto(userPrefsPatch) {}
 
 export class CashflowDto extends createZodDto(cashflowSchema) {}
+export class SpendingQueryDto extends createZodDto(spendingQuery) {}
+export class SpendingDto extends createZodDto(spendingSchema) {}
 export class CashflowQueryDto extends createZodDto(cashflowQuery) {}
 export class RefillDto extends createZodDto(refillBody) {}
