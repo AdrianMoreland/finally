@@ -135,10 +135,12 @@ export const accountSchema = z.object({
   balance: money,
   balanceAt: instant.nullable(),
   includeInNetWorth: z.boolean(),
+  /** The arranged overdraft; 0 when there is none. */
+  overdraftLimit: money,
 });
 export type AccountDto = z.infer<typeof accountSchema>;
 
-export const updateAccountBody = z.object({ includeInNetWorth: z.boolean() });
+export const updateAccountBody = z.object({ includeInNetWorth: z.boolean().optional(), overdraftLimit: z.string().regex(/^\d{1,9}(\.\d{1,2})?$/).optional() });
 
 export const connectionSchema = z.object({
   id,
@@ -208,6 +210,10 @@ export const transactionSchema = z.object({
   excluded: z.boolean(),
   tags: z.array(z.string()),
   flag: z.string().nullable(),
+  /** Credits only: the housemate (id from the rent settings) this was marked as a rent share from. */
+  shareOf: z.string().nullable(),
+  /** With `shareOf`: the rent month (YYYY-MM) it counts toward when that is not the month its date falls in. */
+  shareMonth: z.string().nullable(),
   /** Rent payments only: your share is `amountEur`; the bank line was `total`. */
   rentSplit: z
     .object({
@@ -218,8 +224,45 @@ export const transactionSchema = z.object({
     })
     .nullable()
     .optional(),
+  /** Set when the transaction is split: the parts, and whether the bank changed the amount since. */
+  split: z
+    .object({
+      parts: z.array(
+        z.object({
+          amount: money,
+          categoryId: z.string().nullable(),
+          categoryName: z.string().nullable(),
+          shareOf: z.string().nullable(),
+          shareMonth: z.string().nullable(),
+          nonCash: z.boolean(),
+        }),
+      ),
+      changed: z.boolean(),
+    })
+    .nullable()
+    .optional(),
 });
 export type TransactionDto = z.infer<typeof transactionSchema>;
+
+/**
+ * Split a transaction into parts. Amounts are positive; cash parts take the sign of the transaction and must add up to
+ * it. A non-cash part was settled without money moving and needs the person (`shareOf`) who covered it.
+ */
+export const splitBody = z.object({
+  parts: z
+    .array(
+      z.object({
+        amount: z.string().regex(/^\d{1,12}(\.\d{1,2})?$/, 'Expected a positive amount such as "12.50"'),
+        categoryId: id.nullable(),
+        shareOf: z.string().min(1).max(40).nullable().optional(),
+        shareMonth: z.string().regex(/^\d{4}-\d{2}$/).nullable().optional(),
+        nonCash: z.boolean().optional(),
+      }),
+    )
+    .min(1)
+    .max(12),
+});
+export type SplitBody = z.infer<typeof splitBody>;
 
 export const listTransactionsQuery = pageQuery.extend({
   accountId: id.optional(),
@@ -285,6 +328,19 @@ export const updateTransactionBody = z.object({
   tags: z.array(z.string().min(1).max(30)).max(10).optional(),
 });
 export type UpdateTransactionBody = z.infer<typeof updateTransactionBody>;
+
+/**
+ * Mark a credit as a housemate's rent share. `personId: null` removes the mark. `remember` is text from the bank
+ * description to add to that person's matchers ("Every time"); without it only this transaction is marked ("Just this
+ * once"). `notRent` answers a credit ask with "not rent".
+ */
+export const markShareBody = z.object({
+  personId: z.string().min(1).max(40).nullable(),
+  month: z.string().regex(/^\d{4}-\d{2}$/).nullable().optional(),
+  remember: z.string().min(1).max(80).optional(),
+  notRent: z.boolean().optional(),
+});
+export type MarkShareBody = z.infer<typeof markShareBody>;
 
 export const setScope = z.enum(['merchant', 'once']);
 export type SetScope = z.infer<typeof setScope>;

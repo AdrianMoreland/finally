@@ -12,7 +12,17 @@ interface RentRow {
   id: string;
   name: string;
   match: string;
+  amounts: Array<{ from: string; amount: string }>;
 }
+
+const thisMonth = (): string => new Date().toISOString().slice(0, 7);
+/** The amount in force this month: the latest that has started (the first covers earlier months). */
+const currentAmount = (amounts: RentRow['amounts']): number | null => {
+  const sorted = [...amounts].filter((a) => a.from && a.amount !== '').sort((a, b) => a.from.localeCompare(b.from));
+  const now = thisMonth();
+  const hit = [...sorted].reverse().find((a) => a.from <= now) ?? sorted[0];
+  return hit ? Number(hit.amount) || 0 : null;
+};
 
 /** The rent settings card: used under Settings and in the setup flow. `onSaved` runs after a successful save. */
 export function RentSettings({ className, onSaved, suggest }: { className?: string; onSaved?: () => void; suggest?: { total: string; day: number } | null }): ReactNode {
@@ -26,10 +36,14 @@ function RentForm({ rent, className, onSaved, suggest }: { rent: RentPrefs; clas
   const [total, setTotal] = useState(Number(rent.total) > 0 ? String(Number(rent.total)) : suggest ? String(Number(suggest.total)) : '');
   const [day, setDay] = useState(String(rent.household >= 2 || !suggest ? rent.day : suggest.day));
   const [household, setHousehold] = useState(String(rent.household));
-  const [rows, setRows] = useState<RentRow[]>(rent.flatmates.map((f) => ({ id: f.id, name: f.name, match: f.matchers.map((m) => m.value).join(', ') })));
+  const [rows, setRows] = useState<RentRow[]>(rent.flatmates.map((f) => ({ id: f.id, name: f.name, match: f.matchers.map((m) => m.value).join(', '), amounts: f.amounts })));
   const people = Math.max(1, Math.min(12, Math.round(Number(household) || 1)));
-  const own = Number(total) > 0 && people >= 2 ? Number(total) / people : null;
-
+  const equal = Number(total) > 0 && people >= 2 ? Number(total) / people : 0;
+  const named = rows.filter((r) => r.name.trim());
+  const others = named.reduce((n, r) => n + (currentAmount(r.amounts) ?? equal), 0) + equal * Math.max(0, people - 1 - named.length);
+  const own = Number(total) > 0 && people >= 2 ? Math.max(0, Number(total) - others) : null;
+  const over = Number(total) > 0 && others > Number(total) + 0.005;
+  const setRow = (i: number, next: Partial<RentRow>): void => setRows(rows.map((x, j) => (j === i ? { ...x, ...next } : x)));
   const save = (): void => {
     patch.mutate(
       {
@@ -47,6 +61,7 @@ function RentForm({ rent, className, onSaved, suggest }: { rent: RentPrefs; clas
                 .map((x) => x.trim())
                 .filter(Boolean)
                 .map((value) => ({ kind: 'text' as const, value })),
+              amounts: r.amounts.filter((a) => a.from && a.amount !== '').map((a) => ({ from: a.from, amount: (Number(a.amount) || 0).toFixed(2) })),
             })),
         },
       },
@@ -68,20 +83,38 @@ function RentForm({ rent, className, onSaved, suggest }: { rent: RentPrefs; clas
           <div className="grid gap-1.5"><Label htmlFor="r-house">People sharing</Label><Input id="r-house" inputMode="numeric" value={household} onChange={(e) => setHousehold(e.target.value)} className="h-9" /></div>
         </div>
         <p className="text-[12.5px] text-ink-3">
-          {own != null ? `Your rent is ${eur(own)} a month. ` : 'Enter the total and how many of you share it (yourself included). 1 turns this off. '}
+          {own != null
+            ? `Your share is ${eur(own)} a month: the total minus what the others owe. ${over ? 'The others add up to more than the total.' : ''}`
+            : 'Enter the total and how many of you share it (yourself included). 1 turns this off. '}
         </p>
         {people >= 2 ? (
           <div className="grid gap-2">
             <Label>The others, and how their transfers look in your bank</Label>
             {rows.map((r, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Input value={r.name} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} placeholder="Name" className="h-9 w-[130px]" aria-label="Name" />
-                <Input value={r.match} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, match: e.target.value } : x)))} placeholder="Text in the bank description, e.g. a surname" className="h-9 flex-1" aria-label="Text to match" />
-                <button type="button" className="text-ink-3 hover:text-ink" aria-label="Remove" onClick={() => setRows(rows.filter((_, j) => j !== i))}><Trash2 className="size-4" aria-hidden="true" /></button>
+              <div key={i} className="grid gap-1.5 rounded-lg border border-line p-2">
+                <div className="flex items-center gap-2">
+                  <Input value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} placeholder="Name" className="h-9 w-[130px]" aria-label="Name" />
+                  <Input value={r.match} onChange={(e) => setRow(i, { match: e.target.value })} placeholder="Text in the bank description, e.g. a surname" className="h-9 flex-1" aria-label="Text to match" />
+                  <button type="button" className="text-ink-3 hover:text-ink" aria-label="Remove" onClick={() => setRows(rows.filter((_, j) => j !== i))}><Trash2 className="size-4" aria-hidden="true" /></button>
+                </div>
+                {r.amounts.map((a, k) => (
+                  <div key={k} className="flex items-center gap-2 text-[13px] text-ink-2">
+                    <span className="w-[72px]">{k === 0 ? 'Owes (€)' : 'Changes to'}</span>
+                    <Input inputMode="decimal" value={a.amount} onChange={(e) => setRow(i, { amounts: r.amounts.map((x, n) => (n === k ? { ...x, amount: e.target.value } : x)) })} className="h-8 w-[90px]" aria-label={`${r.name || 'Person'} owes`} />
+                    <span>from</span>
+                    <Input type="month" value={a.from} onChange={(e) => setRow(i, { amounts: r.amounts.map((x, n) => (n === k ? { ...x, from: e.target.value } : x)) })} className="h-8 w-[150px]" aria-label="From month" />
+                    <button type="button" className="text-ink-3 hover:text-ink" aria-label="Remove amount" onClick={() => setRow(i, { amounts: r.amounts.filter((_, n) => n !== k) })}><Trash2 className="size-3.5" aria-hidden="true" /></button>
+                  </div>
+                ))}
+                <div>
+                  <button type="button" className="text-[12.5px] font-semibold text-brand" onClick={() => setRow(i, { amounts: [...r.amounts, { from: r.amounts.length ? thisMonth() : '2000-01', amount: '' }] })}>
+                    {r.amounts.length ? 'Amount changes from a month' : 'Set an amount (otherwise an equal share)'}
+                  </button>
+                </div>
               </div>
             ))}
             <div>
-              <button type="button" className="text-[13px] font-semibold text-brand" onClick={() => setRows([...rows, { id: `m${Date.now().toString(36)}`, name: '', match: '' }])}>
+              <button type="button" className="text-[13px] font-semibold text-brand" onClick={() => setRows([...rows, { id: `m${Date.now().toString(36)}`, name: '', match: '', amounts: [] }])}>
                 Add a person
               </button>
             </div>

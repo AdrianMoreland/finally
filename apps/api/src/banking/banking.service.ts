@@ -105,13 +105,20 @@ export class BankingService implements OnModuleInit {
       balance: money(a.balance),
       balanceAt: isoOrNull(a.balanceAt),
       includeInNetWorth: a.includeInNetWorth,
+      overdraftLimit: money(a.overdraftLimit),
     }));
   }
 
-  async updateAccount(userId: string, id: string, includeInNetWorth: boolean) {
+  async updateAccount(userId: string, id: string, body: { includeInNetWorth?: boolean; overdraftLimit?: string }) {
     const acc = await this.db.account.findFirst({ where: { id, userId } });
     if (!acc) throw new NotFoundException('Account not found');
-    await this.db.account.update({ where: { id }, data: { includeInNetWorth } });
+    await this.db.account.update({
+      where: { id },
+      data: {
+        ...(body.includeInNetWorth !== undefined ? { includeInNetWorth: body.includeInNetWorth } : {}),
+        ...(body.overdraftLimit !== undefined ? { overdraftLimit: body.overdraftLimit } : {}),
+      },
+    });
     return (await this.listAccounts(userId)).find((a) => a.id === id)!;
   }
 

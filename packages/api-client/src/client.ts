@@ -18,6 +18,7 @@ import {
   taxSchema,
   todaySchema,
   cashflowSchema,
+  spendingSchema,
   type CashflowPeriod,
   userPrefs,
   vaultSchema,
@@ -65,6 +66,8 @@ import {
   type CreateRuleBody,
   type Institution,
   type ListTransactionsQuery,
+  type MarkShareBody,
+  type SplitBody,
   type RecategoriseTransactionBody,
   type RegisterDeviceBody,
   type UpdateCategoryBody,
@@ -165,6 +168,9 @@ export class FinallyApi {
   transaction = (id: string) => this.call(transactionSchema, 'GET', `/transactions/${id}`);
   setNote = (id: string, note: string | null) => this.call(transactionSchema, 'PATCH', `/transactions/${id}`, { body: { note } });
   patchTransaction = (id: string, body: UpdateTransactionBody) => this.call(transactionSchema, 'PATCH', `/transactions/${id}`, { body });
+  setSplit = (id: string, body: SplitBody) => this.call(transactionSchema, 'PUT', `/transactions/${id}/split`, { body });
+  clearSplit = (id: string) => this.call(transactionSchema, 'DELETE', `/transactions/${id}/split`);
+  markShare = (id: string, body: MarkShareBody) => this.call(transactionSchema, 'POST', `/transactions/${id}/share`, { body });
   recategorise = (id: string, body: RecategoriseTransactionBody) =>
     this.call(updatedCountResponse, 'POST', `/transactions/${id}/category`, { body });
 
@@ -187,6 +193,7 @@ export class FinallyApi {
   accounts = () => this.call(z.array(accountSchema), 'GET', '/accounts');
   setAccountNetWorth = (id: string, includeInNetWorth: boolean) =>
     this.call(accountSchema, 'PATCH', `/accounts/${id}`, { body: { includeInNetWorth } });
+  setAccountOverdraft = (id: string, overdraftLimit: string) => this.call(accountSchema, 'PATCH', `/accounts/${id}`, { body: { overdraftLimit } });
   connections = () => this.call(z.array(connectionSchema), 'GET', '/banking/connections');
   startConnection = (institution: Institution, returnTo: 'web' | 'mobile' = 'web') =>
     this.call(startConnectionResponse, 'POST', '/banking/connections', { body: { institution, returnTo } });
@@ -205,6 +212,7 @@ export class FinallyApi {
 
   /* today, ask, month */
   today = () => this.call(todaySchema, 'GET', '/today');
+  spending = (q: { from: string; to: string; category?: string }) => this.call(spendingSchema, 'GET', '/money/spending', { query: q });
   cashflow = (period: CashflowPeriod, pass: boolean) => this.call(cashflowSchema, 'GET', '/money/cashflow', { query: { period, pass: String(pass) } });
   snooze = (actionId: string) => this.call(okResponse, 'POST', '/today/snooze', { body: { actionId } });
   unsnoozeAll = () => this.call(okResponse, 'DELETE', '/today/snooze');

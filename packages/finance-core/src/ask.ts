@@ -193,6 +193,44 @@ function parsePeriod(t0: string, ctx: AskContext): Period[] {
     const mi = MONTHS.findIndex((a) => a.includes(since[1]!));
     found.push({ from: rangeOfMonth(mi).from, to: today, label: `Since ${MONTH_NAMES[mi]}`, key: 'custom' });
   }
+  // Day-level dates: "since 1 oct", "since the 3rd of october", "since 2026-10-01", "from 5 sep to 20 sep", "between 1 oct and 10 oct".
+  const consumed: Array<[number, number]> = [];
+  const mAlt = MONTHS.flat().sort((x, y) => y.length - x.length).map(reEsc).join('|');
+  const dayMonth = String.raw`(\d{1,2})(?:st|nd|rd|th)?(?: of)? (${mAlt})`;
+  const dayDate = (d: string, mon: string): string | null => {
+    const mi = MONTHS.findIndex((alts) => alts.includes(mon));
+    const day = Number(d);
+    if (mi < 0 || day < 1) return null;
+    const curY = Number(today.slice(0, 4));
+    const at = (y: number): string => `${y}-${String(mi + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const y = at(curY) > today ? curY - 1 : curY;
+    return day <= daysInMonth(at(y).slice(0, 7)) ? at(y) : null;
+  };
+  const rangeM = new RegExp(String.raw`\b(?:from|between) ${dayMonth} (?:to|and|until|till) ${dayMonth}\b`).exec(t);
+  if (rangeM) {
+    const a = dayDate(rangeM[1]!, rangeM[2]!);
+    const b = dayDate(rangeM[3]!, rangeM[4]!);
+    if (a && b && a <= b) {
+      found.push({ from: a, to: b, label: `${dl(a)} to ${dl(b)}`, key: 'custom' });
+      consumed.push([rangeM.index, rangeM.index + rangeM[0].length]);
+    }
+  }
+  const sinceDay = new RegExp(String.raw`\bsince (?:the )?${dayMonth}\b`).exec(t);
+  if (sinceDay) {
+    const a = dayDate(sinceDay[1]!, sinceDay[2]!);
+    if (a) {
+      found.push({ from: a, to: today, label: `Since ${dl(a)}`, key: 'custom' });
+      consumed.push([sinceDay.index, sinceDay.index + sinceDay[0].length]);
+    }
+  }
+  const sinceIso = /\bsince (\d{4}) (\d{2}) (\d{2})\b/.exec(t);
+  if (sinceIso) {
+    const a = `${sinceIso[1]}-${sinceIso[2]}-${sinceIso[3]}`;
+    if (a <= today) {
+      found.push({ from: a, to: today, label: `Since ${dl(a)}`, key: 'custom' });
+      consumed.push([sinceIso.index, sinceIso.index + sinceIso[0].length]);
+    }
+  }
   const months: Array<{ mi: number; at: number }> = [];
   MONTHS.forEach((alts, mi) =>
     alts.forEach((a) => {
@@ -200,6 +238,7 @@ function parsePeriod(t0: string, ctx: AskContext): Period[] {
       let m: RegExpExecArray | null;
       while ((m = re.exec(t))) {
         if (since && since.index! <= m.index && m.index < since.index! + since[0].length) continue;
+        if (consumed.some(([x, y]) => x <= m!.index && m!.index < y)) continue;
         months.push({ mi, at: m.index });
       }
     }),
@@ -474,6 +513,10 @@ export function answerSpend(q: ParsedQuery, txs: readonly LedgerTx[], n: SpendNa
   const refunds = list.filter((t) => t.kind === 'REFUND');
   const refNote = `${refunds.length ? ` Includes ${eur(sum(refunds.map((t) => t.amount)).toFixed(2))} refunded.` : ''}${q.slug === 'rent' ? ' Your rent is your share of what the landlord takes.' : ''}`;
   const head = `${scopeName(q, n)}${qualifier} ${lc(p.label)} (${rng(p.from, p.to)})`;
+  const mName = q.merchantKey ? n.merchant(q.merchantKey) : null;
+  r.action = mName
+    ? { label: 'See the payments', to: `/money/payments?q=${encodeURIComponent(mName)}&from=${p.from}&to=${p.to}` }
+    : { label: 'See it by category', to: `/money/spending?period=custom&from=${p.from}&to=${p.to}${q.slug ? `&category=${q.slug}` : ''}` };
   if (q.intent === 'count') {
     r.big = `${count} ${count === 1 ? 'time' : 'times'}`;
     r.short = `${scopeName(q, n)}, ${lc(p.label)}`;

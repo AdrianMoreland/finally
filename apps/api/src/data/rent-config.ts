@@ -9,7 +9,7 @@ export function toRentConfig(prefs: Pick<UserPrefs, 'rent'>): RentConfig | null 
     total: r.total,
     day: r.day,
     household: r.household,
-    flatmates: r.flatmates.map((f) => ({ id: f.id, name: f.name, matchers: f.matchers.map((m) => m.value), accountId: f.account ?? null })),
+    flatmates: r.flatmates.map((f) => ({ id: f.id, name: f.name, matchers: f.matchers.map((m) => m.value), accountId: f.account ?? null, amounts: f.amounts })),
     overdraftPatterns: r.overdraftPatterns,
   };
 }

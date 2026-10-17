@@ -59,6 +59,8 @@ export function mobileHref(to: string): Href {
     '/sort': '/categorise',
     '/money/sort': '/categorise',
     '/money/payments': '/(tabs)/activity',
+    // The phone has no Spending view yet (roadmap 0.7); the payments list is the nearest thing.
+    '/money/spending': '/(tabs)/activity',
     '/money/budgets': '/(tabs)/budgets',
     '/money/bills': '/bills',
     '/money/month': '/month',
@@ -72,5 +74,5 @@ export function mobileHref(to: string): Href {
     '/grow/freedom': '/freedom',
     '/': '/(tabs)',
   };
-  return map[to] ?? '/(tabs)';
+  return map[to.split('?')[0]!] ?? '/(tabs)';
 }

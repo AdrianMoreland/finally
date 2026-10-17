@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { incomeIn, isSpendish } from './ledger';
-import { expandRentSplits, houseMessage, matchShare, rentOwed, rentRounds, rentShareDebts, shareReminder, type RentConfig } from './rent';
+import { creditAsks, expandRentSplits, shortCredits, houseMessage, matchShare, rentOwed, rentRounds, rentShareDebts, shareDues, shareReminder, type RentConfig } from './rent';
 import { tx } from './testkit';
 
 const cfg: RentConfig = {
@@ -37,6 +37,124 @@ describe('expandRentSplits', () => {
   it('FRONT and SHARE are not spending', () => {
     const rows = expandRentSplits([rent('2026-10-08'), share('2026-10-07', '625.00', 'ZOE')], cfg);
     expect(rows.filter(isSpendish)).toHaveLength(1);
+  });
+});
+
+describe('shares that differ per person', () => {
+  // Until September two flatmates pay 614 and the other two split the rest; from October the third pays 766.
+  const diff: RentConfig = {
+    ...cfg,
+    flatmates: [
+      { id: 'a', name: 'Flatmate A', matchers: ['zoe'], amounts: [{ from: '2026-01', amount: '614' }] },
+      { id: 'b', name: 'Flatmate B', matchers: ['bram'], amounts: [{ from: '2026-01', amount: '614' }] },
+      {
+        id: 'c',
+        name: 'Flatmate C',
+        matchers: ['cleo'],
+        amounts: [
+          { from: '2026-01', amount: '636' },
+          { from: '2026-10', amount: '766' },
+        ],
+      },
+    ],
+  };
+
+  it('dues follow the month, and yours is what is left', () => {
+    expect(shareDues(diff, '2026-09-08')).toEqual({ own: '636.00', mates: { a: '614.00', b: '614.00', c: '636.00' } });
+    expect(shareDues(diff, '2026-10-08')).toEqual({ own: '506.00', mates: { a: '614.00', b: '614.00', c: '766.00' } });
+  });
+  it('the first amount applies to months before it', () => {
+    expect(shareDues(diff, '2025-12-08').mates.c).toBe('636.00');
+  });
+  it('people with no amount pay an equal share; untracked housemates do too', () => {
+    const legacy = shareDues({ ...cfg, household: 5 }, '2026-10-08');
+    expect(legacy).toEqual({ own: '500.00', mates: { a: '500.00', b: '500.00', c: '500.00' } });
+  });
+  it('your share never goes below zero', () => {
+    const over = { ...diff, flatmates: diff.flatmates.map((f) => ({ ...f, amounts: [{ from: '2026-01', amount: '1000' }] })) };
+    expect(shareDues(over, '2026-10-08').own).toBe('0.00');
+  });
+  it('splits the rent debit into your remainder and the rest fronted', () => {
+    const rows = expandRentSplits([rent('2026-10-08'), rent('2026-09-08')], diff);
+    expect(rows.map((r) => [r.date, r.kind, r.amount])).toEqual([
+      ['2026-10-08', 'SPEND', '-506.00'],
+      ['2026-10-08', 'FRONT', '-1994.00'],
+      ['2026-09-08', 'SPEND', '-636.00'],
+      ['2026-09-08', 'FRONT', '-1864.00'],
+    ]);
+  });
+  it('rounds judge each person against their own amount', () => {
+    const l = expandRentSplits([rent('2026-10-08'), share('2026-10-07', '614.00', 'ZOE'), share('2026-10-09', '700.00', 'CLEO'), share('2026-10-10', '700.00', 'BRAM')], diff);
+    const [oct] = rentRounds(l, diff);
+    expect(oct).toMatchObject({ own: '506.00', fronted: '1994.00', back: '1928.00' });
+    expect(oct!.mates.map((m) => [m.id, m.due, m.left, m.back])).toEqual([
+      ['a', '614.00', '0.00', '614.00'],
+      ['b', '614.00', '0.00', '614.00'],
+      ['c', '766.00', '66.00', '700.00'],
+    ]);
+  });
+});
+
+describe('marked shares', () => {
+  const self = (date: string, amount: string, extra: Partial<Parameters<typeof tx>[0]> = {}) =>
+    tx({ date, amount, kind: 'SHARE', slug: 'rent', rawDescriptor: 'TRANSFER FROM ADRIAN MORELAND', accountId: 'aib', ...extra });
+
+  it('a mark names the person even when no text matches', () => {
+    expect(matchShare(self('2026-10-12', '614.00', { shareOf: 'a' }), cfg)).toBe('a');
+    expect(matchShare(self('2026-10-12', '614.00'), cfg)).toBeNull();
+  });
+  it('a mark beats a text match', () => {
+    const t = tx({ date: '2026-10-07', amount: '614.00', kind: 'SHARE', rawDescriptor: 'PAYMENT FROM ZOE', accountId: 'aib', shareOf: 'b' });
+    expect(matchShare(t, cfg)).toBe('b');
+  });
+  it('a mark ignores the account filter and still needs a credit', () => {
+    expect(matchShare(self('2026-10-12', '614.00', { shareOf: 'a', accountId: 'rev' }), cfg)).toBe('a');
+    expect(matchShare(self('2026-10-12', '-614.00', { shareOf: 'a' }), cfg)).toBeNull();
+  });
+  it('a month pick moves a late transfer into that round, not the one its date falls in', () => {
+    // 3 Nov is in the October round window (28 Sep to 28 Oct)? No: it is in November's. Marked for October it counts there.
+    const l = expandRentSplits([rent('2026-11-08'), rent('2026-10-08'), self('2026-11-03', '614.00', { shareOf: 'a', shareMonth: '2026-10' })], cfg);
+    const [nov, oct] = rentRounds(l, cfg);
+    expect(oct!.mates[0]).toMatchObject({ got: '614.00', paid: ['2026-11-03'] });
+    expect(nov!.mates[0]).toMatchObject({ got: '0.00' });
+  });
+  it('without a month the date window decides', () => {
+    const l = expandRentSplits([rent('2026-10-08'), self('2026-10-12', '614.00', { shareOf: 'a' })], cfg);
+    expect(rentRounds(l, cfg)[0]!.mates[0]!.got).toBe('614.00');
+  });
+});
+
+describe('creditAsks', () => {
+  const salary = tx({ id: 's1', date: '2026-09-25', amount: '2419.77', kind: 'INCOME', rawDescriptor: 'WAGES ACME', accountId: 'aib' });
+  const salary2 = tx({ id: 's2', date: '2026-08-25', amount: '2419.77', kind: 'INCOME', rawDescriptor: 'WAGES ACME', accountId: 'aib' });
+  const own = (id: string, date: string, amount: string) => tx({ id, date, amount, kind: 'INCOME', rawDescriptor: 'TRANSFER FROM ADRIAN MORELAND', accountId: 'aib' });
+
+  it('asks about an unmarked credit inside the latest rent window, not the salary or small amounts', () => {
+    const l = expandRentSplits([rent('2026-10-08'), salary, salary2, own('x', '2026-10-12', '614.00'), own('y', '2026-10-13', '12.00')], cfg);
+    expect(creditAsks(l, cfg, '2026-10-14', []).map((a) => [a.txId, a.amount])).toEqual([['x', '614.00']]);
+  });
+  it('is quiet when the credit was handled or no rent round exists', () => {
+    const l = expandRentSplits([rent('2026-10-08'), own('x', '2026-10-12', '614.00')], cfg);
+    expect(creditAsks(l, cfg, '2026-10-14', ['x'])).toEqual([]);
+    expect(creditAsks([own('x', '2026-10-12', '614.00')], cfg, '2026-10-14', [])).toEqual([]);
+  });
+});
+
+describe('shortCredits', () => {
+  const diff: RentConfig = { ...cfg, flatmates: cfg.flatmates.map((f) => ({ ...f, amounts: [{ from: '2026-01', amount: '614' }] })) };
+  const victor = (id: string, date: string, amount: string) => tx({ id, date, amount, kind: 'SHARE', slug: 'rent', rawDescriptor: 'PAYMENT FROM ZOE', accountId: 'aib' });
+
+  it('finds one transfer a little under the share, with what is missing', () => {
+    const l = expandRentSplits([rent('2026-10-08'), victor('v1', '2026-10-10', '556.00')], diff);
+    expect(shortCredits(l, diff, '2026-10-14', [])).toEqual([{ txId: 'v1', personId: 'a', name: 'Flatmate A', due: '614.00', got: '556.00', left: '58.00' }]);
+  });
+  it('is quiet when paid in full, far short, paid twice, already split or dismissed', () => {
+    const run = (rows: ReturnType<typeof victor>[], handled: string[] = []) => shortCredits(expandRentSplits([rent('2026-10-08'), ...rows], diff), diff, '2026-10-14', handled);
+    expect(run([victor('v1', '2026-10-10', '614.00')])).toEqual([]);
+    expect(run([victor('v1', '2026-10-10', '300.00')])).toEqual([]);
+    expect(run([victor('v1', '2026-10-10', '500.00'), victor('v2', '2026-10-11', '50.00')])).toEqual([]);
+    expect(run([{ ...victor('v1:p0', '2026-10-10', '556.00'), splitOf: 'v1' }])).toEqual([]);
+    expect(run([victor('v1', '2026-10-10', '556.00')], ['v1'])).toEqual([]);
   });
 });
 

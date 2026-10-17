@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { overdraftSpendable, overdraftState } from './overdraft';
 import { computeSafeToSpend, weekLeft } from './safe';
 
 const base = {
@@ -43,6 +44,37 @@ describe('computeSafeToSpend', () => {
     const r = computeSafeToSpend({ ...base, balance: '-760.17' });
     expect(Number(r.pool)).toBeLessThan(0);
     expect(r.perDay).toBe('0.00');
+  });
+});
+
+describe('overdraft room', () => {
+  const tight = { ...base, billsBeforePayday: '0', buffer: '0', budgets: { groceries: '5000' }, spentBySlug: {} };
+  it('counts the room: at -300 with a 1000 overdraft you can spend 700', () => {
+    const r = computeSafeToSpend({ ...tight, balance: '-300', overdraft: '1000' });
+    expect(r.balanceLeft).toBe('700.00');
+    expect(r.overdraft).toBe('1000.00');
+    expect(r.binds).toBe('balance');
+  });
+  it('keeps back what you want free', () => {
+    expect(computeSafeToSpend({ ...tight, balance: '-300', overdraft: overdraftSpendable('1000', '200') }).balanceLeft).toBe('500.00');
+  });
+  it('ignores the overdraft when none is set', () => {
+    expect(computeSafeToSpend({ ...tight, balance: '-300' }).balanceLeft).toBe('-300.00');
+  });
+});
+
+describe('overdraftState', () => {
+  it('splits a limit into used and room', () => {
+    expect(overdraftState('-300', '1000')).toEqual({ limit: '1000.00', used: '300.00', room: '700.00', inOverdraft: true });
+    expect(overdraftState('500', '1000')).toEqual({ limit: '1000.00', used: '0.00', room: '1000.00', inOverdraft: false });
+    expect(overdraftState('-1200', '1000')).toEqual({ limit: '1000.00', used: '1200.00', room: '0.00', inOverdraft: true });
+  });
+  it('is empty without a limit', () => {
+    expect(overdraftState('-50', '0')).toEqual({ limit: '0.00', used: '50.00', room: '0.00', inOverdraft: true });
+  });
+  it('spendable is the limit less what you keep free, never negative', () => {
+    expect(overdraftSpendable('1000', '0')).toBe('1000.00');
+    expect(overdraftSpendable('1000', '1500')).toBe('0.00');
   });
 });
 

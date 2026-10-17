@@ -1,8 +1,10 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Put, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ZodSerializerDto } from 'nestjs-zod';
 import {
   ListTransactionsQueryDto,
+  MarkShareDto,
+  SplitDto,
   RecategoriseTransactionDto,
   TransactionDto,
   TransactionPageDto,
@@ -34,6 +36,25 @@ export class TransactionsController {
   @ZodSerializerDto(TransactionDto)
   update(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: UpdateTransactionDto) {
     return this.tx.patch(user.id, id, body);
+  }
+
+  @Post(':id/share')
+  @HttpCode(200)
+  @ZodSerializerDto(TransactionDto)
+  markShare(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: MarkShareDto) {
+    return this.tx.markShare(user.id, id, body);
+  }
+
+  @Put(':id/split')
+  @ZodSerializerDto(TransactionDto)
+  split(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: SplitDto) {
+    return this.tx.setSplit(user.id, id, body);
+  }
+
+  @Delete(':id/split')
+  @ZodSerializerDto(TransactionDto)
+  unsplit(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.tx.clearSplit(user.id, id);
   }
 
   @Post(':id/category')

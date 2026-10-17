@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import type { Db } from '@finally/db';
 import { resolvePrefs, type UserPrefs } from '@finally/contracts';
-import { D, dublinDate, expandRentSplits, sum, type LedgerTx } from '@finally/finance-core';
+import { applySplits, D, dublinDate, expandRentSplits, sum, type LedgerTx } from '@finally/finance-core';
 import { InjectDb } from '../common/tokens';
 import { toRentConfig } from './rent-config';
+import { loadSplits, rentRef } from './split-parts';
 
 /** Plain objects merge recursively; arrays and scalars replace. */
 function merge(base: unknown, patch: unknown): unknown {
@@ -26,11 +27,10 @@ export class LedgerService {
    */
   async txs(userId: string, from: string, to: string, prefs?: UserPrefs): Promise<LedgerTx[]> {
     const cfg = toRentConfig(prefs ?? (await this.prefs(userId)));
+    const gte = new Date(`${from}T00:00:00Z`);
+    const lt = new Date(new Date(`${to}T00:00:00Z`).getTime() + 2 * 86_400_000);
     const rows = await this.db.transaction.findMany({
-      where: {
-        userId,
-        bookingDate: { gte: new Date(`${from}T00:00:00Z`), lt: new Date(new Date(`${to}T00:00:00Z`).getTime() + 2 * 86_400_000) },
-      },
+      where: { userId, bookingDate: { gte, lt } },
       include: {
         account: { include: { connection: { select: { institution: true } } } },
         merchant: { select: { merchantKey: true, displayName: true } },
@@ -55,9 +55,13 @@ export class LedgerService {
         pending: t.status === 'PENDING',
         flag: t.flag,
         note: t.note,
+        shareOf: t.shareOf,
+        shareMonth: t.shareMonth,
       }))
       .filter((t) => t.date >= from && t.date <= to);
-    return expandRentSplits(plain, cfg);
+    // Splits first (ADR 0001), then the rent you front: a split rent payment is still judged on its parts.
+    const split = applySplits(plain, await loadSplits(this.db, userId, gte, lt), await rentRef(this.db, userId));
+    return expandRentSplits(split, cfg);
   }
 
   /** What the accounts that fund day-to-day spending hold: current accounts counted in net worth. */
