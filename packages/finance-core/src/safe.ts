@@ -13,6 +13,8 @@ export interface SafeInput {
   unsorted: string;
   /** What the accounts that fund day-to-day spending hold right now. */
   balance: string;
+  /** Overdraft the balance may use (the limit less what you keep free). Optional: none by default. */
+  overdraft?: string;
   /** Bills expected between now and payday. */
   billsBeforePayday: string;
   /** The cushion you never want to dip into. */
@@ -28,6 +30,8 @@ export interface SafeResult {
   unsorted: string;
   budgetLeft: string;
   balance: string;
+  /** The overdraft counted on top of the balance. */
+  overdraft: string;
   billsDue: string;
   buffer: string;
   balanceLeft: string;
@@ -50,7 +54,7 @@ export function computeSafeToSpend(i: SafeInput): SafeResult {
     FLEX_BUDGET_SLUGS.map((s) => Decimal.max(0, D(i.spentBySlug[s] ?? 0).minus(i.budgets[s] ?? 0))),
   );
   const budgetLeft = flexBudget.minus(spentFlex).minus(i.unsorted);
-  const balanceLeft = D(i.balance).minus(i.billsBeforePayday).minus(i.buffer);
+  const balanceLeft = D(i.balance).plus(i.overdraft ?? 0).minus(i.billsBeforePayday).minus(i.buffer);
   const pool = Decimal.min(budgetLeft, balanceLeft);
   return {
     daysLeft,
@@ -60,6 +64,7 @@ export function computeSafeToSpend(i: SafeInput): SafeResult {
     unsorted: m2(i.unsorted),
     budgetLeft: m2(budgetLeft),
     balance: m2(i.balance),
+    overdraft: m2(i.overdraft ?? 0),
     billsDue: m2(i.billsBeforePayday),
     buffer: m2(i.buffer),
     balanceLeft: m2(balanceLeft),

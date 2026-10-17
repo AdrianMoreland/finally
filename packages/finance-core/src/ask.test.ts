@@ -97,6 +97,32 @@ describe('previousPeriod', () => {
 const names = { category: (s: string) => s, merchant: (k: string) => (k === 'zed' ? 'Housemate · Zed' : k), shareMerchants: new Set(['zed']) };
 const none = (): string[] => [];
 
+describe('day-level periods', () => {
+  const per = (s: string) => q(s).period!;
+  it('since a day and month', () => {
+    expect(per('coffee since 1 oct')).toMatchObject({ from: '2026-10-01', to: '2026-10-15', label: 'Since 1 Oct' });
+    expect(per('coffee since the 3rd of october')).toMatchObject({ from: '2026-10-03', to: '2026-10-15' });
+    expect(per('how much on coffee since 12 sept')).toMatchObject({ from: '2026-09-12', to: '2026-10-15' });
+  });
+  it('a day in the future of this year means last year', () => {
+    expect(per('coffee since 20 dec')).toMatchObject({ from: '2025-12-20', to: '2026-10-15' });
+  });
+  it('since an ISO date', () => {
+    expect(per('coffee since 2026-10-01')).toMatchObject({ from: '2026-10-01', to: '2026-10-15' });
+  });
+  it('from one day to another, or between two', () => {
+    expect(per('eating out from 5 sep to 20 sep')).toMatchObject({ from: '2026-09-05', to: '2026-09-20', label: '5 Sep to 20 Sep' });
+    expect(per('eating out between 1 oct and 10 oct')).toMatchObject({ from: '2026-10-01', to: '2026-10-10' });
+  });
+  it('is not confused by the month on its own, or since a month', () => {
+    expect(per('coffee since june')).toMatchObject({ from: '2026-06-01', to: '2026-10-15' });
+    expect(per('coffee in september')).toMatchObject({ from: '2026-09-01', to: '2026-09-30' });
+  });
+  it('reads the category and keeps the dates as asked', () => {
+    expect(q('groceries since 1 oct')).toMatchObject({ intent: 'sum', slug: 'groceries', periodExplicit: true });
+  });
+});
+
 describe('answerSpend', () => {
   const txs = [
     tx({ date: '2026-10-02', amount: '-4.50', slug: 'coffee', merchantKey: 'nero', merchantName: 'Nero' }),
@@ -110,6 +136,17 @@ describe('answerSpend', () => {
     const a = answerSpend(q('coffee this month'), txs, names, none);
     expect(a.big).toBe('€10.50');
     expect(a.count).toBe(2);
+  });
+
+  it('points at the Spending page for a category, with the same dates', () => {
+    expect(answerSpend(q('coffee since 1 oct'), txs, names, none).action).toEqual({
+      label: 'See it by category',
+      to: '/money/spending?period=custom&from=2026-10-01&to=2026-10-15&category=coffee',
+    });
+  });
+  it('points at the matching payments for a merchant', () => {
+    const a = answerSpend(q('tesco since 1 oct'), txs, names, none);
+    expect(a.action).toEqual({ label: 'See the payments', to: '/money/payments?q=tesco&from=2026-10-01&to=2026-10-15' });
   });
 
   it('applies the over-amount filter', () => {

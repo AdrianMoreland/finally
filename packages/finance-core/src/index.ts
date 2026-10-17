@@ -27,5 +27,8 @@ export * from './balances';
 export * from './cashflow';
 export * from './sankey';
 export * from './rent-actions';
+export * from './splits';
+export * from './overdraft';
+export * from './spending';
 export * from './freedom';
 export * from './display';

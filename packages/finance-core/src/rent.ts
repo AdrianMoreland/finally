@@ -1,4 +1,4 @@
-import type { LedgerTx } from './ledger';
+import { findSalary, type LedgerTx } from './ledger';
 import { D, Decimal, m2, sum } from './decimal';
 import { addDays, addMonthsToDate } from './dates';
 
@@ -14,6 +14,8 @@ export interface RentFlatmate {
   matchers: string[];
   /** Only credits on this account count, when set. */
   accountId?: string | null;
+  /** What this person owes each month, by the month it starts (YYYY-MM). None means an equal share. */
+  amounts?: Array<{ from: string; amount: string }>;
 }
 
 export interface RentConfig {
@@ -38,15 +40,46 @@ const fold = (s: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
-/** Which flatmate sent this credit, or null. */
-export function matchShare(t: Pick<LedgerTx, 'amount' | 'rawDescriptor' | 'accountId'>, cfg: RentConfig | null | undefined): string | null {
+/** Which flatmate sent this credit, or null. A mark you made wins over the text matchers. */
+export function matchShare(t: Pick<LedgerTx, 'amount' | 'rawDescriptor' | 'accountId' | 'shareOf'>, cfg: RentConfig | null | undefined): string | null {
   if (!rentEnabled(cfg) || D(t.amount).lte(0)) return null;
+  if (t.shareOf && cfg.flatmates.some((f) => f.id === t.shareOf)) return t.shareOf;
   const text = fold(t.rawDescriptor);
   for (const f of cfg.flatmates) {
     if (f.accountId && f.accountId !== t.accountId) continue;
     if (f.matchers.some((m) => fold(m) && text.includes(fold(m)))) return f.id;
   }
   return null;
+}
+
+export interface ShareDues {
+  /** Your share: the landlord total minus everyone else's. */
+  own: string;
+  /** What each tracked housemate owes, by id. */
+  mates: Record<string, string>;
+}
+
+/**
+ * Who owes what on a rent date. A person's amount is the latest one that starts on or before the month (the first one
+ * covers earlier months); with none they owe an equal share. Housemates you do not track also owe an equal share, and
+ * your share is whatever is left, never below zero.
+ */
+export function shareDues(cfg: RentConfig, date: string, total: string | number | Decimal = cfg.total): ShareDues {
+  const bank = D(total || 0);
+  const equal = bank.div(cfg.household);
+  const month = date.slice(0, 7);
+  const mates: Record<string, string> = {};
+  let others = D(0);
+  for (const f of cfg.flatmates) {
+    const sorted = [...(f.amounts ?? [])].sort((a, b) => a.from.localeCompare(b.from));
+    const current = [...sorted].reverse().find((a) => a.from <= month) ?? sorted[0];
+    const due = current ? D(current.amount) : equal;
+    mates[f.id] = m2(due);
+    others = others.plus(due);
+  }
+  const untracked = Math.max(0, cfg.household - 1 - cfg.flatmates.length);
+  others = others.plus(equal.times(untracked));
+  return { own: m2(Decimal.max(0, bank.minus(others))), mates };
 }
 
 /** The rent payment: a rent-category debit within €1 of the configured total (any amount when unset). */
@@ -69,7 +102,7 @@ export function expandRentSplits(rows: readonly LedgerTx[], cfg: RentConfig | nu
       continue;
     }
     const bank = D(t.amount).abs();
-    const own = D(m2(bank.div(cfg.household)));
+    const own = D(shareDues(cfg, t.date, bank).own);
     out.push({ ...t, amount: own.neg().toFixed(2), bankAmount: t.amount });
     out.push({ ...t, id: `${t.id}:front`, amount: bank.minus(own).neg().toFixed(2), kind: 'FRONT', slug: null, parentSlug: null, frontOf: t.id });
   }
@@ -82,6 +115,8 @@ export interface RentMate {
   got: string;
   left: string;
   paid: string[];
+  /** What they owe this round. */
+  due: string;
   /** Last payment came on or after rent day. */
   late: boolean;
   /** What counts as repaid: at most their share. */
@@ -120,22 +155,25 @@ export function rentRounds(txs: readonly LedgerTx[], cfg: RentConfig | null | un
   for (const front of txs.filter((t) => t.kind === 'FRONT')) {
     const own = txs.find((t) => t.id === front.frontOf);
     const fronted = D(front.amount).abs();
-    const ownAmt = own ? D(own.amount).abs() : D(m2(fronted.div(cfg.household - 1)));
+    const ownAmt = own ? D(own.amount).abs() : D(shareDues(cfg, front.date, fronted.times(cfg.household).div(cfg.household - 1)).own);
+    const dues = shareDues(cfg, front.date, fronted.plus(ownAmt));
     const w = roundWindow(front.date);
     const mates = cfg.flatmates.map((f): RentMate => {
       const ts = shares
-        .filter((t) => t.date >= w.from && t.date <= w.to && matchShare(t, cfg) === f.id)
+        .filter((t) => matchShare(t, cfg) === f.id && (t.shareMonth ? t.shareMonth === front.date.slice(0, 7) : t.date >= w.from && t.date <= w.to))
         .sort((a, b) => a.date.localeCompare(b.date));
       const got = sum(ts.map((t) => t.amount));
       const paid = ts.map((t) => t.date);
+      const due = D(dues.mates[f.id] ?? ownAmt);
       return {
         id: f.id,
         name: f.name,
         got: m2(got),
-        left: m2(Decimal.max(0, ownAmt.minus(got))),
+        left: m2(Decimal.max(0, due.minus(got))),
         paid,
+        due: m2(due),
         late: paid.length > 0 && paid[paid.length - 1]! >= front.date,
-        back: m2(Decimal.min(ownAmt, got)),
+        back: m2(Decimal.min(due, got)),
       };
     });
     rounds.push({
@@ -188,4 +226,70 @@ export function houseMessage(cfg: RentConfig): string {
 
 export function shareReminder(a: { name: string; monthName: string; total: string; day: number; got: string; own: string; left: string }): string {
   return `Hi ${a.name}, quick one about the ${a.monthName} rent: I paid the landlord the full ${eur(a.total)} on the ${ordinal(a.day)}. I have ${eur(a.got)} from you of your ${eur(a.own)} share, so ${eur(a.left)} is still to come. Could you send it when you get a chance? Thanks!`;
+}
+
+export interface CreditAsk {
+  txId: string;
+  date: string;
+  amount: string;
+  name: string;
+}
+
+/**
+ * Credits that could be a housemate's rent share but are not marked: money in (not the salary, not a small amount)
+ * inside the latest rent round's window. This is how a self-transfer from another account gets noticed. `handled` are
+ * transactions already answered ("not rent" or marked).
+ */
+export function creditAsks(txs: readonly LedgerTx[], cfg: RentConfig | null | undefined, today: string, handled: readonly string[]): CreditAsk[] {
+  if (!rentEnabled(cfg)) return [];
+  const round = rentRounds(txs, cfg)[0];
+  if (!round) return [];
+  const family = findSalary(txs, today)?.family;
+  const familyOf = (s: string): string => s.replace(/\d+/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+  const skip = new Set(handled);
+  return txs
+    .filter(
+      (t) =>
+        t.kind === 'INCOME' &&
+        D(t.amount).gte(20) &&
+        D(t.amount).lte(round.total) &&
+        t.date >= round.from &&
+        t.date <= (today < round.to ? today : round.to) &&
+        !skip.has(t.id) &&
+        matchShare(t, cfg) === null &&
+        familyOf(t.rawDescriptor) !== family,
+    )
+    .map((t) => ({ txId: t.id, date: t.date, amount: m2(t.amount), name: t.merchantName }));
+}
+
+export interface ShortCredit {
+  txId: string;
+  personId: string;
+  name: string;
+  due: string;
+  got: string;
+  left: string;
+}
+
+/**
+ * A housemate's only transfer this round is a little under their share (a quarter or less): the usual sign that they
+ * deducted something they paid for you, such as a bill. It is offered as a split with the difference as a non-cash
+ * part. Transfers already split, or dismissed, are left alone.
+ */
+export function shortCredits(txs: readonly LedgerTx[], cfg: RentConfig | null | undefined, today: string, handled: readonly string[]): ShortCredit[] {
+  if (!rentEnabled(cfg)) return [];
+  const round = rentRounds(txs, cfg)[0];
+  if (!round || today > round.to) return [];
+  const skip = new Set(handled);
+  const out: ShortCredit[] = [];
+  for (const m of round.mates) {
+    const due = D(m.due);
+    const left = D(m.left);
+    if (left.lte(0) || left.gt(due.div(4))) continue;
+    const mine = txs.filter((t) => t.kind === 'SHARE' && matchShare(t, cfg) === m.id && (t.shareMonth ? t.shareMonth === round.month : t.date >= round.from && t.date <= round.to));
+    const only = mine.length === 1 ? mine[0]! : null;
+    if (!only || only.splitOf || skip.has(only.id)) continue;
+    out.push({ txId: only.id, personId: m.id, name: m.name, due: m.due, got: m.got, left: m.left });
+  }
+  return out;
 }
