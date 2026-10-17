@@ -27,6 +27,7 @@ import { Route as AppMoneyMonthRouteImport } from './routes/_app/money/month'
 import { Route as AppMoneyPaymentsRouteImport } from './routes/_app/money/payments'
 import { Route as AppMoneyReviewRouteImport } from './routes/_app/money/review'
 import { Route as AppMoneySortRouteImport } from './routes/_app/money/sort'
+import { Route as AppMoneySpendingRouteImport } from './routes/_app/money/spending'
 import { Route as AppPlanIndexRouteImport } from './routes/_app/plan/index'
 import { Route as AppPlanBonusRouteImport } from './routes/_app/plan/bonus'
 import { Route as AppPlanPaydayRouteImport } from './routes/_app/plan/payday'
@@ -123,6 +124,11 @@ const AppMoneySortRoute = AppMoneySortRouteImport.update({
   path: '/money/sort',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMoneySpendingRoute = AppMoneySpendingRouteImport.update({
+  id: '/money/spending',
+  path: '/money/spending',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPlanIndexRoute = AppPlanIndexRouteImport.update({
   id: '/plan/',
   path: '/plan/',
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/money/payments': typeof AppMoneyPaymentsRoute
   '/money/review': typeof AppMoneyReviewRoute
   '/money/sort': typeof AppMoneySortRoute
+  '/money/spending': typeof AppMoneySpendingRoute
   '/plan/bonus': typeof AppPlanBonusRoute
   '/plan/payday': typeof AppPlanPaydayRoute
   '/plan/people': typeof AppPlanPeopleRoute
@@ -195,6 +202,7 @@ export interface FileRoutesByTo {
   '/money/payments': typeof AppMoneyPaymentsRoute
   '/money/review': typeof AppMoneyReviewRoute
   '/money/sort': typeof AppMoneySortRoute
+  '/money/spending': typeof AppMoneySpendingRoute
   '/plan/bonus': typeof AppPlanBonusRoute
   '/plan/payday': typeof AppPlanPaydayRoute
   '/plan/people': typeof AppPlanPeopleRoute
@@ -222,6 +230,7 @@ export interface FileRoutesById {
   '/_app/money/payments': typeof AppMoneyPaymentsRoute
   '/_app/money/review': typeof AppMoneyReviewRoute
   '/_app/money/sort': typeof AppMoneySortRoute
+  '/_app/money/spending': typeof AppMoneySpendingRoute
   '/_app/plan/bonus': typeof AppPlanBonusRoute
   '/_app/plan/payday': typeof AppPlanPaydayRoute
   '/_app/plan/people': typeof AppPlanPeopleRoute
@@ -249,6 +258,7 @@ export interface FileRouteTypes {
     | '/money/payments'
     | '/money/review'
     | '/money/sort'
+    | '/money/spending'
     | '/plan/bonus'
     | '/plan/payday'
     | '/plan/people'
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
     | '/money/payments'
     | '/money/review'
     | '/money/sort'
+    | '/money/spending'
     | '/plan/bonus'
     | '/plan/payday'
     | '/plan/people'
@@ -300,6 +311,7 @@ export interface FileRouteTypes {
     | '/_app/money/payments'
     | '/_app/money/review'
     | '/_app/money/sort'
+    | '/_app/money/spending'
     | '/_app/plan/bonus'
     | '/_app/plan/payday'
     | '/_app/plan/people'
@@ -444,6 +456,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMoneySortRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/money/spending': {
+      id: '/_app/money/spending'
+      path: '/money/spending'
+      fullPath: '/money/spending'
+      preLoaderRoute: typeof AppMoneySpendingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/plan/': {
       id: '/_app/plan/'
       path: '/plan'
@@ -503,6 +522,7 @@ interface AppRouteChildren {
   AppMoneyPaymentsRoute: typeof AppMoneyPaymentsRoute
   AppMoneyReviewRoute: typeof AppMoneyReviewRoute
   AppMoneySortRoute: typeof AppMoneySortRoute
+  AppMoneySpendingRoute: typeof AppMoneySpendingRoute
   AppPlanBonusRoute: typeof AppPlanBonusRoute
   AppPlanPaydayRoute: typeof AppPlanPaydayRoute
   AppPlanPeopleRoute: typeof AppPlanPeopleRoute
@@ -527,6 +547,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppMoneyPaymentsRoute: AppMoneyPaymentsRoute,
   AppMoneyReviewRoute: AppMoneyReviewRoute,
   AppMoneySortRoute: AppMoneySortRoute,
+  AppMoneySpendingRoute: AppMoneySpendingRoute,
   AppPlanBonusRoute: AppPlanBonusRoute,
   AppPlanPaydayRoute: AppPlanPaydayRoute,
   AppPlanPeopleRoute: AppPlanPeopleRoute,

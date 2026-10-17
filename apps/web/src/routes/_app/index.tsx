@@ -84,6 +84,7 @@ function Maths({ t, cf }: { t: TodayDto; cf: CashflowDto | undefined }): ReactNo
       <div className={cn('rounded-control p-2.5', !budget && 'bg-surface ring-1 ring-brand')}>
         <h4 className="mb-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-3">From your balance {!budget ? <Chip tone="ok" className="ml-1">used</Chip> : null}</h4>
         <Line label="In your accounts now" value={eur(s.balance)} />
+        {Number(s.overdraft) > 0 ? <Line label="Overdraft you can use" value={eur(s.overdraft)} /> : null}
         <Line label="Bills before payday" value={`−${eur(s.billsDue)}`} />
         <Line label="Buffer you keep" value={`−${eur(s.buffer)}`} />
         <Line label="Left from your balance" value={eur(s.balanceLeft)} strong />
