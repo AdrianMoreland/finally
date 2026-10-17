@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "figma:build": "node tools/figma-plugin/build.mjs",
+    "figma:build": "figma-bridge build --config design/figma/figma-bridge.config.mjs",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "test": "turbo run test",
@@ -17,6 +17,7 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
+    "@saotesi/figma-bridge": "0.1.0",
     "prettier": "^3.8.3",
     "turbo": "^2.11.8",
     "typescript": "~5.9.3"
