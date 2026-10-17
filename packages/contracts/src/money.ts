@@ -65,6 +65,15 @@ export const budgetsResponse = z.object({
   rows: z.array(budgetRowSchema),
   totalBudget: money,
   totalSpent: money,
+  /** Budgets reconciled with all spending: in budgets, outside them, and not sorted yet. */
+  totals: z.object({
+    budgeted: money,
+    spentInBudgets: money,
+    left: money,
+    outside: money,
+    unsorted: money,
+    allSpending: money,
+  }),
 });
 export type BudgetsResponse = z.infer<typeof budgetsResponse>;
 
@@ -276,6 +285,36 @@ export type PriceSeriesDto = z.infer<typeof priceSeriesSchema>;
 
 
 /* ================================================================ cash flow */
+
+/* ---------- spending ---------- */
+
+export const spendingQuery = z.object({
+  from: dateOnly,
+  to: dateOnly,
+  /** One category (children count with it). */
+  category: z.string().max(60).optional(),
+});
+
+const spendingCategory = z.object({ slug: z.string(), name: z.string(), colour: z.string(), id: z.string() });
+export const spendingSchema = z.object({
+  from: dateOnly,
+  to: dateOnly,
+  total: money,
+  count: z.number().int(),
+  average: money,
+  perDay: money,
+  groups: z.array(
+    z.object({
+      /** Null is spending that is not sorted yet. */
+      category: spendingCategory.nullable(),
+      spent: money,
+      count: z.number().int(),
+      share: z.number(),
+      children: z.array(z.object({ category: spendingCategory, spent: money, count: z.number().int() })),
+    }),
+  ),
+});
+export type SpendingDto = z.infer<typeof spendingSchema>;
 
 export const cashflowPeriod = z.enum(['sincepay', 'thismonth', 'lastmonth', 'last3', 'ytd', 'last12']);
 export type CashflowPeriod = z.infer<typeof cashflowPeriod>;

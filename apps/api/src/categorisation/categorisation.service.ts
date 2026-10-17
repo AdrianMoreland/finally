@@ -91,12 +91,12 @@ export class CategorisationService implements OnModuleInit {
     const since = new Date(Date.now() - 460 * 86_400_000);
     const rows = await this.db.transaction.findMany({
       where: { userId, amountEur: { gt: 0 }, kind: { in: ['INCOME', 'REFUND', 'SHARE'] }, bookingDate: { gte: since } },
-      select: { id: true, kind: true, accountId: true, rawDescriptor: true, amountEur: true, categoryId: true, flag: true },
+      select: { id: true, kind: true, accountId: true, rawDescriptor: true, amountEur: true, categoryId: true, flag: true, shareOf: true },
     });
     const share: string[] = [];
     const unshare: string[] = [];
     for (const r of rows) {
-      const hit = matchShare({ amount: r.amountEur.toString(), rawDescriptor: r.rawDescriptor, accountId: r.accountId }, cfg) !== null;
+      const hit = matchShare({ amount: r.amountEur.toString(), rawDescriptor: r.rawDescriptor, accountId: r.accountId, shareOf: r.shareOf }, cfg) !== null;
       if ((hit || (r.categoryId === rent?.id && !r.flag)) && r.kind !== 'SHARE') share.push(r.id);
       // A credit in the Rent category that matches nobody is still a housemate's money, not a refund: keep it a share.
       else if (!hit && r.kind === 'SHARE' && r.categoryId !== rent?.id) unshare.push(r.id);

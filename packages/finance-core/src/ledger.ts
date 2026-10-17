@@ -33,6 +33,14 @@ export interface LedgerTx {
   bankAmount?: string;
   /** FRONT rows only: the id of the rent payment this was split from. */
   frontOf?: string;
+  /** Credits only: the housemate (by id) the user marked this as a rent share from. */
+  shareOf?: string | null;
+  /** With `shareOf`: the rent month (YYYY-MM) it counts toward, when not the one its date falls in. */
+  shareMonth?: string | null;
+  /** Rows made from a split transaction: the id of the bank row they came from. */
+  splitOf?: string;
+  /** The bank changed the amount after the split was made; the difference was put in the largest part. */
+  splitChanged?: boolean;
 }
 
 /** The ten budget lines, in display order. Everything else rolls up into one of them through its parent. */

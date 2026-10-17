@@ -14,7 +14,10 @@ export function useRunCta(): (a: ActionItemDto) => void {
   const people = usePeople();
   return (a) => {
     const cta = a.cta;
-    if (cta.kind === 'go') void navigate({ to: cta.to as never });
+    if (cta.kind === 'go') {
+      const [path, qs] = cta.to.split('?');
+      void navigate({ to: path as never, ...(qs ? { search: Object.fromEntries(new URLSearchParams(qs)) as never } : {}) });
+    }
     else if (cta.kind === 'check') tax.setCheck.mutate({ itemId: cta.itemId, state: cta.state }, { onSuccess: () => toast.success('Marked as claimed') });
     else {
       const text = cta.kind === 'copy' ? cta.text : people.data?.owed.find((p) => p.id === cta.personId)?.remindText;

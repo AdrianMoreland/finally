@@ -19,6 +19,8 @@ import type {
   CreateLotBody,
   Institution,
   ListTransactionsQuery,
+  MarkShareBody,
+  SplitBody,
   RecategoriseTransactionBody,
   UpdateMeBody,
 } from '@finally/contracts';
@@ -63,7 +65,7 @@ export const keys = {
 /** Everything that derives from payments or categories needs a refresh after these change. */
 export function invalidateMoney(qc: QueryClient): Promise<unknown> {
   return Promise.all(
-    ['overview', 'today', 'cashflow', 'month', 'bills', 'pots', 'people', 'payday', 'pins', 'review', 'transactions', 'queue', 'budgets', 'insights', 'accounts', 'investments', 'recurring', 'rules'].map((k) =>
+    ['overview', 'today', 'cashflow', 'month', 'bills', 'pots', 'people', 'payday', 'pins', 'review', 'transactions', 'queue', 'budgets', 'insights', 'accounts', 'investments', 'recurring', 'rules', 'spending'].map((k) =>
       qc.invalidateQueries({ queryKey: [k] }),
     ),
   );
@@ -113,6 +115,24 @@ export const useRecategorise = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...body }: { id: string } & RecategoriseTransactionBody) => api.recategorise(id, body),
+    onSuccess: () => invalidateMoney(qc),
+  });
+};
+
+export const useMarkShare = () => {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: string } & MarkShareBody) => api.markShare(id, body),
+    onSuccess: () => invalidateMoney(qc),
+  });
+};
+
+export const useSplit = () => {
+  const api = useApi();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, parts }: { id: string } & SplitBody) => (parts.length ? api.setSplit(id, { parts }) : api.clearSplit(id)),
     onSuccess: () => invalidateMoney(qc),
   });
 };
@@ -244,6 +264,11 @@ export const useUnsnoozeAll = () => {
   const api = useApi();
   const done = useInvalidate('today', 'review');
   return useMutation({ mutationFn: api.unsnoozeAll, onSuccess: done });
+};
+
+export const useSpending = (q: { from: string; to: string; category?: string }) => {
+  const api = useApi();
+  return useQuery({ queryKey: ['spending', q] as const, queryFn: () => api.spending(q), staleTime: 30_000, placeholderData: keepPreviousData });
 };
 
 export const useCashflow = (period: CashflowPeriod, pass: boolean) => {

@@ -7,6 +7,7 @@ import {
   dayOfMonth,
   daysInMonth,
   dublinDate,
+  budgetTotals,
   m2,
   monthOf,
   pacing,
@@ -117,6 +118,9 @@ export class BudgetsService {
     }
     const hasRow = new Set(rows.map((r) => r.categoryId));
     const counted = rows.filter((r) => !r.category.parentId || !hasRow.has(r.category.parentId));
+    const monthTxs = txs.filter((t) => monthOf(t.date) === month);
+    const categorised = [...this.data.spendByCategory(monthTxs, cats, false).values()].reduce((a, v) => a.plus(v), D(0));
+    const unsorted = monthTxs.filter((t) => !t.categoryId && !t.excluded && (t.kind === 'SPEND' || t.kind === 'REFUND')).reduce((a, t) => a.minus(t.amountEur), D(0));
     return {
       month,
       dayOfMonth: day,
@@ -124,6 +128,12 @@ export class BudgetsService {
       rows,
       totalBudget: m2(counted.reduce((a, r) => a.plus(r.amount), D(0))),
       totalSpent: m2(counted.reduce((a, r) => a.plus(r.spent), D(0))),
+      totals: budgetTotals({
+        budgeted: m2(counted.reduce((a, r) => a.plus(r.amount), D(0))),
+        spentInBudgets: m2(counted.reduce((a, r) => a.plus(r.spent), D(0))),
+        categorisedSpend: m2(categorised),
+        unsorted: m2(unsorted),
+      }),
     };
   }
 

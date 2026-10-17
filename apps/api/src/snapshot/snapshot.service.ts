@@ -15,6 +15,7 @@ import {
   m2,
   monthOf,
   nextPayday,
+  overdraftSpendable,
   paydayIn,
   paydaysUntil,
   spent,
@@ -60,6 +61,8 @@ export interface Snapshot {
   /** Accounts that fund day-to-day spending. */
   spendAccountIds: Set<string>;
   balance: string;
+  /** The arranged overdraft across the spending accounts. */
+  overdraftLimit: string;
   repeating: Repeating[];
   cancelled: Set<string>;
   upcoming: UpcomingBill[];
@@ -110,6 +113,7 @@ export class SnapshotService {
 
     const spending = accounts.filter((a) => a.type === 'CURRENT' && a.includeInNetWorth);
     const balance = m2(sum(spending.map((a) => a.balance.toString())));
+    const overdraftLimit = m2(sum(spending.map((a) => a.overdraftLimit.toString())));
     const last3 = [3, 2, 1].map((k) => addMonths(month, -k));
     const repeating = detectRepeating(txs, today, last3);
     const cancelled = new Set(prefs.subsCancelled);
@@ -134,6 +138,7 @@ export class SnapshotService {
       budgets,
       spendAccountIds: new Set(spending.map((a) => a.id)),
       balance,
+      overdraftLimit,
       repeating,
       cancelled,
       upcoming,
@@ -165,6 +170,7 @@ export class SnapshotService {
       spentBySlug,
       unsorted: m2(spent(s.txs, { unsorted: true, from: monthFrom, to: asOf })),
       balance: m2(this.balanceAt(s, asOf)),
+      overdraft: overdraftSpendable(s.overdraftLimit, s.prefs.overdraft.keepFree),
       billsBeforePayday: m2(billsBeforePayday),
       buffer: s.user.bufferAmount.toString(),
     });

@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import type { Db } from '@finally/db';
 import { FIXED_CATEGORY_SLUGS, resolvePrefs } from '@finally/contracts';
-import { D, dublinDate, m2, type CoreCategory, type CoreTx, type Decimal } from '@finally/finance-core';
+import { D, dublinDate, expandParts, m2, shareDues, type CoreCategory, type CoreTx, type Decimal } from '@finally/finance-core';
 import { InjectDb } from '../common/tokens';
 import { toRentConfig } from './rent-config';
+import { loadSplits, rentRef } from './split-parts';
 
 export interface CategoryInfo extends CoreCategory {
   colour: string;
@@ -35,12 +36,10 @@ export class FinanceDataService {
 
   /** Transactions in a Dublin-date range as CoreTx (newest last). */
   async coreTxs(userId: string, from: string, to: string): Promise<CoreTx[]> {
+    const gte = new Date(`${from}T00:00:00Z`);
+    const lt = new Date(new Date(`${to}T00:00:00Z`).getTime() + 2 * 86_400_000);
     const rows = await this.db.transaction.findMany({
-      where: {
-        userId,
-        bookingDate: { gte: new Date(`${from}T00:00:00Z`), lt: new Date(new Date(`${to}T00:00:00Z`).getTime() + 2 * 86_400_000) },
-        status: { in: ['BOOKED', 'PENDING'] },
-      },
+      where: { userId, bookingDate: { gte, lt }, status: { in: ['BOOKED', 'PENDING'] } },
       include: { merchant: { select: { merchantKey: true, displayName: true } } },
       orderBy: { bookingDate: 'asc' },
     });
@@ -52,20 +51,27 @@ export class FinanceDataService {
     const ownShare = (t: (typeof rows)[number]): string => {
       const amt = D(t.amountEur.toString());
       const isRent = cfg && rentCat && t.kind === 'SPEND' && t.categoryId === rentCat.id && amt.lt(0) && (total.lte(0) || amt.abs().minus(total).abs().lte(1));
-      return isRent ? m2(amt.div(cfg.household)) : t.amountEur.toString();
+      return isRent ? m2(D(shareDues(cfg, dublinDate(t.bookingDate), amt.abs()).own).neg()) : t.amountEur.toString();
     };
+    const splits = await loadSplits(this.db, userId, gte, lt);
+    const rent = await rentRef(this.db, userId);
     return rows
-      .map((t) => ({
-        id: t.id,
-        accountId: t.accountId,
-        date: dublinDate(t.bookingDate),
-        amountEur: ownShare(t),
-        kind: t.kind,
-        categoryId: t.categoryId,
-        merchantKey: t.merchant?.merchantKey ?? null,
-        merchantName: t.merchant?.displayName ?? null,
-        excluded: t.excluded,
-      }))
+      .flatMap((t): CoreTx[] => {
+        const base: CoreTx = {
+          id: t.id,
+          accountId: t.accountId,
+          date: dublinDate(t.bookingDate),
+          amountEur: ownShare(t),
+          kind: t.kind,
+          categoryId: t.categoryId,
+          merchantKey: t.merchant?.merchantKey ?? null,
+          merchantName: t.merchant?.displayName ?? null,
+          excluded: t.excluded,
+        };
+        const parts = splits[t.id];
+        if (!parts?.length) return [base];
+        return expandParts(t.amountEur.toString(), parts, rent).rows.map((e) => ({ ...base, id: `${t.id}:${e.key}`, amountEur: e.amount, kind: e.part.kind as CoreTx['kind'], categoryId: e.part.categoryId }));
+      })
       .filter((t) => t.date >= from && t.date <= to);
   }
 

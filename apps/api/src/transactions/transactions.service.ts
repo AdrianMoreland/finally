@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Db, Prisma } from '@finally/db';
 import type {
   ListTransactionsQuery,
+  MarkShareBody,
+  SplitBody,
   ParsedQueryDto,
   RecategoriseTransactionBody,
   TransactionDto,
@@ -11,25 +13,21 @@ import type {
 } from '@finally/contracts';
 import { AskService } from '../ask/ask.service';
 import { CategorisationService } from '../categorisation/categorisation.service';
-import { D, addDays, dublinDate, isRentDebit, m2, rentRounds, type LedgerTx } from '@finally/finance-core';
+import { D, addDays, dublinDate, isRentDebit, m2, rentRounds, splitCashTotal, splitProblems, type LedgerTx, type SplitPart } from '@finally/finance-core';
 import { iso, money } from '../common/mappers';
 import { InjectDb } from '../common/tokens';
 import { LedgerService } from '../data/ledger.service';
 import { toRentConfig } from '../data/rent-config';
+import { partInclude, rentRef } from '../data/split-parts';
 
-type TxRow = Prisma.TransactionGetPayload<{
-  include: {
-    account: { include: { connection: { select: { institution: true } } } };
-    merchant: true;
-    category: true;
-  };
-}>;
-
-const include = {
+export const txInclude = {
   account: { include: { connection: { select: { institution: true } } } },
   merchant: true,
   category: true,
+  parts: { include: partInclude, orderBy: { position: 'asc' } },
 } as const;
+
+type TxRow = Prisma.TransactionGetPayload<{ include: typeof txInclude }>;
 
 @Injectable()
 export class TransactionsService {
@@ -63,6 +61,21 @@ export class TransactionsService {
       excluded: t.excluded,
       tags: t.tags,
       flag: t.flag,
+      shareOf: t.shareOf,
+      shareMonth: t.shareMonth,
+      split: t.parts.length
+        ? {
+            parts: t.parts.map((p) => ({
+              amount: m2(D(p.amount.toString()).abs()),
+              categoryId: p.categoryId,
+              categoryName: p.category?.name ?? null,
+              shareOf: p.shareOf,
+              shareMonth: p.shareMonth,
+              nonCash: p.nonCash,
+            })),
+            changed: !splitCashTotal(t.parts.map((p): SplitPart => ({ amount: p.amount.toString(), kind: p.kind, categoryId: p.categoryId, slug: null, parentSlug: null, nonCash: p.nonCash }))).eq(D(t.amountEur.toString())),
+          }
+        : null,
     };
   }
 
@@ -149,7 +162,7 @@ export class TransactionsService {
     const [rows, total] = await Promise.all([
       this.db.transaction.findMany({
         where: cursorWhere ? { AND: [where, cursorWhere] } : where,
-        include,
+        include: txInclude,
         orderBy: [{ bookingDate: 'desc' }, { id: 'desc' }],
         take: q.limit + 1,
       }),
@@ -166,7 +179,7 @@ export class TransactionsService {
   }
 
   async get(userId: string, id: string): Promise<TransactionDto> {
-    const t = await this.db.transaction.findFirst({ where: { id, userId }, include });
+    const t = await this.db.transaction.findFirst({ where: { id, userId }, include: txInclude });
     if (!t) throw new NotFoundException('Transaction not found');
     return (await this.withRentSplits(userId, [this.toDto(t)]))[0]!;
   }
@@ -181,6 +194,107 @@ export class TransactionsService {
       },
     });
     if (res.count === 0) throw new NotFoundException('Transaction not found');
+    return this.get(userId, id);
+  }
+
+  /**
+   * Split a transaction into parts (ADR 0001: the bank row stays as it is). Cash parts take the transaction's sign and
+   * must add up to it; a part can name a housemate (a rent share) or be settled without money moving.
+   */
+  async setSplit(userId: string, id: string, body: SplitBody): Promise<TransactionDto> {
+    const tx = await this.db.transaction.findFirst({ where: { id, userId } });
+    if (!tx) throw new NotFoundException('Transaction not found');
+    const prefs = await this.ledger.prefs(userId);
+    const sign = tx.amountEur.lt(0) ? -1 : 1;
+    const ids = [...new Set(body.parts.map((p) => p.categoryId).filter((x): x is string => !!x))];
+    const cats = await this.db.category.findMany({ where: { userId, id: { in: ids } }, select: { id: true, group: true, slug: true, parent: { select: { slug: true } } } });
+    const byId = new Map(cats.map((c) => [c.id, c]));
+    if (cats.length !== ids.length) throw new BadRequestException('Unknown category');
+    const rent = await rentRef(this.db, userId);
+    const built = body.parts.map((p) => {
+      if (p.shareOf && !prefs.rent.flatmates.some((f) => f.id === p.shareOf)) throw new BadRequestException('That person is not in your rent settings');
+      const cat = p.categoryId ? byId.get(p.categoryId)! : null;
+      const nonCash = p.nonCash === true;
+      if (nonCash && !cat) throw new BadRequestException('A part settled without money needs a category');
+      if (p.shareOf && !nonCash && sign < 0) throw new BadRequestException('Only money received can be a rent share');
+      const kind: SplitPart['kind'] = nonCash
+        ? 'SPEND'
+        : p.shareOf
+          ? 'SHARE'
+          : cat?.group === 'TRANSFER'
+            ? 'TRANSFER'
+            : sign < 0
+              ? 'SPEND'
+              : cat?.group === 'INCOME' || !cat
+                ? 'INCOME'
+                : 'REFUND';
+      const categoryId = !nonCash && p.shareOf ? rent.categoryId : (p.categoryId ?? null);
+      return { kind, categoryId, shareOf: p.shareOf ?? null, shareMonth: p.shareMonth ?? null, nonCash, amount: nonCash ? p.amount : (sign * Number(p.amount)).toFixed(2) };
+    });
+    const problem = splitProblems(
+      tx.amountEur.toString(),
+      built.map((b) => ({ amount: b.amount, kind: b.kind, categoryId: b.categoryId, slug: null, parentSlug: null, shareOf: b.shareOf, nonCash: b.nonCash })),
+    );
+    if (problem) throw new BadRequestException(problem);
+    await this.db.$transaction([
+      this.db.transactionPart.deleteMany({ where: { userId, transactionId: id } }),
+      this.db.transactionPart.createMany({ data: built.map((b, position) => ({ userId, transactionId: id, position, ...b })) }),
+    ]);
+    return this.get(userId, id);
+  }
+
+  async clearSplit(userId: string, id: string): Promise<TransactionDto> {
+    const tx = await this.db.transaction.findFirst({ where: { id, userId }, select: { id: true } });
+    if (!tx) throw new NotFoundException('Transaction not found');
+    await this.db.transactionPart.deleteMany({ where: { userId, transactionId: id } });
+    return this.get(userId, id);
+  }
+
+  /**
+   * Mark a credit as a housemate's rent share (or clear the mark). "Every time" (`remember`) adds the text to that
+   * person's matchers so future transfers are caught; "not rent" is remembered so the credit is not asked about again.
+   */
+  async markShare(userId: string, id: string, body: MarkShareBody): Promise<TransactionDto> {
+    const tx = await this.db.transaction.findFirst({ where: { id, userId } });
+    if (!tx) throw new NotFoundException('Transaction not found');
+    const prefs = await this.ledger.prefs(userId);
+    if (body.notRent) {
+      await this.ledger.patchPrefs(userId, { dismissed: [...new Set([...prefs.dismissed, `credit-${id}`])] });
+      return this.get(userId, id);
+    }
+    if (body.personId === null) {
+      await this.db.transaction.update({
+        where: { id },
+        data: { shareOf: null, shareMonth: null, kind: 'INCOME', categoryId: null, categorisedBy: 'NONE', needsReview: false },
+      });
+      await this.categorisation.reclassifyShares(userId);
+      return this.get(userId, id);
+    }
+    if (!tx.amountEur.gt(0)) throw new BadRequestException('Only money received can be a rent share');
+    const idx = prefs.rent.flatmates.findIndex((f) => f.id === body.personId);
+    if (idx < 0) throw new BadRequestException('That person is not in your rent settings');
+    const rent = await this.db.category.findFirst({ where: { userId, slug: 'rent' }, select: { id: true } });
+    await this.db.transaction.update({
+      where: { id },
+      data: {
+        kind: 'SHARE',
+        needsReview: false,
+        shareOf: body.personId,
+        shareMonth: body.month ?? null,
+        ...(rent ? { categoryId: rent.id, categorisedBy: 'USER' as const } : {}),
+      },
+    });
+    if (body.remember) {
+      const text = body.remember.trim();
+      const person = prefs.rent.flatmates[idx]!;
+      if (!person.matchers.some((m) => m.value.toLowerCase() === text.toLowerCase())) {
+        await this.ledger.setSection(userId, 'rent', {
+          ...prefs.rent,
+          flatmates: prefs.rent.flatmates.map((f, i) => (i === idx ? { ...f, matchers: [...f.matchers, { kind: 'text' as const, value: text }] } : f)),
+        });
+        await this.categorisation.reclassifyShares(userId);
+      }
+    }
     return this.get(userId, id);
   }
 

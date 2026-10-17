@@ -204,6 +204,7 @@ model User {
   snoozes     ActionSnooze[]
   orders      StandingOrder[]
   checks      TaxCheck[]
+  parts       TransactionPart[]
 }
 
 model BankConnection {
@@ -239,6 +240,8 @@ model Account {
   balance           Decimal     @default(0) @db.Decimal(14, 2)
   balanceAt         DateTime?
   includeInNetWorth Boolean     @default(true)
+  /// Arranged overdraft: how far below zero the bank lets this account go. Room is spendable but never an asset.
+  overdraftLimit    Decimal     @default(0) @db.Decimal(14, 2)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -274,6 +277,7 @@ model Category {
   merchants    Merchant[]
   rules        MerchantRule[]
   budgets      Budget[]
+  parts        TransactionPart[]
 
   @@unique([userId, slug])
   @@index([parentId])
@@ -320,6 +324,8 @@ model Transaction {
   excluded       Boolean       @default(false) // left out of budgets and safe to spend
   tags           String[]      @default([])
   flag           String? // bounced | returned (direct debits that failed and came back)
+  shareOf        String? // credits: the housemate (id in User.prefs.rent) this was marked as a rent share from
+  shareMonth     String? // with shareOf: the rent month (YYYY-MM) it counts toward, when not its own date's
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -327,6 +333,7 @@ model Transaction {
   account  Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
   merchant Merchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  parts    TransactionPart[]
 
   @@unique([userId, dedupeHash])
   @@index([userId, bookingDate])
@@ -686,4 +693,28 @@ model TaxCheck {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, itemId])
+}
+
+/// One part of a split transaction. The bank row is never changed; the ledger reads these instead (see docs/adr/0001).
+model TransactionPart {
+  id            String   @id @default(cuid())
+  userId        String
+  transactionId String
+  position      Int
+  /// Cash part: signed like the transaction. Non-cash part: the positive value.
+  amount        Decimal  @db.Decimal(14, 2)
+  kind          TxKind
+  categoryId    String?
+  /// Rent share from this housemate (id in User.prefs.rent); required for a non-cash part.
+  shareOf       String?
+  shareMonth    String?
+  /// Settled without money moving (a housemate deducted it from their rent transfer).
+  nonCash       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  category    Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, transactionId])
 }
