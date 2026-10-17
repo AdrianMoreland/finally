@@ -38,6 +38,8 @@ const base: ActionInput = {
   overdrawn: null,
   frontOverdraft: null,
   shareReminders: [],
+  creditAsks: [],
+  shortCredits: [],
   doubles: [],
   rises: [],
   snoozed: new Set(),
@@ -76,5 +78,42 @@ describe('share reminders', () => {
     expect(items[0]).toMatchObject({ id: 'share-c', severity: 'WATCH', amount: '325.00' });
     expect(items[0]!.title).toBe('Flatmate C has sent €300 of €625 for October');
     expect(items[0]!.cta).toMatchObject({ kind: 'copy', label: 'Copy reminder' });
+  });
+});
+
+describe('credit asks', () => {
+  it('becomes a WATCH item that opens the transaction', () => {
+    const items = buildActions({ ...base, creditAsks: [{ txId: 'tx9', date: '2026-10-12', amount: '614.00', name: 'Adrian Moreland' }] });
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ id: 'credit-tx9', severity: 'WATCH', amount: '614.00', cta: { kind: 'go', to: '/money/payments?tx=tx9' } });
+    expect(items[0]!.title).toBe('€614 from Adrian Moreland on 12 Oct: whose rent share?');
+  });
+  it('is snoozable like any other item', () => {
+    expect(buildActions({ ...base, creditAsks: [{ txId: 'tx9', date: '2026-10-12', amount: '614.00', name: 'X' }], snoozed: new Set(['credit-tx9']) })).toEqual([]);
+  });
+});
+
+describe('short credits', () => {
+  it('offers the split with the missing amount prefilled', () => {
+    const items = buildActions({ ...base, shortCredits: [{ txId: 'v1', personId: 'a', name: 'Victor', due: '614.00', got: '556.00', left: '58.00' }] });
+    expect(items[0]).toMatchObject({ id: 'short-v1', severity: 'WATCH', amount: '58.00', cta: { kind: 'go', to: '/money/payments?tx=v1&split=58.00&who=a' } });
+    expect(items[0]!.title).toBe('Victor sent €58 less than their €614: split it?');
+  });
+});
+
+describe('overdrawn with an arranged overdraft', () => {
+  const o = { balance: '-300.00', fees12m: '20.00' };
+  it('says how much room is left and stays calm while there is plenty', () => {
+    const [a] = buildActions({ ...base, overdrawn: { ...o, limit: '1000.00', room: '700.00' } });
+    expect(a).toMatchObject({ id: 'overdrawn', severity: 'WATCH' });
+    expect(a!.body).toContain('You have €700 of your €1,000 overdraft left.');
+  });
+  it('turns urgent when under €100 is left', () => {
+    expect(buildActions({ ...base, overdrawn: { ...o, balance: '-950.00', limit: '1000.00', room: '50.00' } })[0]).toMatchObject({ severity: 'ACT' });
+  });
+  it('is as before without a limit', () => {
+    const [a] = buildActions({ ...base, overdrawn: o });
+    expect(a).toMatchObject({ severity: 'ACT' });
+    expect(a!.body).not.toContain('overdraft left');
   });
 });

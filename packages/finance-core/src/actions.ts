@@ -34,7 +34,7 @@ export interface ActionInput {
   pots: Array<{ id: string; name: string; late: boolean; reaches: string; targetDate: string; need: string; monthly: string; shortfall: string }>;
   pace: Array<{ slug: string; name: string; spent: string; budget: string; projected: string; day: number }>;
   /** `rentOn` is set when a rent payment this month is why the account is below zero. */
-  overdrawn: { balance: string; fees12m: string; rentOn?: string } | null;
+  overdrawn: { balance: string; fees12m: string; rentOn?: string; limit?: string; room?: string } | null;
   /**
    * Set only when a rent round exists this month and the account's lowest end-of-day balance this month is below
    * zero: you fronted the rent and the shares arrived after it.
@@ -42,6 +42,10 @@ export interface ActionInput {
   frontOverdraft: { low: string; day: string; total: string; rentDay: number; payByDay: number; fees12m: string; message: string } | null;
   /** Flatmates who still owe part of this month's share. */
   shareReminders: Array<{ id: string; name: string; monthName: string; total: string; rentDate: string; got: string; own: string; left: string; message: string }>;
+  /** A housemate's only transfer is a little under their share. */
+  shortCredits: Array<{ txId: string; personId: string; name: string; due: string; got: string; left: string }>;
+  /** Money in near rent day that nobody has said is a housemate's share. */
+  creditAsks: Array<{ txId: string; date: string; amount: string; name: string }>;
   doubles: Array<{ id: string; merchantName: string; date: string; amount: string; count: number }>;
   rises: Array<{ id: string; name: string; from: string; to: string; since: string }>;
   /** Action ids the user has snoozed. */
@@ -175,14 +179,40 @@ export function buildActions(i: ActionInput): ActionItem[] {
       pinned: false,
     });
   }
+  for (const c of i.shortCredits) {
+    A.push({
+      id: `short-${c.txId}`,
+      severity: 'WATCH',
+      title: `${c.name} sent ${eur0(c.left)} less than their ${eur0(c.due)}: split it?`,
+      body: 'If they took it off for something they paid for you, such as a bill, split the transfer. The difference then counts as your spending and as rent they have paid.',
+      amount: c.left,
+      cta: { kind: 'go', label: 'Split it', to: `/money/payments?tx=${c.txId}&split=${c.left}&who=${c.personId}` },
+      pinned: false,
+    });
+  }
+  for (const c of i.creditAsks) {
+    A.push({
+      id: `credit-${c.txId}`,
+      severity: 'WATCH',
+      title: `${eur0(c.amount)} from ${c.name} on ${shortDate(c.date)}: whose rent share?`,
+      body: 'It arrived around rent day. Say whose share it is, or that it is not rent. Until then it counts as income.',
+      amount: c.amount,
+      cta: { kind: 'go', label: 'Say whose', to: `/money/payments?tx=${c.txId}` },
+      pinned: false,
+    });
+  }
   if (i.overdrawn) {
+    const od = i.overdrawn;
+    const hasLimit = od.limit !== undefined && od.room !== undefined && D(od.limit).gt(0);
+    const roomText = hasLimit ? ` You have ${eur0(od.room!)} of your ${eur0(od.limit!)} overdraft left.` : '';
     A.push({
       id: 'overdrawn',
-      severity: 'ACT',
-      title: `AIB is overdrawn: ${eur(i.overdrawn.balance)}`,
-      body: i.overdrawn.rentOn
-        ? `Rent went out on ${shortDate(i.overdrawn.rentOn)} before every share was in. AIB charged ${eur(i.overdrawn.fees12m)} in overdraft interest and fees in the last 12 months.`
-        : `AIB charged ${eur(i.overdrawn.fees12m)} in overdraft interest and fees in the last 12 months.`,
+      severity: hasLimit && D(od.room!).gte(100) ? 'WATCH' : 'ACT',
+      title: `AIB is overdrawn: ${eur(od.balance)}`,
+      body:
+        (od.rentOn
+          ? `Rent went out on ${shortDate(od.rentOn)} before every share was in. AIB charged ${eur(od.fees12m)} in overdraft interest and fees in the last 12 months.`
+          : `AIB charged ${eur(od.fees12m)} in overdraft interest and fees in the last 12 months.`) + roomText,
       amount: D(i.overdrawn.balance).neg().toFixed(2),
       cta: { kind: 'go', label: 'See the forecast', to: '/plan/payday' },
       pinned: true,
