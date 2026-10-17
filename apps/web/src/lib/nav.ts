@@ -1,6 +1,7 @@
 import {
   Briefcase,
   CalendarCheck,
+  ChartPie,
   Calculator,
   ClipboardCheck,
   Gift,
@@ -48,6 +49,7 @@ export const SECTIONS: NavSection[] = [
       { to: '/money/payments', label: 'Transactions', icon: LayoutList },
       { to: '/money/sort', label: 'To sort', icon: ListChecks },
       { to: '/money/cashflow', label: 'Cash flow', icon: Waypoints },
+      { to: '/money/spending', label: 'Spending', icon: ChartPie },
       { to: '/money/budgets', label: 'Budgets', icon: Target },
       { to: '/money/bills', label: 'Bills & subscriptions', icon: Receipt },
       { to: '/money/month', label: 'This month', icon: CalendarDays },

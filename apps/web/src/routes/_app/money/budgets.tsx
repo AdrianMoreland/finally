@@ -1,7 +1,7 @@
 import { eur, eur0, monthLabel, shiftMonth, useBudgets, useBudgetSuggestions, useCategories, usePrefs, useUpsertBudget } from '@finally/api-client';
 import { dublinDate, paceMonths, tripMonths } from '@finally/finance-core';
-import type { BudgetRow } from '@finally/contracts';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import type { BudgetRow, BudgetsResponse } from '@finally/contracts';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
@@ -82,6 +82,40 @@ function BudgetRowView({ r, month, day, days, suggestion, rentTotal }: { r: Budg
   );
 }
 
+/** All budgets together, and how they reconcile with everything you spent. */
+function TotalsPanel({ t, month }: { t: BudgetsResponse['totals']; month: string }): ReactNode {
+  const left = Number(t.left);
+  const rows: Array<[string, string, string?]> = [
+    ['Budgeted', eur0(t.budgeted)],
+    ['Spent in your budgets', eur0(t.spentInBudgets)],
+    [left >= 0 ? 'Left in your budgets' : 'Over your budgets', eur0(Math.abs(left)).replace(/^/, '')],
+  ];
+  const from = `${month}-01`;
+  const to = `${month}-${String(new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate()).padStart(2, '0')}`;
+  return (
+    <Panel>
+      <h3 className="mb-3 text-[16px] font-medium text-ink-2">All budgets together</h3>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+        {rows.map(([label, value], i) => (
+          <div key={label}>
+            <div className="text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-3">{label}</div>
+            <div className={cn('num font-display text-[24px] font-medium leading-tight', i === 2 && left < 0 && 'text-warn')}>{value}</div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 grid gap-1 border-t border-rule pt-3 text-[13px]">
+        <div className="flex justify-between gap-3"><span className="text-ink-2">Spent in your budgets</span><b className="num">{eur(t.spentInBudgets)}</b></div>
+        <div className="flex justify-between gap-3"><span className="text-ink-2">Spent outside budgets <small className="text-ink-3">(categories with no budget)</small></span><b className="num">{eur(t.outside)}</b></div>
+        <div className="flex justify-between gap-3"><span className="text-ink-2">Not sorted yet <small className="text-ink-3">(counts as spent)</small></span><b className="num">{eur(t.unsorted)}</b></div>
+        <div className="flex justify-between gap-3 border-t border-rule pt-1.5 font-semibold"><span>Everything you spent</span><span className="num">{eur(t.allSpending)}</span></div>
+      </div>
+      <p className="mt-2 text-[12.5px] text-ink-3">
+        <Link to="/money/spending" search={{ period: 'custom', from, to }} className="font-semibold text-brand">See every category for the month</Link>
+      </p>
+    </Panel>
+  );
+}
+
 function BudgetsPage() {
   const { month: monthParam } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -147,6 +181,7 @@ function BudgetsPage() {
         <Panel className="text-ink-2">No budgets for this month yet. Use &ldquo;Suggest from my last 3 months&rdquo; to start.</Panel>
       ) : (
         <div className={cn('grid gap-4', isFetching && 'opacity-80 transition-opacity')}>
+          <TotalsPanel t={data.totals} month={data.month} />
           <Panel>
             <h3 className="mb-3 text-[16px] font-medium text-ink-2">Flexible: what you choose to spend</h3>
             {flex.map((r) => (
@@ -164,9 +199,6 @@ function BudgetsPage() {
               {children.map((c) => c.category.name).join(', ')} roll up into their parent budgets above.
             </Callout>
           ) : null}
-          <div className="text-[13px] text-ink-2">
-            Total <b className="num text-ink">{eur(data.totalSpent)}</b> of <b className="num text-ink">{eur(data.totalBudget)}</b> across every line.
-          </div>
         </div>
       )}
     </>

@@ -71,7 +71,7 @@ function PaymentRow({ p }: { p: Payment }): ReactNode {
 function CashflowPage() {
   const { period: per, sel } = Route.useSearch();
   const period: CashflowPeriod = per ?? 'lastmonth';
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [by, setBy] = useState<'group' | 'both'>('both');
   const [pass, setPass] = useState(false);
   const [all, setAll] = useState(false);

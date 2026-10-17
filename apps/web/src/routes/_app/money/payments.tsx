@@ -5,8 +5,11 @@ import {
   shortDate,
   useAccounts,
   useCategories,
+  useMarkShare,
   usePatchTransaction,
+  usePrefs,
   useRecategorise,
+  useTransaction,
   useTransactions,
 } from '@finally/api-client';
 import type { CategoryDto, TransactionDto } from '@finally/contracts';
@@ -17,6 +20,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import { CategoryChip, EmptyState, ErrorNote, LoadingBlock, PageHeader, Panel } from '@/components/common';
 import { Callout, Chip, Seg } from '@/components/kit';
+import { SplitEditor } from '@/components/split-editor';
 import { Monogram } from '@/components/v4';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +40,14 @@ const search = z.object({
   /** The rent payment and housemates' shares back. */
   fronted: z.literal('true').optional(),
   status: z.enum(['PENDING', 'SORT', 'EXCLUDED']).optional(),
+  /** Only payments from this date to that one (from the Spending page). */
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  /** Open this transaction's detail (used by links from Today). */
+  tx: z.string().optional(),
+  /** With `tx`: open the split editor with this much settled without money (from a Today item). */
+  split: z.string().optional(),
+  who: z.string().optional(),
 });
 
 export const Route = createFileRoute('/_app/money/payments')({
@@ -133,10 +145,66 @@ const tags = (t: TransactionDto): ReactNode => (
       <Chip key={x}>#{x}</Chip>
     ))}
     {t.note ? <Chip>Note</Chip> : null}
+    {t.split ? <Chip>Split</Chip> : null}
   </>
 );
 
-function Detail({ tx, categories, onClose }: { tx: TransactionDto | null; categories: CategoryDto[]; onClose: () => void }): ReactNode {
+/** Mark a credit as a housemate's rent share: whose, which rent month, and whether to remember the text. */
+function RentShareBox({ tx }: { tx: TransactionDto }): ReactNode {
+  const prefs = usePrefs();
+  const mark = useMarkShare();
+  const people = prefs.data?.rent.flatmates ?? [];
+  const [who, setWho] = useState(tx.shareOf ?? '');
+  const [month, setMonth] = useState(tx.shareMonth ?? '');
+  const [every, setEvery] = useState(false);
+  const [text, setText] = useState(tx.rawDescriptor.slice(0, 40).trim());
+  useEffect(() => {
+    setWho(tx.shareOf ?? '');
+    setMonth(tx.shareMonth ?? '');
+    setEvery(false);
+    setText(tx.rawDescriptor.slice(0, 40).trim());
+  }, [tx.id, tx.shareOf, tx.shareMonth, tx.rawDescriptor]);
+  if (!people.length || Number(tx.amountEur) <= 0) return null;
+  const run = (body: Parameters<typeof mark.mutate>[0], done: string): void =>
+    mark.mutate(body, { onSuccess: () => toast.success(done), onError: (e) => toast.error(e instanceof Error ? e.message : 'Could not save') });
+  return (
+    <div className="grid gap-2 rounded-lg border border-rule p-3 text-[13px]">
+      <div className="font-semibold">Is this a rent share?</div>
+      <Select value={who || 'none'} onValueChange={(v) => setWho(v === 'none' ? '' : v)}>
+        <SelectTrigger aria-label="Rent share from" className="h-9"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="none">Not marked</SelectItem>
+          {people.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}&apos;s rent share</SelectItem>))}
+        </SelectContent>
+      </Select>
+      {who ? (
+        <>
+          <label className="grid gap-1">
+            <span className="text-ink-2">Counts toward the rent of (blank = by its date)</span>
+            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="h-8 w-[170px]" aria-label="Rent month" />
+          </label>
+          <label className="flex items-center justify-between gap-3">
+            <span>Every time: remember this text for them<small className="block text-[12px] text-ink-3">Future transfers whose description has it are marked automatically.</small></span>
+            <Switch checked={every} onCheckedChange={setEvery} aria-label="Remember this text" />
+          </label>
+          {every ? <Input value={text} onChange={(e) => setText(e.target.value)} className="h-8" aria-label="Text to remember" /> : null}
+        </>
+      ) : null}
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          disabled={mark.isPending || (!who && !tx.shareOf)}
+          onClick={() => run({ id: tx.id, personId: who || null, month: who ? month || null : null, ...(who && every && text.trim() ? { remember: text.trim() } : {}) }, who ? 'Marked as a rent share' : 'Mark removed')}
+        >
+          Save
+        </Button>
+        {!tx.shareOf ? <Button size="sm" variant="outline" disabled={mark.isPending} onClick={() => run({ id: tx.id, personId: null, notRent: true }, 'Left as it is')}>Not rent</Button> : null}
+      </div>
+    </div>
+  );
+}
+
+function Detail({ tx, categories, onClose, prefill }: { tx: TransactionDto | null; categories: CategoryDto[]; onClose: () => void; prefill?: { amount: string; who: string } | null }): ReactNode {
   const patch = usePatchTransaction();
   const [note, setNote] = useState('');
   const [tagText, setTagText] = useState('');
@@ -175,6 +243,8 @@ function Detail({ tx, categories, onClose }: { tx: TransactionDto | null; catego
               ))}
             </div>
           ) : null}
+          <SplitEditor tx={tx} categories={categories} prefill={prefill} />
+          <RentShareBox tx={tx} />
           <div>
             <div className="mb-1 text-[11.5px] font-semibold uppercase tracking-[0.07em] text-ink-3">What the bank says</div>
             <span className="raw-marker break-all">{tx.rawDescriptor}</span>
@@ -232,7 +302,7 @@ function PaymentsPage() {
   const categories = useCategories();
   const [q, setQ] = useState(params.q ?? '');
   const debouncedQ = useDebounced(q);
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(params.tx ?? null);
 
   useEffect(() => {
     if ((params.q ?? '') !== debouncedQ) void navigate({ search: (prev) => ({ ...prev, q: debouncedQ || undefined }), replace: true });
@@ -249,6 +319,8 @@ function PaymentsPage() {
       excluded: params.status === 'EXCLUDED' ? ('true' as const) : undefined,
       kind: params.kind,
       fronted: params.fronted,
+      from: params.from,
+      to: params.to,
     }),
     [params],
   );
@@ -278,7 +350,9 @@ function PaymentsPage() {
 
   const cats = categories.data ?? [];
   const top = cats.filter((c) => !c.parentId && !c.archived);
-  const selected = rows.find((r) => r.id === open) ?? null;
+  const listed = rows.find((r) => r.id === open);
+  const fetched = useTransaction(open && !listed ? open : undefined);
+  const selected = listed ?? fetched.data ?? null;
   const active = Object.values(params).some((v) => v !== undefined && v !== '');
 
   return (
@@ -409,7 +483,15 @@ function PaymentsPage() {
           )}
         </Panel>
       )}
-      <Detail tx={selected} categories={cats} onClose={() => setOpen(null)} />
+      <Detail
+        tx={selected}
+        categories={cats}
+        prefill={params.tx && params.tx === open && params.split && params.who ? { amount: params.split, who: params.who } : null}
+        onClose={() => {
+          setOpen(null);
+          if (params.tx) set({ tx: undefined, split: undefined, who: undefined });
+        }}
+      />
     </>
   );
 }

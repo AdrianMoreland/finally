@@ -141,7 +141,8 @@ function Answer({ turn }: { turn: AskTurn }): ReactNode {
       return;
     }
     setOpen(false);
-    void navigate({ to: to as never });
+    const [path, qs] = to.split('?');
+    void navigate({ to: path as never, ...(qs ? { search: Object.fromEntries(new URLSearchParams(qs)) as never } : {}) });
   };
   const pinnedNow = r.pinned;
   return (

@@ -8,6 +8,8 @@ import {
   useConnections,
   useImportCsv,
   useMe,
+  usePatchPrefs,
+  usePrefs,
   useRemoveConnection,
   useRules,
   useStartConnection,
@@ -45,6 +47,61 @@ const STATUS_TEXT: Record<ConnectionDto['status'], string> = {
   EXPIRED: 'Not linked / expired',
   ERROR: 'Last sync failed',
 };
+
+/* --------------------------------------------------------------- overdraft */
+
+/** The arranged overdraft of one current account. Room is spendable but never counted as an asset. */
+function OverdraftRow({ id, name, limit }: { id: string; name: string; limit: string }): ReactNode {
+  const api = useApi();
+  const qc = useQueryClient();
+  const [value, setValue] = useState(Number(limit) > 0 ? String(Number(limit)) : '');
+  useEffect(() => setValue(Number(limit) > 0 ? String(Number(limit)) : ''), [limit]);
+  const save = useMutation({
+    mutationFn: (v: string) => api.setAccountOverdraft(id, v),
+    onSuccess: () => {
+      invalidateMoney(qc);
+      toast.success('Overdraft limit saved');
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : 'Could not save'),
+  });
+  const commit = (): void => {
+    const next = (Number(value) || 0).toFixed(2);
+    if (next !== Number(limit).toFixed(2)) save.mutate(next);
+  };
+  return (
+    <label className="flex items-center justify-between gap-3 text-[13px]">
+      <span>{name}</span>
+      <span className="flex items-center gap-1.5">
+        €
+        <Input inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} onBlur={commit} placeholder="0" className="h-8 w-[100px]" aria-label={`${name} overdraft limit`} />
+      </span>
+    </label>
+  );
+}
+
+function KeepFree(): ReactNode {
+  const prefs = usePrefs();
+  const patch = usePatchPrefs();
+  const saved = prefs.data?.overdraft.keepFree ?? '0';
+  const [value, setValue] = useState(Number(saved) > 0 ? String(Number(saved)) : '');
+  useEffect(() => setValue(Number(saved) > 0 ? String(Number(saved)) : ''), [saved]);
+  const commit = (): void => {
+    const next = (Number(value) || 0).toFixed(2);
+    if (next !== Number(saved).toFixed(2)) patch.mutate({ overdraft: { keepFree: next } }, { onSuccess: () => toast.success('Saved') });
+  };
+  return (
+    <label className="flex items-center justify-between gap-3 text-[13px]">
+      <span>
+        Keep this much of the overdraft free
+        <small className="block text-[12px] text-ink-3">Safe to spend leaves it alone. Net worth always uses your real balance.</small>
+      </span>
+      <span className="flex items-center gap-1.5">
+        €
+        <Input inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} onBlur={commit} placeholder="0" className="h-8 w-[100px]" aria-label="Overdraft to keep free" />
+      </span>
+    </label>
+  );
+}
 
 /* ------------------------------------------------------------- connections */
 
@@ -171,6 +228,21 @@ function ConnectionsCard(): ReactNode {
                 <Switch checked={a.includeInNetWorth} onCheckedChange={(on) => toggle.mutate({ id: a.id, on })} aria-label={`Include ${a.name} in net worth`} />
               </label>
             ))}
+          </div>
+        </div>
+      ) : null}
+
+      {accounts.data?.some((a) => a.type === 'CURRENT') ? (
+        <div className="mt-4 border-t border-rule pt-4">
+          <h4 className="mb-1 text-[13px] font-semibold">Arranged overdraft</h4>
+          <p className="mb-2 text-[12.5px] text-ink-3">The most the bank lets a current account go below zero. The room left counts as money you can spend, never as an asset.</p>
+          <div className="grid gap-2">
+            {accounts.data
+              .filter((a) => a.type === 'CURRENT')
+              .map((a) => (
+                <OverdraftRow key={a.id} id={a.id} name={a.name} limit={a.overdraftLimit} />
+              ))}
+            {accounts.data.some((a) => a.type === 'CURRENT' && Number(a.overdraftLimit) > 0) ? <KeepFree /> : null}
           </div>
         </div>
       ) : null}
